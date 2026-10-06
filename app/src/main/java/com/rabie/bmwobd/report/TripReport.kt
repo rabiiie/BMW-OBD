@@ -68,6 +68,10 @@ object TripReport {
 
     private class Rows(val data: TripData) {
         fun at(id: Int, i: Int): Double? = data.series[id]?.get(i)?.takeIf { !it.isNaN() }
+        /** Todas las lecturas de una fila, para calcular con ellas lo mismo que en vivo. */
+        fun values(i: Int): Map<Int, Double> =
+            data.series.mapNotNull { (id, series) -> series[i].takeIf { !it.isNaN() }?.let { id to it } }.toMap()
+
         fun dt(i: Int): Long = if (i == 0) 0L else (data.tMs[i] - data.tMs[i - 1]).coerceIn(0L, MAX_GAP_MS)
 
         /** Turbo en bar sobre la presion atmosferica, a partir de una presion absoluta en kPa. */
@@ -161,8 +165,7 @@ object TripReport {
             railActual.add(rows.at(Moment.RAIL_ACTUAL, i) ?: rows.at(Moment.RAIL, i), dt)
             val air = rows.at(Moment.MAF, i)
             maf.add(air, dt)
-            val values = rows.data.series.mapNotNull { (id, s) -> s[i].takeIf { !it.isNaN() }?.let { id to it } }.toMap()
-            val theoretical = Moment(values, 0, null, vehicle).theoreticalAir
+            val theoretical = Moment(rows.values(i), 0, null, vehicle).theoreticalAir
             if (air != null && theoretical != null && theoretical > 0) ratio.add(air / theoretical, dt)
         }
         return Pull(
@@ -245,6 +248,8 @@ object TripReport {
         val rows = Rows(data)
         val rpm = Acc()
         val load = Acc()
+        val corrected = Acc()
+        val egr = Acc()
         val maf = Acc()
         val rail = Acc()
         val volts = Acc()
@@ -258,6 +263,8 @@ object TripReport {
             val dt = rows.dt(i)
             rpm.add(r, dt)
             load.add(rows.at(Pids.LOAD, i), dt)
+            egr.add(rows.at(Moment.EGR_COMMANDED, i), dt)
+            corrected.add(Moment(rows.values(i), 0, null, vehicle).egrFreeLoad, dt)
             maf.add(rows.at(Moment.MAF, i), dt)
             rail.add(rows.at(Moment.RAIL_ACTUAL, i) ?: rows.at(Moment.RAIL, i), dt)
             volts.add(rows.voltage(i), dt)
@@ -269,7 +276,9 @@ object TripReport {
             listOfNotNull(
                 ReportLine("Tiempo al ralentí", clock(rpm.weight.toLong())),
                 rpm.avg?.let { ReportLine("Revoluciones", "${n(it)} rpm (${n(rpm.low!!)}–${n(rpm.peak!!)})") },
-                load.avg?.let { ReportLine("Carga", "${n(it)} %") },
+                load.avg?.let { ReportLine("Carga que marca el OBD", "${n(it)} % (${n(load.low!!)}–${n(load.peak!!)})") },
+                corrected.avg?.let { ReportLine("Carga corregida por la EGR", "${n(it)} %") },
+                egr.avg?.let { ReportLine("EGR mandada", "${n(it)} % (${n(egr.low!!)}–${n(egr.peak!!)})") },
                 maf.avg?.let { air ->
                     // mg por embolada es la unidad en que lo dan las herramientas de taller.
                     val perStroke = rpm.avg?.takeIf { it > 0 }?.let { air / (it / 60.0 * 2.0) * 1000.0 }
@@ -281,7 +290,7 @@ object TripReport {
             ),
             EngineReference.of(vehicle)?.let {
                 "Referencia ${it.name} (${it.source}): ${n(it.idleRpm)} rpm, " +
-                    "carga ${n(it.idleLoad.start)}–${n(it.idleLoad.endInclusive)} %, " +
+                    "carga ${n(it.idleLoad.start)}–${n(it.idleLoad.endInclusive)} % (se compara la corregida por la EGR), " +
                     "aire ${n(it.idleAirGramsPerSecond.start, 1)}–${n(it.idleAirGramsPerSecond.endInclusive, 1)} g/s con la EGR abierta, " +
                     "raíl ${n(it.idleRailBar.start)}–${n(it.idleRailBar.endInclusive)} bar."
             },

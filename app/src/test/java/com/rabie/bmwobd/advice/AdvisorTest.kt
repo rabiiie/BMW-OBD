@@ -122,6 +122,23 @@ class AdvisorTest {
     }
 
     @Test
+    fun `la carga corregida no cambia al abrir o cerrar la EGR`() {
+        val bmw = com.rabie.bmwobd.vehicle.Vehicle.GENERIC.copy(name = "118d", make = "BMW", displacementLiters = 1.995)
+        // Dos momentos reales del mismo ralenti: EGR abierta y, un minuto despues, cerrada.
+        val base = mapOf(Pids.RPM to 842.0, Pids.SPEED to 0.0, Pids.COOLANT to 90.0, Pids.MAP to 96.0, Moment.INTAKE_TEMP to 21.0)
+        val open = Moment(base + (Pids.LOAD to 53.9) + (Moment.MAF to 7.5), 0, null, bmw).egrFreeLoad!!
+        val closed = Moment(base + (Pids.LOAD to 27.7) + (Moment.MAF to 13.9), 0, null, bmw).egrFreeLoad!!
+        assertEquals(open, closed, 2.0)
+        assertEquals(25.0, open, 2.0)
+        // Con la EGR abierta el OBD marca 54 %, pero corregida queda en la referencia: sin aviso.
+        val idle = base + (Pids.LOAD to 53.9) + (Moment.MAF to 7.5)
+        var last = emptyList<Advice>()
+        val advisor = Advisor()
+        for (s in 0..60) last = advisor.update(s * 1000L, idle, bmw)
+        assertNull(last.find("idle_load"))
+    }
+
+    @Test
     fun `motor frio exigido es solo un consejo`() {
         val cold = mapOf(Pids.RPM to 3400.0, Pids.SPEED to 60.0, Pids.COOLANT to 35.0, Pids.OIL to 30.0, Pids.LOAD to 60.0)
         assertEquals(Severity.INFO, hold(cold, 5).find("cold_push")?.severity)

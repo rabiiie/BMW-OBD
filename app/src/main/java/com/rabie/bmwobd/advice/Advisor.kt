@@ -143,6 +143,20 @@ class Moment(
             return density * liters * r / 120.0
         }
 
+    /**
+     * Carga corregida por la EGR. En este tipo de centralita diesel la carga del OBD sube cuando
+     * entra menos aire fresco: con la EGR abierta marca el doble que con ella cerrada, con el motor
+     * haciendo el mismo trabajo. Multiplicada por la parte del cilindro que se llena de aire
+     * fresco, deja de depender de la EGR y se puede comparar con una referencia.
+     */
+    val egrFreeLoad: Double?
+        get() {
+            val raw = load ?: return null
+            val air = values[MAF] ?: return null
+            val full = theoreticalAir?.takeIf { it > 0 } ?: return null
+            return raw * air / full
+        }
+
     companion object {
         const val INTAKE_TEMP = 0x0F
         const val MAF = 0x10
@@ -341,14 +355,26 @@ class Advisor {
                 val load = m.load ?: return@Rule null
                 if (!m.idle || !m.warm) return@Rule null
                 val normal = m.reference?.idleLoad
-                val warn = normal?.let { it.endInclusive + Limits.IDLE_LOAD_MARGIN_WARN } ?: Limits.IDLE_LOAD_WARN
-                val alert = normal?.let { it.endInclusive + Limits.IDLE_LOAD_MARGIN_ALERT } ?: Limits.IDLE_LOAD_ALERT
-                val severity = level(load, warn, alert) ?: return@Rule null
+                if (normal != null) {
+                    // Con referencia se compara la carga corregida: la cruda cambia al doble con la EGR.
+                    val corrected = m.egrFreeLoad ?: return@Rule null
+                    val severity = level(
+                        corrected,
+                        normal.endInclusive + Limits.IDLE_LOAD_MARGIN_WARN,
+                        normal.endInclusive + Limits.IDLE_LOAD_MARGIN_ALERT,
+                    ) ?: return@Rule null
+                    return@Rule Advice(
+                        "idle_load", severity, "Carga corregida del ${n(corrected)} % al ralentí",
+                        "En caliente y parado el motor trabaja más de lo normal (referencia " +
+                            "${n(normal.start)}–${n(normal.endInclusive)} % sin consumidores; el OBD marca ${n(load)} %). " +
+                            "Puede ser un consumidor grande (aire acondicionado, alternador cargando) o algo que lo frena.",
+                    )
+                }
+                val severity = level(load, Limits.IDLE_LOAD_WARN, Limits.IDLE_LOAD_ALERT) ?: return@Rule null
                 Advice(
                     "idle_load", severity, "Carga del ${n(load)} % al ralentí",
-                    "En caliente y parado el motor trabaja más de lo normal" +
-                        (normal?.let { " (referencia ${n(it.start)}–${n(it.endInclusive)} % sin consumidores)" } ?: "") +
-                        ". Puede ser un consumidor grande (aire acondicionado, alternador cargando) o algo que lo frena.",
+                    "En caliente y parado el motor trabaja más de lo normal. Puede ser un consumidor grande " +
+                        "(aire acondicionado, alternador cargando) o algo que lo frena.",
                 )
             },
             Rule("idle_rail", 20_000) { m ->

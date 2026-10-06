@@ -44,15 +44,13 @@ class RealTripTest {
     }
 
     @Test
-    fun `con la referencia del N47 la carga al ralenti sale como aviso y nada en rojo`() {
+    fun `con la referencia del N47 la carga corregida al ralenti queda dentro y no hay avisos`() {
         val bmw = Vehicle.GENERIC.copy(name = "118d N47", make = "BMW", displacementLiters = 1.995)
         val data = trip()
         val findings = Advisor.review(data, bmw)
         println("Indicios con referencia N47: " + findings.map { "${it.advice.severity} ${it.advice.id} ${it.seconds}s" })
         println(TripReport.text("real con referencia", bmw, TripReport.build(data, bmw, TripCsv.stats(data), findings)))
-        assertEquals(Severity.WARN, findings.first { it.advice.id == "idle_load" }.advice.severity)
-        assertTrue(findings.none { it.advice.severity == Severity.ALERT })
-        assertTrue(findings.none { it.advice.id == "idle_rail" })
+        assertTrue(findings.none { it.advice.severity != Severity.INFO })
     }
 
     @Test
