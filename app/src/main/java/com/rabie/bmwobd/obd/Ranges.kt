@@ -25,11 +25,11 @@ data class Range(
 /** Rangos de partida del 118d N47. Sin rango no hay semaforo: se calibran con trayectos propios. */
 object DefaultRanges {
     val byPid: Map<Int, Range> = mapOf(
-        0x05 to Range(80.0, 100.0, 80.0, 108.0, lowIsNeutral = true),
+        0x05 to Range(80.0, 105.0, 80.0, 108.0, lowIsNeutral = true),
         0x5C to Range(85.0, 115.0, 85.0, 125.0, lowIsNeutral = true),
         0x0F to Range(-40.0, 50.0, -40.0, 65.0),
         // Ancho a proposito: con recuperacion de energia la tension va de 12,2 a 15 V en marcha.
-        0x42 to Range(12.1, 15.0, 11.5, 15.4),
-        Pids.ADAPTER_VOLTAGE to Range(12.1, 15.0, 11.5, 15.4),
+        0x42 to Range(12.2, 14.8, 11.5, 15.4),
+        Pids.ADAPTER_VOLTAGE to Range(12.2, 14.8, 11.5, 15.4),
     )
 }

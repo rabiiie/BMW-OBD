@@ -194,7 +194,7 @@ private fun TripDetail(
             val findings = remember(trip, vehicle) { Advisor.review(trip, vehicle) }
             Label("Indicios del trayecto", Modifier.padding(top = 6.dp))
             if (findings.isEmpty()) {
-                Text("Nada fuera de lo normal.", color = Bmw.TextDim)
+                Text("Ninguna regla ha saltado. No significa que el coche esté revisado.", color = Bmw.TextDim)
             } else {
                 Text("Son pistas para investigar, no un diagnóstico.", color = Bmw.TextDim, fontSize = 13.sp)
                 for (finding in findings) {

@@ -2,6 +2,7 @@ package com.rabie.bmwobd.advice
 
 import com.rabie.bmwobd.obd.Pids
 import com.rabie.bmwobd.trips.TripData
+import com.rabie.bmwobd.vehicle.EngineReference
 import com.rabie.bmwobd.vehicle.Vehicle
 
 enum class Severity { INFO, WARN, ALERT }
@@ -24,7 +25,21 @@ object Limits {
     const val IDLE_LOAD_WARN = 45.0
     const val IDLE_LOAD_ALERT = 65.0
     const val IDLE_RPM_LOW = 650.0
-    const val IDLE_RPM_HIGH = 950.0
+    const val IDLE_RPM_HIGH = 900.0
+
+    // Margenes alrededor de la referencia del motor: aviso al salirse un poco, rojo al salirse mucho.
+    const val IDLE_LOAD_MARGIN_WARN = 10.0
+    const val IDLE_LOAD_MARGIN_ALERT = 30.0
+    const val IDLE_RAIL_MARGIN_WARN = 40.0
+    const val IDLE_RAIL_MARGIN_ALERT = 100.0
+    const val IDLE_AIR_MARGIN_WARN = 1.5
+    const val IDLE_AIR_MARGIN_ALERT = 4.0
+    const val IDLE_AIR_MIN_EGR = 15.0
+    const val FULL_LOAD_MIN_RPM = 2000.0
+    const val FULL_LOAD_MIN_LOAD = 99.0
+    const val FULL_LOAD_MAP_WARN_BELOW = 20.0
+    const val FULL_LOAD_MAP_ALERT_BELOW = 45.0
+    const val RAIL_OVER_MAX_ALERT = 150.0
 
     const val OIL_WARN = 125.0
     const val OIL_ALERT = 135.0
@@ -48,8 +63,8 @@ object Limits {
     const val FILTER_LOAD_ALERT_KPA = 50.0
     const val FILTER_LOAD_MIN_RPM = 3500.0
 
-    const val EXHAUST_WARN = 750.0
-    const val EXHAUST_ALERT = 830.0
+    const val EXHAUST_WARN = 700.0
+    const val EXHAUST_ALERT = 750.0
 
     // Aire de admision respecto al exterior, rodando estable: mide lo que enfria el intercooler.
     const val INTAKE_DELTA_WARN = 25.0
@@ -85,6 +100,9 @@ class Moment(
     val recentLoad: Double?,
     val vehicle: Vehicle,
 ) {
+    /** La referencia del motor de este coche, si se conoce. */
+    val reference: EngineReference? = EngineReference.of(vehicle)
+
     val rpm = values[Pids.RPM]
     val speed = values[Pids.SPEED]
     val load = values[Pids.LOAD]
@@ -121,7 +139,11 @@ class Moment(
         const val MODULE_VOLTAGE = 0x42
         const val AMBIENT_TEMP = 0x46
         val FILTER_PRESSURE = Pids.part(0x7A, 0)
-        val EXHAUST_TEMPS = (0..3).map { Pids.part(0x78, it) }
+        const val CATALYST_TEMP = 0x3C
+        const val RAIL = 0x23
+
+        // La temperatura del catalizador es la unica de escape que dan muchos coches.
+        val EXHAUST_TEMPS = (0..3).map { Pids.part(0x78, it) } + CATALYST_TEMP
         val BOOST_COMMANDED = Pids.part(0x70, 0)
         val BOOST_ACTUAL = Pids.part(0x70, 1)
         val RAIL_COMMANDED = Pids.part(0x6D, 0)
@@ -157,18 +179,29 @@ class Advisor {
         val active = mutableListOf<Advice>()
         for (rule in RULES) {
             val advice = rule.check(moment)
+            val alertKey = rule.id + ALERT_SUFFIX
             if (advice == null) {
                 since.remove(rule.id)
+                since.remove(alertKey)
                 continue
             }
             val start = since.getOrPut(rule.id) { tMs }
-            if (tMs - start >= rule.holdMs) active += advice
+            // El rojo tambien tiene que mantenerse: un pico suelto dentro de un aviso se queda en aviso.
+            val held = if (advice.severity == Severity.ALERT) {
+                val alertStart = since.getOrPut(alertKey) { tMs }
+                if (tMs - alertStart >= rule.holdMs) advice else advice.copy(severity = Severity.WARN)
+            } else {
+                since.remove(alertKey)
+                advice
+            }
+            if (tMs - start >= rule.holdMs) active += held
         }
         return active.sortedByDescending { it.severity }
     }
 
     companion object {
         private const val MAX_GAP_MS = 5_000L
+        private const val ALERT_SUFFIX = "#rojo"
 
         /** Pasa las reglas por un trayecto grabado: que indicios salieron y cuanto duraron. */
         fun review(data: TripData, vehicle: Vehicle = Vehicle.GENERIC): List<TripFinding> {
@@ -197,6 +230,10 @@ class Advisor {
             value >= warn -> Severity.WARN
             else -> null
         }
+
+        /** Aviso si [value] se sale del rango mas un margen, y rojo si se sale con el margen grande. */
+        private fun outside(value: Double, range: ClosedFloatingPointRange<Double>, warn: Double, alert: Double): Severity? =
+            level(maxOf(range.start - value, value - range.endInclusive), warn, alert)
 
         private fun n(value: Double, decimals: Int = 0) = "%.${decimals}f".format(value)
 
@@ -278,11 +315,54 @@ class Advisor {
             Rule("idle_load", 20_000) { m ->
                 val load = m.load ?: return@Rule null
                 if (!m.idle || !m.warm) return@Rule null
-                val severity = level(load, Limits.IDLE_LOAD_WARN, Limits.IDLE_LOAD_ALERT) ?: return@Rule null
+                val normal = m.reference?.idleLoad
+                val warn = normal?.let { it.endInclusive + Limits.IDLE_LOAD_MARGIN_WARN } ?: Limits.IDLE_LOAD_WARN
+                val alert = normal?.let { it.endInclusive + Limits.IDLE_LOAD_MARGIN_ALERT } ?: Limits.IDLE_LOAD_ALERT
+                val severity = level(load, warn, alert) ?: return@Rule null
                 Advice(
                     "idle_load", severity, "Carga del ${n(load)} % al ralentí",
-                    "En caliente y parado el motor trabaja más de lo normal. Puede ser un consumidor grande " +
-                        "(aire acondicionado, alternador cargando) o algo que lo frena.",
+                    "En caliente y parado el motor trabaja más de lo normal" +
+                        (normal?.let { " (referencia ${n(it.start)}–${n(it.endInclusive)} % sin consumidores)" } ?: "") +
+                        ". Puede ser un consumidor grande (aire acondicionado, alternador cargando) o algo que lo frena.",
+                )
+            },
+            Rule("idle_rail", 20_000) { m ->
+                val normal = m.reference?.idleRailBar ?: return@Rule null
+                val rail = m.values[Moment.RAIL_ACTUAL] ?: m.values[Moment.RAIL] ?: return@Rule null
+                if (!m.idle || !m.warm) return@Rule null
+                val severity = outside(rail, normal, Limits.IDLE_RAIL_MARGIN_WARN, Limits.IDLE_RAIL_MARGIN_ALERT)
+                    ?: return@Rule null
+                Advice(
+                    "idle_rail", severity, "Raíl a ${n(rail)} bar al ralentí",
+                    "La referencia de este motor es ${n(normal.start)}–${n(normal.endInclusive)} bar. " +
+                        "Conviene mirar filtro de gasóleo, regulador de presión y bomba.",
+                )
+            },
+            Rule("idle_air", 20_000) { m ->
+                val normal = m.reference?.idleAirGramsPerSecond ?: return@Rule null
+                val air = m.values[Moment.MAF] ?: return@Rule null
+                // La referencia es con la EGR abierta: con ella cerrada entra el doble y es normal.
+                val egr = m.values[Moment.EGR_COMMANDED] ?: 0.0
+                if (!m.idle || !m.warm || egr < Limits.IDLE_AIR_MIN_EGR) return@Rule null
+                val severity = outside(air, normal, Limits.IDLE_AIR_MARGIN_WARN, Limits.IDLE_AIR_MARGIN_ALERT)
+                    ?: return@Rule null
+                val hint = if (air > normal.endInclusive) {
+                    "Si entra de más, la EGR recircula menos de lo que se le pide."
+                } else {
+                    "Si entra de menos, mira caudalímetro, filtro de aire y fugas."
+                }
+                Advice(
+                    "idle_air", severity, "Aire de ${n(air, 1)} g/s al ralentí",
+                    "La referencia con la EGR abierta es ${n(normal.start, 1)}–${n(normal.endInclusive, 1)} g/s. $hint",
+                )
+            },
+            Rule("rail_high", 2_000) { m ->
+                val max = m.reference?.maxRailBar ?: return@Rule null
+                val rail = m.values[Moment.RAIL_ACTUAL] ?: m.values[Moment.RAIL] ?: return@Rule null
+                if (rail < max + Limits.RAIL_OVER_MAX_ALERT) return@Rule null
+                Advice(
+                    "rail_high", Severity.ALERT, "Raíl a ${n(rail)} bar",
+                    "Por encima del máximo de este motor (${n(max)} bar). Conviene revisar el regulador de presión.",
                 )
             },
             Rule("idle_rpm", 30_000) { m ->
@@ -323,6 +403,20 @@ class Advisor {
                     return@Rule Advice(
                         "boost_low", severity, "Faltan ${n(deficit / 100, 2)} bar de turbo",
                         "La centralita pide más presión de la que llega. Mira manguitos, intercooler y la geometría del turbo.",
+                    )
+                }
+                val normal = m.reference?.fullLoadMapKpa
+                val map = m.values[Pids.MAP]
+                if (normal != null && map != null) {
+                    val fullLoad = (m.rpm ?: 0.0) > Limits.FULL_LOAD_MIN_RPM &&
+                        (m.load ?: 0.0) >= Limits.FULL_LOAD_MIN_LOAD
+                    if (!fullLoad) return@Rule null
+                    val severity = level(normal.start - map, Limits.FULL_LOAD_MAP_WARN_BELOW, Limits.FULL_LOAD_MAP_ALERT_BELOW)
+                        ?: return@Rule null
+                    return@Rule Advice(
+                        "boost_low", severity, "Turbo de ${n(map)} kPa a plena carga",
+                        "La referencia de este motor a fondo es ${n(normal.start)}–${n(normal.endInclusive)} kPa. " +
+                            "Mira manguitos, intercooler y la geometría del turbo.",
                     )
                 }
                 val boost = (Pids.boostBar(m.values) ?: return@Rule null) * 100

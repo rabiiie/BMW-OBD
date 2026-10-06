@@ -39,7 +39,7 @@ class PidsTest {
         val coolant = DefaultRanges.byPid.getValue(0x05)
         assertEquals(Status.OK, coolant.evaluate(90.0))
         assertEquals(Status.NEUTRAL, coolant.evaluate(40.0))
-        assertEquals(Status.WARN, coolant.evaluate(105.0))
+        assertEquals(Status.WARN, coolant.evaluate(107.0))
         assertEquals(Status.ALERT, coolant.evaluate(115.0))
     }
 }

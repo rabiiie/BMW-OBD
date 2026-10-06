@@ -7,6 +7,7 @@ import com.rabie.bmwobd.advice.TripFinding
 import com.rabie.bmwobd.obd.Pids
 import com.rabie.bmwobd.trips.TripData
 import com.rabie.bmwobd.trips.TripStats
+import com.rabie.bmwobd.vehicle.EngineReference
 import com.rabie.bmwobd.vehicle.Vehicle
 
 data class ReportLine(val label: String, val value: String)
@@ -84,7 +85,7 @@ object TripReport {
         listOfNotNull(
             summary(stats),
             warmUp(data),
-            idle(data),
+            idle(data, vehicle),
             pullsSection(data, vehicle),
             cruise(data),
             electric(data),
@@ -158,7 +159,7 @@ object TripReport {
                 actualWhenCommanded.add(rows.boostActual(i), dt)
             }
             railCommanded.add(rows.at(Moment.RAIL_COMMANDED, i), dt)
-            railActual.add(rows.at(Moment.RAIL_ACTUAL, i) ?: rows.at(RAIL, i), dt)
+            railActual.add(rows.at(Moment.RAIL_ACTUAL, i) ?: rows.at(Moment.RAIL, i), dt)
             val air = rows.at(Moment.MAF, i)
             maf.add(air, dt)
             val values = rows.data.series.mapNotNull { (id, s) -> s[i].takeIf { !it.isNaN() }?.let { id to it } }.toMap()
@@ -231,7 +232,7 @@ object TripReport {
         )
     }
 
-    private fun idle(data: TripData): ReportSection? {
+    private fun idle(data: TripData, vehicle: Vehicle): ReportSection? {
         val rows = Rows(data)
         val rpm = Acc()
         val load = Acc()
@@ -249,7 +250,7 @@ object TripReport {
             rpm.add(r, dt)
             load.add(rows.at(Pids.LOAD, i), dt)
             maf.add(rows.at(Moment.MAF, i), dt)
-            rail.add(rows.at(Moment.RAIL_ACTUAL, i) ?: rows.at(RAIL, i), dt)
+            rail.add(rows.at(Moment.RAIL_ACTUAL, i) ?: rows.at(Moment.RAIL, i), dt)
             volts.add(rows.voltage(i), dt)
             filter.add(rows.at(Moment.FILTER_PRESSURE, i), dt)
         }
@@ -260,11 +261,21 @@ object TripReport {
                 ReportLine("Tiempo al ralentí", clock(rpm.weight.toLong())),
                 rpm.avg?.let { ReportLine("Revoluciones", "${n(it)} rpm (${n(rpm.low!!)}–${n(rpm.peak!!)})") },
                 load.avg?.let { ReportLine("Carga", "${n(it)} %") },
-                maf.avg?.let { ReportLine("Caudal de aire", "${n(it, 1)} g/s") },
+                maf.avg?.let { air ->
+                    // mg por embolada es la unidad en que lo dan las herramientas de taller.
+                    val perStroke = rpm.avg?.takeIf { it > 0 }?.let { air / (it / 60.0 * 2.0) * 1000.0 }
+                    ReportLine("Caudal de aire", "${n(air, 1)} g/s" + (perStroke?.let { " (${n(it)} mg por embolada)" } ?: ""))
+                },
                 rail.avg?.let { ReportLine("Presión de raíl", "${n(it)} bar") },
                 volts.avg?.let { ReportLine("Tensión", "${n(it, 1)} V") },
                 filter.avg?.let { ReportLine("Presión diferencial del filtro", "${n(it * 10)} mbar") },
             ),
+            EngineReference.of(vehicle)?.let {
+                "Referencia ${it.name} (${it.source}): ${n(it.idleRpm)} rpm, " +
+                    "carga ${n(it.idleLoad.start)}–${n(it.idleLoad.endInclusive)} %, " +
+                    "aire ${n(it.idleAirGramsPerSecond.start, 1)}–${n(it.idleAirGramsPerSecond.endInclusive, 1)} g/s con la EGR abierta, " +
+                    "raíl ${n(it.idleRailBar.start)}–${n(it.idleRailBar.endInclusive)} bar."
+            },
         )
     }
 
@@ -291,7 +302,13 @@ object TripReport {
         return ReportSection(
             "Aceleraciones a fondo",
             lines,
-            "Si el turbo pedido también es bajo, es la centralita la que limita. Si pide mucho y el real no llega, falta aire: fuga, turbo o actuador.",
+            "Si el turbo pedido también es bajo, es la centralita la que limita. Si pide mucho y el real no llega, falta aire: fuga, turbo o actuador." +
+                (EngineReference.of(vehicle)?.let {
+                    " Referencia ${it.name} a fondo y 4000 rpm (${it.source}): " +
+                        "${n(it.fullLoadMapKpa.start)}–${n(it.fullLoadMapKpa.endInclusive)} kPa de admisión, " +
+                        "${n(it.fullLoadAirGramsPerSecond.start)}–${n(it.fullLoadAirGramsPerSecond.endInclusive)} g/s de aire, " +
+                        "raíl hasta ${n(it.maxRailBar)} bar."
+                } ?: ""),
         )
     }
 
@@ -369,10 +386,9 @@ object TripReport {
             }
             ReportLine("$level · ${it.advice.title} (${clock(it.seconds * 1000)})", it.advice.detail)
         }
-        return ReportSection("Indicios", lines.ifEmpty { listOf(ReportLine("Ninguno", "nada fuera de lo normal")) })
+        val none = ReportLine("Ninguno", "ninguna regla ha saltado; no significa que el coche esté revisado")
+        return ReportSection("Indicios", lines.ifEmpty { listOf(none) })
     }
-
-    private const val RAIL = 0x23
 
     private fun n(value: Double, decimals: Int = 0) = "%.${decimals}f".format(value)
 
