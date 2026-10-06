@@ -126,7 +126,32 @@ class ObdSession(
             freeze = if (freezeDtc == null) emptyMap() else freezeFrame(),
             vin = text("0902", "4902"),
             calibration = text("0904", "4904"),
+            readiness = status?.let(Readiness::parse),
         )
+    }
+
+    /**
+     * Las pruebas internas del coche con sus limites (modo 06). Primero se pregunta que monitores
+     * existen, igual que con los PIDs, y luego se pide cada uno.
+     */
+    suspend fun monitorTests(): List<MonitorTest> {
+        val monitors = mutableSetOf<Int>()
+        var base = 0x00
+        while (base <= LAST_MONITOR_BLOCK) {
+            val request = "06%02X".format(base)
+            val data = ObdParser.payloads(elm.send(request, READ_TIMEOUT_MS), "4" + request.substring(1))
+                .firstOrNull { it.size >= 4 } ?: break
+            val found = ObdParser.supportedFrom(base, data)
+            monitors += found
+            if ((base + 0x20) !in found) break
+            base += 0x20
+        }
+        val tests = mutableListOf<MonitorTest>()
+        for (monitor in monitors.filter { it % 0x20 != 0 }.sorted()) {
+            val response = elm.send("06%02X".format(monitor), READ_TIMEOUT_MS)
+            for (payload in ObdParser.payloads(response, "46")) tests += Mode06.parse(payload)
+        }
+        return tests
     }
 
     /** Borra las averias y los datos asociados. Devuelve si el coche lo ha aceptado. */
@@ -196,6 +221,7 @@ class ObdSession(
         const val READ_TIMEOUT_MS = 3_000L
         const val LAST_SUPPORT_BLOCK = 0xC0
         const val MAX_TIMEOUTS = 3
+        const val LAST_MONITOR_BLOCK = 0xE0
         const val QUICK_SUFFIX = "1"
         const val VIN_LENGTH = 17
         const val FUEL_TYPE = 0x51

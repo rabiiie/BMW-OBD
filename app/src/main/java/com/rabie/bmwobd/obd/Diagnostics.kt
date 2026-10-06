@@ -14,6 +14,7 @@ data class DiagnosticsReport(
     val freeze: Map<Int, Double> = emptyMap(),
     val vin: String? = null,
     val calibration: String? = null,
+    val readiness: Readiness? = null,
 )
 
 object Dtcs {

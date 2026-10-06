@@ -22,6 +22,9 @@ class SimulatedTransport(
     private var stored = listOf(0x04 to 0x01, 0x02 to 0x99)
     private var waiting = listOf(0x24 to 0x63)
 
+    // Al borrar averias las autocomprobaciones vuelven a empezar, como en un coche de verdad.
+    private var cleared = false
+
     override suspend fun open() {
         startMs = clock()
         protocolFound = false
@@ -63,8 +66,10 @@ class SimulatedTransport(
             bytes.size == 1 && bytes[0] == 0x04 -> {
                 stored = emptyList()
                 waiting = emptyList()
+                cleared = true
                 intArrayOf(0x44)
             }
+            bytes.size == 2 && bytes[0] == 0x06 -> monitor(bytes[1])?.let { intArrayOf(0x46) + it }
             bytes.size == 2 && bytes[0] == 0x09 && bytes[1] == 0x02 -> intArrayOf(0x49, 0x02, 0x01) + ascii(VIN, 17)
             bytes.size == 2 && bytes[0] == 0x09 && bytes[1] == 0x04 -> intArrayOf(0x49, 0x04, 0x01) + ascii(CALIBRATION, 16)
             else -> null
@@ -73,8 +78,31 @@ class SimulatedTransport(
 
     private fun mode01(pid: Int): IntArray? = when {
         pid % 0x20 == 0 -> supportMask(pid)
-        pid == 0x01 -> intArrayOf((if (stored.isEmpty()) 0 else 0x80) or stored.size, 0, 0, 0)
+        pid == 0x01 -> intArrayOf(
+            (if (stored.isEmpty()) 0 else 0x80) or stored.size,
+            READINESS_CONTINUOUS or (if (cleared) 0x70 else 0),
+            READINESS_AVAILABLE,
+            if (cleared) READINESS_AVAILABLE else READINESS_PENDING,
+        )
         else -> encode(pid, engine(), seconds())
+    }
+
+    /**
+     * Modo 06: en los bloques (00, 20, 40...) la lista de monitores que existen; en un monitor,
+     * sus pruebas con valor, minimo y maximo. La del filtro de particulas sale fuera de limites, a
+     * juego con la averia pendiente inventada.
+     */
+    private fun monitor(mid: Int): IntArray? {
+        if (mid % 0x20 == 0) {
+            val mask = IntArray(4)
+            for (bit in 0 until 32) {
+                val id = mid + bit + 1
+                val isNextBlock = bit == 31 && MONITORS.keys.any { it > id }
+                if (id in MONITORS || isNextBlock) mask[bit / 8] = mask[bit / 8] or (1 shl (7 - bit % 8))
+            }
+            return if (mask.all { it == 0 }) null else intArrayOf(mid) + mask
+        }
+        return MONITORS[mid]
     }
 
     /** La foto de la averia: solo existe mientras hay una averia guardada. */
@@ -123,6 +151,19 @@ class SimulatedTransport(
         const val VIN = "WBASIMULADO000000"
         const val CALIBRATION = "SIM-N47D20C-01"
         const val FREEZE_SECOND = 68.0
+
+        // Diesel con las tres comprobaciones continuas; catalizador, turbo, filtro y EGR disponibles;
+        // de salida solo falta por terminar la del filtro de particulas.
+        const val READINESS_CONTINUOUS = 0x0F
+        const val READINESS_AVAILABLE = 0xC9
+        const val READINESS_PENDING = 0x40
+
+        // Monitor, prueba, unidad, valor, minimo y maximo, de dos en dos bytes los tres ultimos.
+        val MONITORS: Map<Int, IntArray> = mapOf(
+            0x31 to intArrayOf(0x31, 0x80, 0x2F, 0x04, 0xB0, 0x01, 0xF4, 0x0F, 0xA0),
+            0x85 to intArrayOf(0x85, 0x81, 0x17, 0x01, 0x2C, 0x00, 0x00, 0x05, 0xDC),
+            0xB2 to intArrayOf(0xB2, 0x82, 0x17, 0x06, 0x72, 0x00, 0x00, 0x05, 0xDC, 0xB2, 0x83, 0x96, 0xFF, 0x9C, 0xFE, 0x0C, 0x01, 0xF4),
+        )
 
         private val sample = SimulatedEngine.at(0.0)
 

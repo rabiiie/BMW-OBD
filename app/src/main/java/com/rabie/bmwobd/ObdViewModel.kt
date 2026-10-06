@@ -78,5 +78,7 @@ class ObdViewModel(app: Application) : AndroidViewModel(app) {
 
     fun readDiagnostics() = controller.readDiagnostics()
 
+    fun readTests() = controller.readTests()
+
     fun clearDtcs() = controller.clearDtcs()
 }

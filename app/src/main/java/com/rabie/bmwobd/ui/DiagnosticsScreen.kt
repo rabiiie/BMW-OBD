@@ -34,6 +34,9 @@ import androidx.compose.ui.unit.sp
 import com.rabie.bmwobd.DiagnosticsState
 import com.rabie.bmwobd.obd.DiagnosticsReport
 import com.rabie.bmwobd.obd.Dtcs
+import com.rabie.bmwobd.obd.Mode06
+import com.rabie.bmwobd.obd.MonitorTest
+import com.rabie.bmwobd.obd.Readiness
 import com.rabie.bmwobd.obd.Pids
 
 @Composable
@@ -42,6 +45,7 @@ fun DiagnosticsScreen(
     connected: Boolean,
     vehicleTerms: String,
     onRead: () -> Unit,
+    onReadTests: () -> Unit,
     onClear: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -70,6 +74,10 @@ fun DiagnosticsScreen(
             ) { Text("Borrar", color = if (state.report != null) Bmw.MRed else Bmw.TextDim) }
         }
 
+        OutlinedButton(onClick = onReadTests, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
+            Text("Leer pruebas internas del coche")
+        }
+
         if (state.busy) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
@@ -89,6 +97,7 @@ fun DiagnosticsScreen(
         } else {
             Report(report, vehicleTerms)
         }
+        state.tests?.takeIf { it.isNotEmpty() }?.let { Tests(it) }
     }
 
     if (confirmClear) {
@@ -125,6 +134,8 @@ private fun Report(report: DiagnosticsReport, vehicleTerms: String) {
         report.dtcCount?.let { Text("La centralita cuenta $it averías guardadas.", color = Bmw.TextDim, fontSize = 13.sp) }
     }
 
+    report.readiness?.let { ReadinessCard(it, report) }
+
     CodeList("Guardadas", report.stored, Bmw.MRed, vehicleTerms)
     CodeList("Pendientes (aún sin confirmar)", report.pending, Bmw.Accent, vehicleTerms)
     CodeList("Permanentes (no se borran a mano)", report.permanent, Bmw.MBlueLight, vehicleTerms)
@@ -152,6 +163,77 @@ private fun Report(report: DiagnosticsReport, vehicleTerms: String) {
             report.vin?.let { Text("Bastidor  $it", color = Bmw.Text, fontFamily = FontFamily.Monospace, fontSize = 14.sp) }
             report.calibration?.let {
                 Text("Software  $it", color = Bmw.Text, fontFamily = FontFamily.Monospace, fontSize = 14.sp)
+            }
+        }
+    }
+}
+
+/**
+ * Las autocomprobaciones del coche. Es lo que lee una estacion de ITV por el conector: testigo,
+ * averias y si estas comprobaciones han terminado.
+ */
+@Composable
+private fun ReadinessCard(readiness: Readiness, report: DiagnosticsReport) {
+    val pending = readiness.pending
+    val clean = report.milOn == false && report.stored.isNullOrEmpty()
+    Card {
+        Label("Autocomprobaciones")
+        val summary = when {
+            pending.isEmpty() && clean -> "Todo completo y sin averías"
+            pending.isEmpty() -> "Todas completas, pero hay averías"
+            else -> "Faltan ${pending.size} de ${readiness.available.size} por completar"
+        }
+        Text(summary, color = if (pending.isEmpty() && clean) Bmw.Text else Bmw.Accent, fontSize = 20.sp)
+        for (monitor in readiness.available) {
+            Row {
+                Text(monitor.name, color = Bmw.Text, fontSize = 14.sp, modifier = Modifier.weight(1f))
+                Text(
+                    if (monitor.complete) "Completa" else "Pendiente",
+                    color = if (monitor.complete) Bmw.TextDim else Bmw.Accent,
+                    fontSize = 14.sp,
+                )
+            }
+        }
+        Text(
+            "Tras borrar averías o desconectar la batería vuelven a empezar y se completan con el uso normal, " +
+                "a veces en varios días. La ITV lee por el conector el testigo, las averías y este estado.",
+            color = Bmw.TextDim,
+            fontSize = 12.sp,
+        )
+    }
+}
+
+/** Las pruebas internas, agrupadas por sistema, con lo medido y los limites del fabricante. */
+@Composable
+private fun Tests(tests: List<MonitorTest>) {
+    Label("Pruebas internas", Modifier.padding(top = 6.dp))
+    Text(
+        "Lo que el propio coche midió en su última comprobación y los límites que le puso el fabricante. " +
+            "\"Dentro\" o \"Fuera\" es fiable; la unidad de algunas pruebas puede no estar en la tabla.",
+        color = Bmw.TextDim,
+        fontSize = 12.sp,
+    )
+    for ((mid, group) in tests.groupBy { it.mid }) {
+        Card {
+            Label(Mode06.midName(mid))
+            for (test in group) {
+                fun n(value: Double) = formatValue(value, test.decimals)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            ("Prueba " + "%02X".format(test.tid) + ": ${n(test.value)} ${test.unit}").trim() +
+                                if (test.unitKnown) "" else " (sin escala)",
+                            color = Bmw.Text,
+                            fontSize = 15.sp,
+                        )
+                        Text("Límites ${n(test.min)} a ${n(test.max)} ${test.unit}".trim(), color = Bmw.TextDim, fontSize = 12.sp)
+                    }
+                    Text(
+                        if (test.passed) "Dentro" else "Fuera",
+                        color = if (test.passed) Bmw.TextDim else Bmw.MRed,
+                        fontSize = 14.sp,
+                    )
+                }
             }
         }
     }

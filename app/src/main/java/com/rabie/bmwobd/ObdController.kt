@@ -13,6 +13,7 @@ import com.rabie.bmwobd.advice.Advisor
 import com.rabie.bmwobd.advice.Severity
 import com.rabie.bmwobd.obd.Commands
 import com.rabie.bmwobd.obd.DiagnosticsReport
+import com.rabie.bmwobd.obd.MonitorTest
 import com.rabie.bmwobd.settings.SettingsStore
 import com.rabie.bmwobd.obd.ObdSession
 import com.rabie.bmwobd.obd.ObdTransport
@@ -60,6 +61,7 @@ data class DiagnosticsState(
     val report: DiagnosticsReport? = null,
     val readAtMillis: Long = 0,
     val message: String? = null,
+    val tests: List<MonitorTest>? = null,
 )
 
 /** Una peticion al coche y las medidas que salen de su respuesta. */
@@ -192,11 +194,26 @@ class ObdController(
                     session.clearDtcs() -> "Averías borradas."
                     else -> "El coche no ha aceptado el borrado. Prueba con el contacto puesto y el motor parado."
                 }
-                _diagnostics.value = DiagnosticsState(
-                    report = session.diagnostics(),
-                    readAtMillis = System.currentTimeMillis(),
-                    message = message,
-                )
+                val report = session.diagnostics()
+                _diagnostics.update {
+                    it.copy(busy = false, report = report, readAtMillis = System.currentTimeMillis(), message = message)
+                }
+            } catch (e: IOException) {
+                appendLog("!! ${e.message}")
+                _diagnostics.update { it.copy(busy = false, message = "El adaptador no ha contestado.") }
+            }
+        }
+    }
+
+    /** Lee las pruebas internas del coche con sus limites. Tarda unos segundos. */
+    fun readTests() {
+        if (!isLive() || _diagnostics.value.busy) return
+        _diagnostics.update { it.copy(busy = true, message = null) }
+        tasks.trySend { session ->
+            try {
+                val tests = session.monitorTests()
+                val message = if (tests.isEmpty()) "El coche no publica pruebas internas por el OBD estándar." else null
+                _diagnostics.update { it.copy(busy = false, tests = tests, message = message) }
             } catch (e: IOException) {
                 appendLog("!! ${e.message}")
                 _diagnostics.update { it.copy(busy = false, message = "El adaptador no ha contestado.") }

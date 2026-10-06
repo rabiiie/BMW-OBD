@@ -167,6 +167,7 @@ private fun MainScreen(vm: ObdViewModel = viewModel()) {
                     connected = state.phase == Phase.LIVE,
                     vehicleTerms = state.vehicle.searchTerms,
                     onRead = vm::readDiagnostics,
+                    onReadTests = vm::readTests,
                     onClear = vm::clearDtcs,
                     modifier = content,
                 )
