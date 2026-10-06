@@ -35,6 +35,7 @@ fun ConnectScreen(
     title: String,
     state: LiveState,
     devices: List<DeviceItem>,
+    lastAdapter: String?,
     permissionGranted: Boolean,
     onRequestPermission: () -> Unit,
     onRefresh: () -> Unit,
@@ -58,6 +59,15 @@ fun ConnectScreen(
         )
 
         state.error?.let { Text(it, color = Bmw.MRed, fontSize = 14.sp) }
+
+        // El ultimo adaptador usado va arriba y con un boton propio: es lo que se quiere casi siempre.
+        val last = devices.firstOrNull { it.address == lastAdapter }
+        val ordered = listOfNotNull(last) + devices.filter { it != last }
+        if (last != null && permissionGranted && !connecting) {
+            Button(onClick = { onConnect(last) }, modifier = Modifier.fillMaxWidth()) {
+                Text(if (state.phase == Phase.ERROR) "Reintentar con ${last.name}" else "Conectar con ${last.name}")
+            }
+        }
 
         when {
             connecting -> Row(
@@ -84,7 +94,9 @@ fun ConnectScreen(
                         modifier = Modifier.weight(1f, fill = false),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        items(devices, key = { it.address }) { device -> DeviceRow(device, onConnect) }
+                        items(ordered, key = { it.address }) { device ->
+                            DeviceRow(device, isLast = device == last, onConnect = onConnect)
+                        }
                     }
                 }
             }
@@ -100,7 +112,7 @@ fun ConnectScreen(
 }
 
 @Composable
-private fun DeviceRow(device: DeviceItem, onConnect: (DeviceItem) -> Unit) {
+private fun DeviceRow(device: DeviceItem, isLast: Boolean, onConnect: (DeviceItem) -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -110,6 +122,6 @@ private fun DeviceRow(device: DeviceItem, onConnect: (DeviceItem) -> Unit) {
             .padding(horizontal = 14.dp, vertical = 12.dp),
     ) {
         Text(device.name, color = Bmw.Text, fontSize = 16.sp)
-        Text(device.address, color = Bmw.TextDim, fontSize = 12.sp)
+        Text(device.address + if (isLast) "  ·  último usado" else "", color = Bmw.TextDim, fontSize = 12.sp)
     }
 }

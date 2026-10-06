@@ -101,6 +101,17 @@ private fun MainScreen(vm: ObdViewModel = viewModel()) {
         if (permissionGranted) vm.refreshDevices() else launcher.launch(runtimePermissions())
     }
 
+    // Conexion automatica: una sola vez por arranque, en cuanto se conoce la lista de emparejados.
+    var autoConnectTried by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(devices) {
+        if (autoConnectTried || devices.isEmpty()) return@LaunchedEffect
+        autoConnectTried = true
+        val last = settings.lastAdapter
+        if (settings.autoConnect && state.phase == Phase.IDLE && devices.any { it.address == last }) {
+            vm.connect(last.orEmpty())
+        }
+    }
+
     // Apaisado y conectado, el panel pasa a ser el cuadro a pantalla completa. "Menú" vuelve a la
     // app normal sin girar el movil, y tocar otra vez la pestaña Panel regresa al cuadro.
     // Tambien cuenta una ventana baja: la mitad de la pantalla partida con el navegador en la otra.
@@ -137,6 +148,7 @@ private fun MainScreen(vm: ObdViewModel = viewModel()) {
                     title = remember(state.phase) { vm.vehicles.last()?.name ?: "OBD" },
                     state = state,
                     devices = devices,
+                    lastAdapter = settings.lastAdapter,
                     permissionGranted = permissionGranted,
                     onRequestPermission = { launcher.launch(runtimePermissions()) },
                     onRefresh = vm::refreshDevices,

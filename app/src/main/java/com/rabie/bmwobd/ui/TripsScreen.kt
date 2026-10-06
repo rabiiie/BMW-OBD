@@ -150,6 +150,7 @@ private fun TripDetail(
         value = withContext(Dispatchers.IO) { store.load(entry.file) }
     }
     var channel by remember { mutableIntStateOf(Pids.RPM) }
+    var compare by remember { mutableIntStateOf(NO_COMPARE) }
 
     Column(
         modifier = modifier
@@ -187,9 +188,20 @@ private fun TripDetail(
                     Chip(def.name, selected = pid == channel) { channel = pid }
                 }
             }
-            val series = trip.series[channel]
-            val def = Pids.byId[channel]
-            if (series != null && def != null) TripChart(trip.tMs, series, def.unit, def.decimals)
+            Label("Comparar con")
+            Row(
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Chip("Nada", selected = compare == NO_COMPARE) { compare = NO_COMPARE }
+                for (pid in trip.columns) {
+                    val def = Pids.byId[pid] ?: continue
+                    if (pid != channel) Chip(def.name, selected = pid == compare) { compare = pid }
+                }
+            }
+            val main = remember(trip, channel) { chartSeries(trip, channel) }
+            val second = remember(trip, compare, channel) { if (compare == channel) null else chartSeries(trip, compare) }
+            if (main != null) TripChart(trip.tMs, main, second)
 
             val findings = remember(trip, vehicle) { Advisor.review(trip, vehicle) }
             Label("Indicios del trayecto", Modifier.padding(top = 6.dp))
@@ -274,51 +286,12 @@ private fun Chip(text: String, selected: Boolean, onClick: () -> Unit) {
     )
 }
 
-/** La medida elegida a lo largo del trayecto, con su minimo y su maximo. */
-@Composable
-private fun TripChart(tMs: LongArray, values: DoubleArray, unit: String, decimals: Int) {
-    val valid = values.filter { !it.isNaN() }
-    if (valid.isEmpty() || tMs.isEmpty()) {
-        Text("Sin datos de esta medida.", color = Bmw.TextDim)
-        return
-    }
-    val min = valid.min()
-    val max = valid.max()
-    val span = (max - min).takeIf { it > 0 } ?: 1.0
-    val total = tMs.last().coerceAtLeast(1L).toFloat()
+private const val NO_COMPARE = -1
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
-            .background(Bmw.Surface)
-            .padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        Label("Máx ${formatValue(max, decimals)} $unit")
-        Canvas(Modifier.fillMaxWidth().height(180.dp)) {
-            val step = (tMs.size / size.width.toInt().coerceAtLeast(1)).coerceAtLeast(1)
-            val path = Path()
-            var started = false
-            var i = 0
-            while (i < tMs.size) {
-                val v = values[i]
-                if (!v.isNaN()) {
-                    val x = tMs[i] / total * size.width
-                    val y = size.height - ((v - min) / span).toFloat() * size.height
-                    if (started) path.lineTo(x, y) else path.moveTo(x, y)
-                    started = true
-                }
-                i += step
-            }
-            drawLine(Bmw.Line, Offset(0f, size.height), Offset(size.width, size.height))
-            drawPath(path, Bmw.Accent, style = Stroke(width = 2.dp.toPx()))
-        }
-        Row {
-            Label("Mín ${formatValue(min, decimals)} $unit", Modifier.weight(1f))
-            Label(formatDuration(tMs.last()))
-        }
-    }
+private fun chartSeries(trip: TripData, id: Int): ChartSeries? {
+    val def = Pids.byId[id] ?: return null
+    val values = trip.series[id] ?: return null
+    return ChartSeries(def.name, def.unit, def.decimals, values)
 }
 
 private fun statCells(stats: TripStats): List<Pair<String, String>> = listOfNotNull(

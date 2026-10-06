@@ -17,6 +17,8 @@ data class AppSettings(
     val accent: Accent = Accent.SPORT,
     val keepScreenOn: Boolean = true,
     val expertConsole: Boolean = false,
+    val autoConnect: Boolean = true,
+    val lastAdapter: String? = null,
 )
 
 /** Los ajustes de la app, guardados en el movil. */
@@ -32,6 +34,8 @@ class SettingsStore(private val prefs: SharedPreferences) {
             .putString(KEY_ACCENT, next.accent.name)
             .putBoolean(KEY_SCREEN_ON, next.keepScreenOn)
             .putBoolean(KEY_EXPERT, next.expertConsole)
+            .putBoolean(KEY_AUTO_CONNECT, next.autoConnect)
+            .putString(KEY_LAST_ADAPTER, next.lastAdapter)
             .apply()
         _state.value = next
     }
@@ -43,6 +47,8 @@ class SettingsStore(private val prefs: SharedPreferences) {
             accent = Accent.entries.firstOrNull { it.name == prefs.getString(KEY_ACCENT, null) } ?: defaults.accent,
             keepScreenOn = prefs.getBoolean(KEY_SCREEN_ON, defaults.keepScreenOn),
             expertConsole = prefs.getBoolean(KEY_EXPERT, defaults.expertConsole),
+            autoConnect = prefs.getBoolean(KEY_AUTO_CONNECT, defaults.autoConnect),
+            lastAdapter = prefs.getString(KEY_LAST_ADAPTER, null),
         )
     }
 
@@ -51,5 +57,7 @@ class SettingsStore(private val prefs: SharedPreferences) {
         const val KEY_ACCENT = "accent"
         const val KEY_SCREEN_ON = "screen_on"
         const val KEY_EXPERT = "expert_console"
+        const val KEY_AUTO_CONNECT = "auto_connect"
+        const val KEY_LAST_ADAPTER = "last_adapter"
     }
 }

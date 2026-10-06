@@ -201,17 +201,7 @@ fun LandscapePanel(state: LiveState, keepScreenOn: Boolean, onMenu: () -> Unit, 
     val rpm = values[Pids.RPM]
     val speed = values[Pids.SPEED]
 
-    val voltageId = if (values[MODULE_VOLTAGE] != null) MODULE_VOLTAGE else Pids.ADAPTER_VOLTAGE
-    val sides = listOf(
-        Side("Turbo", Pids.boostBar(values), 2, "bar", null),
-        if (Pids.OIL in state.supported) {
-            Side("Aceite", values[Pids.OIL], 0, "°C", Pids.OIL)
-        } else {
-            Side("Admisión", values[INTAKE_TEMP], 0, "°C", INTAKE_TEMP)
-        },
-        Side("Agua", values[Pids.COOLANT], 0, "°C", Pids.COOLANT),
-        Side("Tensión", values[voltageId], 1, "V", voltageId),
-    )
+    val sides = sideReadouts(state)
 
     BoxWithConstraints(modifier.fillMaxSize().background(Bmw.Background).padding(horizontal = 12.dp, vertical = 8.dp)) {
         // Con sitio a lo ancho, las lecturas van a los lados. En una ventana mas cuadrada (pantalla
@@ -247,12 +237,13 @@ fun LandscapePanel(state: LiveState, keepScreenOn: Boolean, onMenu: () -> Unit, 
 
         if (wide) {
             Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(28.dp)) {
-                    for (side in sides.take(2)) Readout(side)
+                // Las lecturas se reparten alternando: la primera a la izquierda, la segunda a la derecha.
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    for (side in sides.filterIndexed { index, _ -> index % 2 == 0 }) Readout(side)
                 }
                 cluster()
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(28.dp)) {
-                    for (side in sides.drop(2)) Readout(side)
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    for (side in sides.filterIndexed { index, _ -> index % 2 == 1 }) Readout(side)
                 }
             }
         } else {
@@ -263,7 +254,7 @@ fun LandscapePanel(state: LiveState, keepScreenOn: Boolean, onMenu: () -> Unit, 
             ) {
                 cluster()
                 Row(Modifier.fillMaxWidth()) {
-                    for (side in sides) Readout(side, Modifier.weight(1f))
+                    for (side in sides.take(NARROW_READOUTS)) Readout(side, Modifier.weight(1f))
                 }
             }
         }
@@ -282,6 +273,16 @@ fun LandscapePanel(state: LiveState, keepScreenOn: Boolean, onMenu: () -> Unit, 
                     .padding(horizontal = 14.dp, vertical = 4.dp),
             )
         }
+        val now by produceState(System.currentTimeMillis()) {
+            while (true) {
+                value = System.currentTimeMillis()
+                delay(1000)
+            }
+        }
+        Label(
+            "REC " + formatDuration((now - state.liveSinceMillis).coerceAtLeast(0)),
+            Modifier.align(Alignment.BottomStart).padding(10.dp),
+        )
         Label("Menú", Modifier.align(Alignment.BottomEnd).clickable(onClick = onMenu).padding(10.dp), color = Bmw.Accent)
     }
 }
@@ -303,6 +304,35 @@ private fun CenterReadout(state: LiveState, size: TextUnit) {
     }
 }
 
+/**
+ * Las lecturas que acompañan al cuadro apaisado, por orden de interes y solo las que da este
+ * coche. El turbo no se repite si ya ocupa el hueco central.
+ */
+private fun sideReadouts(state: LiveState): List<Side> {
+    val values = state.values
+    val supported = state.supported
+    val voltageId = if (values[MODULE_VOLTAGE] != null) MODULE_VOLTAGE else Pids.ADAPTER_VOLTAGE
+    val exhaustIds = EXHAUST_IDS.filter { it in supported }
+    val railId = RAIL_IDS.firstOrNull { it in supported }
+    return listOfNotNull(
+        Side("Turbo", Pids.boostBar(values), 2, "bar", null).takeIf { Pids.FUEL_RATE in supported },
+        Side("Agua", values[Pids.COOLANT], 0, "°C", Pids.COOLANT),
+        Side("Aceite", values[Pids.OIL], 0, "°C", Pids.OIL).takeIf { Pids.OIL in supported },
+        Side("Escape", exhaustIds.mapNotNull { values[it] }.maxOrNull(), 0, "°C", null).takeIf { exhaustIds.isNotEmpty() },
+        railId?.let { Side("Raíl", values[it], 0, "bar", null) },
+        Side("Carga", values[Pids.LOAD], 0, "%", null),
+        Side("Aire", values[AIR_FLOW], 1, "g/s", null).takeIf { AIR_FLOW in supported },
+        Side("Tensión", values[voltageId], 1, "V", voltageId),
+        Side("Admisión", values[INTAKE_TEMP], 0, "°C", INTAKE_TEMP).takeIf { INTAKE_TEMP in supported },
+    ).take(WIDE_READOUTS)
+}
+
+private const val WIDE_READOUTS = 6
+private const val NARROW_READOUTS = 4
+private const val AIR_FLOW = 0x10
+private val RAIL_IDS = listOf(Pids.part(0x6D, 1), 0x23)
+private val EXHAUST_IDS = (0..3).map { Pids.part(0x78, it) } + 0x3C
+
 /** Una lectura secundaria del panel apaisado; [rangeId] es la medida cuyo semaforo le da color. */
 private class Side(val title: String, val value: Double?, val decimals: Int, val unit: String, val rangeId: Int?)
 
@@ -321,8 +351,10 @@ private fun Readout(side: Side, modifier: Modifier = Modifier.fillMaxWidth()) {
     }
     Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         Label(side.title)
-        Text(value?.let { formatValue(it, side.decimals) } ?: "—", color = color, fontSize = 34.sp, fontWeight = FontWeight.Light)
-        Text(side.unit, color = Bmw.TextDim, fontSize = 13.sp)
+        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text(value?.let { formatValue(it, side.decimals) } ?: "—", color = color, fontSize = 30.sp, fontWeight = FontWeight.Light)
+            Text(side.unit, color = Bmw.TextDim, fontSize = 12.sp, modifier = Modifier.padding(bottom = 5.dp))
+        }
     }
 }
 

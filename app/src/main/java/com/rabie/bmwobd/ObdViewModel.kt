@@ -45,6 +45,7 @@ class ObdViewModel(app: Application) : AndroidViewModel(app) {
 
     fun connect(address: String) {
         val device = bonded[address] ?: return
+        settingsStore.update { it.copy(lastAdapter = address) }
         controller.connect(BluetoothSppTransport(device), simulated = false)
     }
 

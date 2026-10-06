@@ -52,6 +52,13 @@ fun SettingsScreen(
             }
         }
 
+        Label("Conexión", Modifier.padding(top = 6.dp))
+        Toggle(
+            title = "Conectar al abrir",
+            detail = "Al abrir la app, conecta sola con el último adaptador usado si está emparejado.",
+            checked = settings.autoConnect,
+        ) { value -> onChange { it.copy(autoConnect = value) } }
+
         Label("Avisos", Modifier.padding(top = 6.dp))
         Toggle(
             title = "Sonido de aviso",
