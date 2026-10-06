@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Los dos instrumentos angulares del cuadro, con los colores M, dentro de la zona segura del icono. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <path
+        android:pathData="M50,74 L38,74 L28,54"
+        android:strokeColor="#6EC1F5"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M28,54 L38,34 L50,34"
+        android:strokeColor="#1C4F9C"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+
+    <path
+        android:pathData="M58,74 L70,74 L80,54"
+        android:strokeColor="#FF6A1F"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M80,54 L70,34 L58,34"
+        android:strokeColor="#E22B2B"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+
+    <path
+        android:pathData="M48,51 h4 v6 h-4 z"
+        android:fillColor="#6EC1F5" />
+    <path
+        android:pathData="M52,51 h4 v6 h-4 z"
+        android:fillColor="#1C4F9C" />
+    <path
+        android:pathData="M56,51 h4 v6 h-4 z"
+        android:fillColor="#E22B2B" />
+</vector>
