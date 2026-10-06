@@ -100,7 +100,6 @@ object TripReport {
                 vehicle.name,
                 if (vehicle.diesel) "diésel" else "gasolina",
                 vehicle.displacementLiters?.let { "${n(it, 2)} L" },
-                vehicle.vin?.let { "bastidor $it" },
             ).joinToString(" · "),
         )
         for (section in sections) {
@@ -318,7 +317,6 @@ object TripReport {
         val rpm = Acc()
         val rate = Acc()
         val delta = Acc()
-        val coolant = Acc()
         for (i in 0 until data.size) {
             val v = rows.at(Pids.SPEED, i) ?: continue
             if (v < CRUISE_MIN_SPEED || (rows.at(Pids.LOAD, i) ?: 100.0) > CRUISE_MAX_LOAD) continue
@@ -326,7 +324,6 @@ object TripReport {
             speed.add(v, dt)
             rpm.add(rows.at(Pids.RPM, i), dt)
             rate.add(rows.at(Pids.FUEL_RATE, i), dt)
-            coolant.add(rows.at(Pids.COOLANT, i), dt)
             val intake = rows.at(Moment.INTAKE_TEMP, i)
             val ambient = rows.at(Moment.AMBIENT_TEMP, i)
             if (intake != null && ambient != null) delta.add(intake - ambient, dt)
@@ -340,7 +337,6 @@ object TripReport {
                 ReportLine("Velocidad", "${n(avgSpeed)} km/h"),
                 rpm.avg?.let { ReportLine("Revoluciones", "${n(it)} rpm") },
                 rate.avg?.let { ReportLine("Consumo", "${n(it / avgSpeed * 100, 1)} L/100 km") },
-                coolant.avg?.let { ReportLine("Refrigerante", "${n(it)} °C") },
                 delta.avg?.let { ReportLine("Admisión sobre el exterior", "+${n(it)} °C de media, +${n(delta.peak!!)} de máximo") },
             ),
         )
