@@ -50,6 +50,10 @@ object Limits {
     const val THERMOSTAT_DRIVING_MS = 15 * 60_000L
     const val ROAD_SPEED = 50.0
 
+    // Una vez que el motor ha llegado a su temperatura, en carretera no deberia volver a enfriarse.
+    const val OPERATING_COOLANT = 86.0
+    const val COOLED_BACK_COOLANT = 80.0
+
     // Con recuperacion de energia el alternador se desconecta a proposito y la tension baja a
     // 12,2-12,4 V en marcha, y en retencion sube hasta unos 15 V. Nada de eso es averia.
     const val VOLTAGE_LOW_WARN = 11.8
@@ -99,6 +103,8 @@ class Moment(
     val drivingMs: Long,
     val recentLoad: Double?,
     val vehicle: Vehicle,
+    /** Lo mas caliente que ha llegado a estar el refrigerante en lo que va de trayecto. */
+    val peakCoolant: Double? = null,
 ) {
     /** La referencia del motor de este coche, si se conoce. */
     val reference: EngineReference? = EngineReference.of(vehicle)
@@ -164,6 +170,7 @@ class Advisor {
     private val loads = ArrayDeque<Pair<Long, Double>>()
     private var drivingMs = 0L
     private var lastMs: Long? = null
+    private var peakCoolant: Double? = null
 
     fun update(tMs: Long, values: Map<Int, Double>, vehicle: Vehicle = Vehicle.GENERIC): List<Advice> {
         val dt = lastMs?.let { (tMs - it).coerceIn(0L, MAX_GAP_MS) } ?: 0L
@@ -175,7 +182,8 @@ class Advisor {
         val windowFull = loads.isNotEmpty() && tMs - loads.first().first > Limits.HOT_STOP_WINDOW_MS / 2
         val recentLoad = if (windowFull) loads.sumOf { it.second } / loads.size else null
 
-        val moment = Moment(values, drivingMs, recentLoad, vehicle)
+        values[Pids.COOLANT]?.let { if (it > (peakCoolant ?: -273.0)) peakCoolant = it }
+        val moment = Moment(values, drivingMs, recentLoad, vehicle, peakCoolant)
         val active = mutableListOf<Advice>()
         for (rule in RULES) {
             val advice = rule.check(moment)
@@ -270,6 +278,17 @@ class Advisor {
                     "thermostat", Severity.WARN, "El motor no coge temperatura",
                     "Tras ${m.drivingMs / 60_000} min en carretera sigue a ${n(t)} °C. Suele ser el termostato abierto, " +
                         "y por debajo de esa temperatura el filtro de partículas no regenera.",
+                )
+            },
+            Rule("thermostat_drop", 60_000) { m ->
+                val t = m.coolant ?: return@Rule null
+                val peak = m.peakCoolant ?: return@Rule null
+                val onRoad = (m.speed ?: 0.0) >= Limits.ROAD_SPEED
+                if (peak < Limits.OPERATING_COOLANT || t >= Limits.COOLED_BACK_COOLANT || !onRoad) return@Rule null
+                Advice(
+                    "thermostat_drop", Severity.WARN, "El motor se enfría en marcha",
+                    "Llegó a ${n(peak)} °C y en carretera ha vuelto a ${n(t)} °C. Un termostato sano lo mantiene; " +
+                        "si se repite, suele ser que no cierra del todo.",
                 )
             },
             Rule("filter_idle", 20_000) { m ->

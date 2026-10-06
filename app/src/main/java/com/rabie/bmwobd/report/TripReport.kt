@@ -198,15 +198,19 @@ object TripReport {
         val first = (0 until data.size).firstNotNullOfOrNull { rows.at(Pids.COOLANT, it) } ?: return null
         val reached = warmUpMs(data)
         val stable = Acc()
+        val afterOperating = Acc()
+        var operating = false
         val all = Acc()
         val oil = Acc()
         var oilFirst: Double? = null
         for (i in 0 until data.size) {
             val coolant = rows.at(Pids.COOLANT, i)
             all.add(coolant, rows.dt(i))
-            if (reached != null && data.tMs[i] >= reached && (rows.at(Pids.SPEED, i) ?: 0.0) >= Limits.ROAD_SPEED) {
-                stable.add(coolant, rows.dt(i))
-            }
+            val onRoad = (rows.at(Pids.SPEED, i) ?: 0.0) >= Limits.ROAD_SPEED
+            if (reached != null && data.tMs[i] >= reached && onRoad) stable.add(coolant, rows.dt(i))
+            // Desde que llega a su temperatura de trabajo ya no cuenta la subida: lo que baje es enfriarse.
+            if (coolant != null && coolant >= Limits.OPERATING_COOLANT) operating = true
+            if (operating && onRoad) afterOperating.add(coolant, rows.dt(i))
             val o = rows.at(Pids.OIL, i)
             if (oilFirst == null) oilFirst = o
             oil.add(o, rows.dt(i))
@@ -223,7 +227,13 @@ object TripReport {
                         else -> clock(reached)
                     },
                 ),
-                stable.avg?.let { ReportLine("Refrigerante en carretera, ya caliente", "${n(it)} °C de media (${n(stable.low!!)}–${n(stable.peak!!)})") },
+                stable.avg?.let { ReportLine("En carretera desde los 80 °C (incluye el final de la subida)", "${n(it)} °C de media (${n(stable.low!!)}–${n(stable.peak!!)})") },
+                afterOperating.low?.let {
+                    ReportLine(
+                        "En carretera después de llegar a ${n(Limits.OPERATING_COOLANT)} °C",
+                        "mínimo ${n(it)} °C, media ${n(afterOperating.avg!!)} °C",
+                    )
+                },
                 all.peak?.let { ReportLine("Refrigerante máximo", "${n(it)} °C") },
                 oilFirst?.let { ReportLine("Aceite al salir", "${n(it)} °C") },
                 oil.peak?.let { ReportLine("Aceite máximo", "${n(it)} °C") },

@@ -79,6 +79,19 @@ class AdvisorTest {
     }
 
     @Test
+    fun `enfriarse en carretera despues de haber llegado a temperatura`() {
+        val road = mapOf(Pids.RPM to 2000.0, Pids.SPEED to 110.0, Pids.LOAD to 40.0)
+        val advisor = Advisor()
+        // Subiendo de 70 a 90 no hay nada que decir, aunque pase por 78.
+        assertNull(hold(road + (Pids.COOLANT to 78.0), 120, advisor).find("thermostat_drop"))
+        var last = emptyList<Advice>()
+        for (s in 121..200) last = advisor.update(s * 1000L, road + (Pids.COOLANT to 90.0))
+        assertNull(last.find("thermostat_drop"))
+        for (s in 201..300) last = advisor.update(s * 1000L, road + (Pids.COOLANT to 78.0))
+        assertEquals(Severity.WARN, last.find("thermostat_drop")?.severity)
+    }
+
+    @Test
     fun `motor frio exigido es solo un consejo`() {
         val cold = mapOf(Pids.RPM to 3400.0, Pids.SPEED to 60.0, Pids.COOLANT to 35.0, Pids.OIL to 30.0, Pids.LOAD to 60.0)
         assertEquals(Severity.INFO, hold(cold, 5).find("cold_push")?.severity)
