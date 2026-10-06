@@ -49,8 +49,10 @@ class SimulatedTransport(
     }
 
     /** Los bytes de la respuesta completa, o null si el coche no contestaria. */
-    private fun obd(command: String): IntArray? {
-        if (!isHex(command) || command.length % 2 != 0) return null
+    private fun obd(request: String): IntArray? {
+        // Una cifra suelta al final es el numero de respuestas que se esperan: no cambia la consulta.
+        val command = if (request.length % 2 == 1) request.dropLast(1) else request
+        if (!isHex(command) || command.isEmpty()) return null
         val bytes = IntArray(command.length / 2) { command.substring(it * 2, it * 2 + 2).toInt(16) }
         return when {
             bytes.size == 2 && bytes[0] == 0x01 -> mode01(bytes[1])?.let { intArrayOf(0x41, bytes[1]) + it }

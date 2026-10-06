@@ -1,5 +1,11 @@
 package com.rabie.bmwobd.obd
 
+/**
+ * Cada cuanto se lee una medida. Las rapidas, en cada vuelta. De las medias, una por vuelta. De
+ * las lentas (temperaturas, tension, contadores), una cada varias vueltas.
+ */
+enum class Tier { FAST, MEDIUM, SLOW }
+
 enum class PidGroup(val title: String) {
     ENGINE("Motor"),
     AIR("Turbo y admisión"),
@@ -12,7 +18,7 @@ enum class PidGroup(val title: String) {
 /**
  * Una medida del modo 01 con la formula del estandar SAE J1979. [pid] es lo que se pide al coche
  * e [id] identifica la medida; coinciden salvo en los PIDs que devuelven varias medidas a la vez.
- * Los [fast] se leen en cada vuelta; el resto, uno por vuelta, porque cambian despacio.
+ * [tier] dice cada cuanto se lee: lo que cambia deprisa, en cada vuelta; lo demas, por turnos.
  * [decode] devuelve null si la respuesta dice que ese sensor no existe.
  */
 data class PidDef(
@@ -21,7 +27,7 @@ data class PidDef(
     val unit: String,
     val bytes: Int,
     val decimals: Int,
-    val fast: Boolean = false,
+    val tier: Tier = Tier.SLOW,
     val group: PidGroup = PidGroup.ENGINE,
     val pid: Int = id,
     val decode: (IntArray) -> Double?,
@@ -58,13 +64,13 @@ object Pids {
     fun part(pid: Int, index: Int) = pid * 0x100 + index
 
     private val engine = listOf(
-        PidDef(RPM, "RPM", "rpm", 2, 0, fast = true) { word(it) / 4.0 },
-        PidDef(SPEED, "Velocidad", "km/h", 1, 0, fast = true) { it[0].toDouble() },
+        PidDef(RPM, "RPM", "rpm", 2, 0, tier = Tier.FAST) { word(it) / 4.0 },
+        PidDef(SPEED, "Velocidad", "km/h", 1, 0, tier = Tier.FAST) { it[0].toDouble() },
         PidDef(COOLANT, "Refrigerante", "°C", 1, 0) { temp(it) },
         PidDef(OIL, "Aceite", "°C", 1, 0) { temp(it) },
-        PidDef(LOAD, "Carga motor", "%", 1, 0, fast = true) { percent(it) },
+        PidDef(LOAD, "Carga motor", "%", 1, 0, tier = Tier.FAST) { percent(it) },
         PidDef(0x43, "Carga absoluta", "%", 2, 0) { word(it) * 100.0 / 255 },
-        PidDef(0x49, "Pedal acelerador", "%", 1, 0) { percent(it) },
+        PidDef(0x49, "Pedal acelerador", "%", 1, 0, tier = Tier.MEDIUM) { percent(it) },
         PidDef(0x5A, "Pedal relativo", "%", 1, 0) { percent(it) },
         PidDef(0x11, "Mariposa", "%", 1, 0) { percent(it) },
         PidDef(0x45, "Mariposa relativa", "%", 1, 0) { percent(it) },
@@ -75,23 +81,23 @@ object Pids {
     )
 
     private val air = listOf(
-        PidDef(MAP, "Presión admisión", "kPa", 1, 0, fast = true) { it[0].toDouble() },
+        PidDef(MAP, "Presión admisión", "kPa", 1, 0, tier = Tier.FAST) { it[0].toDouble() },
         PidDef(BAROMETRIC, "Presión barométrica", "kPa", 1, 0) { it[0].toDouble() },
         PidDef(0x0F, "Temp. admisión", "°C", 1, 0) { temp(it) },
-        PidDef(0x10, "Caudal aire (MAF)", "g/s", 2, 1) { word(it) / 100.0 },
+        PidDef(0x10, "Caudal aire (MAF)", "g/s", 2, 1, tier = Tier.FAST) { word(it) / 100.0 },
         PidDef(part(0x6F, 0), "Presión entrada compresor", "kPa", 2, 0, pid = 0x6F) {
             if (has(it, 0)) it[1].toDouble() else null
         },
-        PidDef(part(0x70, 0), "Presión turbo mandada", "kPa", 3, 0, pid = 0x70) {
+        PidDef(part(0x70, 0), "Presión turbo mandada", "kPa", 3, 0, pid = 0x70, tier = Tier.MEDIUM) {
             if (has(it, 0)) word(it, 1) / 32.0 else null
         },
-        PidDef(part(0x70, 1), "Presión turbo real", "kPa", 5, 0, pid = 0x70) {
+        PidDef(part(0x70, 1), "Presión turbo real", "kPa", 5, 0, pid = 0x70, tier = Tier.MEDIUM) {
             if (has(it, 1)) word(it, 3) / 32.0 else null
         },
-        PidDef(part(0x71, 0), "Geometría variable mandada", "%", 2, 0, pid = 0x71) {
+        PidDef(part(0x71, 0), "Geometría variable mandada", "%", 2, 0, pid = 0x71, tier = Tier.MEDIUM) {
             if (has(it, 0)) percent(it, 1) else null
         },
-        PidDef(part(0x71, 1), "Geometría variable real", "%", 3, 0, pid = 0x71) {
+        PidDef(part(0x71, 1), "Geometría variable real", "%", 3, 0, pid = 0x71, tier = Tier.MEDIUM) {
             if (has(it, 1)) percent(it, 2) else null
         },
         PidDef(part(0x74, 0), "Turbo", "rpm", 3, 0, pid = 0x74) {
@@ -112,50 +118,50 @@ object Pids {
         PidDef(part(0x77, 0), "Temp. intercooler", "°C", 2, 0, pid = 0x77) {
             if (has(it, 0)) temp(it, 1) else null
         },
-        PidDef(0x2C, "EGR mandada", "%", 1, 0) { percent(it) },
-        PidDef(0x2D, "Error EGR", "%", 1, 1) { it[0] * 100.0 / 128 - 100.0 },
-        PidDef(part(0x69, 1), "EGR real", "%", 3, 0, pid = 0x69) {
+        PidDef(0x2C, "EGR mandada", "%", 1, 0, tier = Tier.MEDIUM) { percent(it) },
+        PidDef(0x2D, "Error EGR", "%", 1, 1, tier = Tier.MEDIUM) { it[0] * 100.0 / 128 - 100.0 },
+        PidDef(part(0x69, 1), "EGR real", "%", 3, 0, pid = 0x69, tier = Tier.MEDIUM) {
             if (has(it, 1)) percent(it, 2) else null
         },
     )
 
     private val fuel = listOf(
-        PidDef(0x23, "Presión raíl", "bar", 2, 0) { word(it) * 10.0 / 100.0 },
-        PidDef(part(0x6D, 0), "Presión raíl mandada", "bar", 3, 0, pid = 0x6D) {
+        PidDef(0x23, "Presión raíl", "bar", 2, 0, tier = Tier.MEDIUM) { word(it) * 10.0 / 100.0 },
+        PidDef(part(0x6D, 0), "Presión raíl mandada", "bar", 3, 0, pid = 0x6D, tier = Tier.MEDIUM) {
             if (has(it, 0)) word(it, 1) / 10.0 else null
         },
-        PidDef(part(0x6D, 1), "Presión raíl (sensor A)", "bar", 5, 0, pid = 0x6D) {
+        PidDef(part(0x6D, 1), "Presión raíl (sensor A)", "bar", 5, 0, pid = 0x6D, tier = Tier.MEDIUM) {
             if (has(it, 1)) word(it, 3) / 10.0 else null
         },
-        PidDef(part(0x6D, 2), "Temp. combustible en raíl", "°C", 6, 0, pid = 0x6D) {
+        PidDef(part(0x6D, 2), "Temp. combustible en raíl", "°C", 6, 0, pid = 0x6D, tier = Tier.MEDIUM) {
             if (has(it, 2)) temp(it, 5) else null
         },
         PidDef(0x22, "Presión raíl relativa", "kPa", 2, 0) { word(it) * 0.079 },
         PidDef(0x0A, "Presión combustible", "kPa", 1, 0) { it[0] * 3.0 },
         PidDef(0x5D, "Avance inyección", "°", 2, 1) { word(it) / 128.0 - 210.0 },
         PidDef(0x44, "Lambda mandada", "λ", 2, 2) { word(it) * 2.0 / 65536 },
-        PidDef(FUEL_RATE, "Consumo", "L/h", 2, 1) { word(it) / 20.0 },
+        PidDef(FUEL_RATE, "Consumo", "L/h", 2, 1, tier = Tier.MEDIUM) { word(it) / 20.0 },
         PidDef(0x2F, "Nivel combustible", "%", 1, 0) { percent(it) },
     )
 
     private val exhaust = listOf(
-        PidDef(0x3C, "Temp. catalizador 1", "°C", 2, 0) { wideTemp(it, 0) },
+        PidDef(0x3C, "Temp. catalizador 1", "°C", 2, 0, tier = Tier.MEDIUM) { wideTemp(it, 0) },
         PidDef(0x3E, "Temp. catalizador 2", "°C", 2, 0) { wideTemp(it, 0) },
     ) + (0..3).map { sensor ->
-        PidDef(part(0x78, sensor), "Temp. gases escape ${sensor + 1}", "°C", 3 + sensor * 2, 0, pid = 0x78) {
+        PidDef(part(0x78, sensor), "Temp. gases escape ${sensor + 1}", "°C", 3 + sensor * 2, 0, pid = 0x78, tier = Tier.MEDIUM) {
             if (has(it, sensor)) wideTemp(it, 1 + sensor * 2) else null
         }
     } + listOf(
         PidDef(part(0x73, 0), "Presión escape", "kPa", 3, 1, pid = 0x73) {
             if (has(it, 0)) word(it, 1) / 100.0 else null
         },
-        PidDef(part(0x7A, 0), "Filtro: presión diferencial", "kPa", 3, 2, pid = 0x7A) {
+        PidDef(part(0x7A, 0), "Filtro: presión diferencial", "kPa", 3, 2, pid = 0x7A, tier = Tier.MEDIUM) {
             if (has(it, 0)) signedWord(it, 1) / 100.0 else null
         },
-        PidDef(part(0x7A, 1), "Filtro: presión entrada", "kPa", 5, 1, pid = 0x7A) {
+        PidDef(part(0x7A, 1), "Filtro: presión entrada", "kPa", 5, 1, pid = 0x7A, tier = Tier.MEDIUM) {
             if (has(it, 1)) word(it, 3) / 100.0 else null
         },
-        PidDef(part(0x7A, 2), "Filtro: presión salida", "kPa", 7, 1, pid = 0x7A) {
+        PidDef(part(0x7A, 2), "Filtro: presión salida", "kPa", 7, 1, pid = 0x7A, tier = Tier.MEDIUM) {
             if (has(it, 2)) word(it, 5) / 100.0 else null
         },
         PidDef(part(0x7C, 0), "Filtro: temp. entrada", "°C", 3, 0, pid = 0x7C) {

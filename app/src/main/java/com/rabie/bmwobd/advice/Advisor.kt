@@ -67,6 +67,7 @@ object Limits {
     const val RAIL_DEVIATION_WARN = 0.10
     const val RAIL_DEVIATION_ALERT = 0.20
     const val EGR_ERROR_WARN = 15.0
+    const val EGR_MIN_COMMANDED = 5.0
     const val AIR_RATIO_WARN = 0.70
     const val AIR_RATIO_ALERT = 0.55
 
@@ -355,6 +356,9 @@ class Advisor {
             },
             Rule("egr", 15_000) { m ->
                 val error = m.values[Moment.EGR_ERROR] ?: return@Rule null
+                // Con la EGR mandada cerrada el coche da el error como -100 %: no significa nada.
+                val commanded = m.values[Moment.EGR_COMMANDED] ?: return@Rule null
+                if (commanded < Limits.EGR_MIN_COMMANDED) return@Rule null
                 if (!m.warm || kotlin.math.abs(error) < Limits.EGR_ERROR_WARN) return@Rule null
                 Advice(
                     "egr", Severity.WARN, "La EGR no sigue lo que se le pide",

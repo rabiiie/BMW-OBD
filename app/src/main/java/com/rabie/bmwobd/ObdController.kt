@@ -18,6 +18,7 @@ import com.rabie.bmwobd.obd.ObdSession
 import com.rabie.bmwobd.obd.ObdTransport
 import com.rabie.bmwobd.obd.PidDef
 import com.rabie.bmwobd.obd.Pids
+import com.rabie.bmwobd.obd.Tier
 import com.rabie.bmwobd.trips.TripRecorder
 import com.rabie.bmwobd.trips.TripStore
 import com.rabie.bmwobd.vehicle.Vehicle
@@ -63,7 +64,10 @@ data class DiagnosticsState(
 
 /** Una peticion al coche y las medidas que salen de su respuesta. */
 private class Request(val pid: Int, val defs: List<PidDef>) {
-    val fast: Boolean = defs.any { it.fast }
+    val tier: Tier = defs.minOf { it.tier }
+
+    /** Los PIDs de una sola medida caben en una trama y admiten la lectura rapida. */
+    val singleFrame: Boolean = defs.all { it.pid == it.id }
 }
 
 /**
@@ -204,8 +208,9 @@ class ObdController(
 
     private suspend fun poll(session: ObdSession, defs: List<PidDef>, recorder: TripRecorder) {
         val requests = defs.groupBy { it.pid }.map { Request(it.key, it.value) }
-        val fast = requests.filter { it.fast }
-        val slow = requests.filter { !it.fast }
+        val fast = requests.filter { it.tier == Tier.FAST }
+        val medium = requests.filter { it.tier == Tier.MEDIUM }
+        val slow = requests.filter { it.tier == Tier.SLOW }
         val values = HashMap<Int, Double>()
         val advisor = Advisor()
         var soundedAlerts = emptySet<String>()
@@ -215,7 +220,9 @@ class ObdController(
         var windowStartNanos = lastAnswerNanos
         var cyclesInWindow = 0
         var rate = 0.0
+        var mediumIndex = 0
         var slowIndex = 0
+        var cycle = 0
 
         while (currentCoroutineContext().isActive) {
             while (true) {
@@ -224,7 +231,9 @@ class ObdController(
             }
 
             var answered = false
-            val turn = if (slow.isEmpty()) fast else fast + slow[slowIndex++ % slow.size]
+            val turn = fast.toMutableList()
+            if (medium.isNotEmpty()) turn += medium[mediumIndex++ % medium.size]
+            if (slow.isNotEmpty() && (cycle++ % SLOW_EVERY == 0 || medium.isEmpty())) turn += slow[slowIndex++ % slow.size]
             for (request in turn) {
                 if (read(session, request, values)) answered = true
             }
@@ -259,7 +268,7 @@ class ObdController(
             session.adapterVoltage()?.let { values[Pids.ADAPTER_VOLTAGE] = it }
             return false
         }
-        val data = session.read(request.pid) ?: return false
+        val data = session.read(request.pid, request.singleFrame) ?: return false
         for (def in request.defs) def.decodeOrNull(data)?.let { values[def.id] = it }
         return true
     }
@@ -307,6 +316,7 @@ class ObdController(
         const val MAX_LOG_LINES = 800
         const val HEAD_LOG_LINES = 120
         const val IDLE_DELAY_MS = 200L
+        const val SLOW_EVERY = 4
         const val BEEP_MS = 600
         const val SILENCE_LIMIT_NANOS = 10_000_000_000L
         const val RATE_WINDOW_NANOS = 2_000_000_000L

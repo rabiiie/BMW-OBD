@@ -17,6 +17,7 @@ class ObdSession(
 ) {
     private val elm = Elm327(transport, log)
     private var timeouts = 0
+    private var quick = false
 
     suspend fun connect(): SessionInfo {
         transport.open()
@@ -26,6 +27,7 @@ class ObdSession(
             throw IOException("El coche no responde. ¿Contacto puesto o motor en marcha?")
         }
         logSupport(supported)
+        quick = detectQuick(supported)
         val protocol = elm.send("ATDP").lines().lastOrNull().orEmpty()
         val vin = text("0902", "4902")?.takeIf { it.length == VIN_LENGTH }
         return SessionInfo("$version · $protocol", supported, vin, isDiesel(supported))
@@ -48,15 +50,32 @@ class ObdSession(
      * Bytes de datos de un PID del modo 01, o null si el coche no contesta en este momento. Un
      * silencio suelto se tolera; varios seguidos significan que el adaptador se ha ido.
      */
-    suspend fun read(pid: Int): IntArray? {
+    suspend fun read(pid: Int, singleFrame: Boolean = false): IntArray? {
+        val suffix = if (quick && singleFrame) QUICK_SUFFIX else ""
         val response = try {
-            elm.send("01%02X".format(pid), READ_TIMEOUT_MS)
+            elm.send("01%02X".format(pid) + suffix, READ_TIMEOUT_MS)
         } catch (e: SocketTimeoutException) {
             if (++timeouts > MAX_TIMEOUTS) throw IOException("El adaptador ha dejado de responder.")
             return null
         }
         timeouts = 0
         return ObdParser.dataBytes(response, pid)
+    }
+
+    /**
+     * Un 1 al final del comando le dice al adaptador que solo espere una respuesta, y contesta en
+     * cuanto llega en vez de agotar su temporizador. No todos los clones lo entienden: se prueba
+     * una vez con las revoluciones y solo se usa si la respuesta sale bien.
+     */
+    private suspend fun detectQuick(supported: Set<Int>): Boolean {
+        if (Pids.RPM !in supported) return false
+        val works = try {
+            ObdParser.dataBytes(elm.send("01%02X".format(Pids.RPM) + QUICK_SUFFIX, READ_TIMEOUT_MS), Pids.RPM) != null
+        } catch (e: SocketTimeoutException) {
+            false
+        }
+        log("## Lectura rápida: " + if (works) "sí" else "no la admite el adaptador")
+        return works
     }
 
     /** Tension en el conector OBD medida por el adaptador. Contesta aunque el coche este apagado. */
@@ -177,6 +196,7 @@ class ObdSession(
         const val READ_TIMEOUT_MS = 3_000L
         const val LAST_SUPPORT_BLOCK = 0xC0
         const val MAX_TIMEOUTS = 3
+        const val QUICK_SUFFIX = "1"
         const val VIN_LENGTH = 17
         const val FUEL_TYPE = 0x51
         const val FUEL_GASOLINE = 1

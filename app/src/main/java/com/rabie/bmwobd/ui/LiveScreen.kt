@@ -43,6 +43,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rabie.bmwobd.LiveState
@@ -125,9 +126,7 @@ fun LiveScreen(
                 Label("km/h")
             },
             center = {
-                val consumption = Pids.litersPer100Km(values)
-                Text(consumption?.let { formatValue(it, 1) } ?: "—", color = Bmw.Accent, fontSize = 22.sp)
-                Label("L/100")
+                CenterReadout(state, 22.sp)
             },
             right = {
                 Text(rpm?.let { formatValue(it, 0) } ?: "—", color = Bmw.Text, fontSize = 34.sp, fontWeight = FontWeight.Light)
@@ -237,9 +236,7 @@ fun LandscapePanel(state: LiveState, keepScreenOn: Boolean, onMenu: () -> Unit, 
                     Label("km/h")
                 },
                 center = {
-                    val consumption = Pids.litersPer100Km(values)
-                    Text(consumption?.let { formatValue(it, 1) } ?: "—", color = Bmw.Accent, fontSize = (34 * scale).sp)
-                    Label("L/100")
+                    CenterReadout(state, (34 * scale).sp)
                 },
                 right = {
                     Text(rpm?.let { formatValue(it, 0) } ?: "—", color = Bmw.Text, fontSize = (54 * scale).sp, fontWeight = FontWeight.Light)
@@ -286,6 +283,23 @@ fun LandscapePanel(state: LiveState, keepScreenOn: Boolean, onMenu: () -> Unit, 
             )
         }
         Label("Menú", Modifier.align(Alignment.BottomEnd).clickable(onClick = onMenu).padding(10.dp), color = Bmw.Accent)
+    }
+}
+
+/**
+ * La cifra del hueco central del cuadro: el consumo instantaneo si el coche da el caudal de
+ * combustible y, si no lo da, el turbo.
+ */
+@Composable
+private fun CenterReadout(state: LiveState, size: TextUnit) {
+    if (Pids.FUEL_RATE in state.supported) {
+        val consumption = Pids.litersPer100Km(state.values)
+        Text(consumption?.let { formatValue(it, 1) } ?: "—", color = Bmw.Accent, fontSize = size)
+        Label("L/100")
+    } else {
+        val boost = Pids.boostBar(state.values)
+        Text(boost?.let { formatValue(it, 2) } ?: "—", color = Bmw.Accent, fontSize = size)
+        Label("bar")
     }
 }
 
