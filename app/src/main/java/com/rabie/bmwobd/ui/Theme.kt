@@ -10,6 +10,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -24,6 +27,9 @@ object Bmw {
     val SurfaceHigh = Color(0xFF1E2126)
     val Line = Color(0xFF2B2F36)
     val Amber = Color(0xFFFF6A1F)
+
+    /** Color de acento elegido en los ajustes. Cambiarlo repinta todo lo que lo usa. */
+    var Accent: Color by mutableStateOf(Amber)
     val Text = Color(0xFFECE9E4)
     val TextDim = Color(0xFF8C9199)
     val MBlueLight = Color(0xFF6EC1F5)
@@ -47,7 +53,9 @@ private val colors = darkColorScheme(
 
 @Composable
 fun BmwObdTheme(content: @Composable () -> Unit) {
-    MaterialTheme(colorScheme = colors, content = content)
+    val accent = Bmw.Accent
+    // Sobre un acento claro el texto de los botones va en negro, como sobre el ambar.
+    MaterialTheme(colorScheme = colors.copy(primary = accent, onPrimary = Color.Black), content = content)
 }
 
 fun statusColor(status: Status?): Color = when (status) {

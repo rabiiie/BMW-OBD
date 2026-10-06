@@ -83,7 +83,7 @@ fun ArcGauge(
                 )
             }
             if (value > 0f) {
-                val color = if (value >= redFrom) Bmw.MRed else Bmw.Amber
+                val color = if (value >= redFrom) Bmw.MRed else Bmw.Accent
                 drawArc(
                     color = color.copy(alpha = 0.18f),
                     startAngle = START_ANGLE,
@@ -130,14 +130,14 @@ fun ArcGauge(
 
             // La aguja es un trazo corto junto al borde, para no tapar la cifra del centro.
             drawLine(
-                color = Bmw.Amber.copy(alpha = 0.25f),
+                color = Bmw.Accent.copy(alpha = 0.25f),
                 start = point(radius * 0.60f, value),
                 end = point(tickOuter, value),
                 strokeWidth = stroke * 1.5f,
                 cap = StrokeCap.Round,
             )
             drawLine(
-                color = Bmw.Amber,
+                color = Bmw.Accent,
                 start = point(radius * 0.60f, value),
                 end = point(tickOuter, value),
                 strokeWidth = stroke * 0.55f,

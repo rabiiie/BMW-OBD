@@ -74,7 +74,7 @@ class Bubble(private val context: Context, private val controller: ObdController
         val frame = GradientDrawable().apply {
             cornerRadius = dp(14).toFloat()
             setColor(Bmw.Surface.copy(alpha = 0.92f).toArgb())
-            setStroke(dp(1), Bmw.Amber.toArgb())
+            setStroke(dp(1), Bmw.Accent.toArgb())
         }
         val boost = text(24f, Bmw.Text.toArgb())
         val temps = text(13f, Bmw.TextDim.toArgb())
@@ -117,7 +117,7 @@ class Bubble(private val context: Context, private val controller: ObdController
                 val top = state.advice.firstOrNull { it.severity != Severity.INFO } ?: state.advice.firstOrNull()
                 note.visibility = if (top == null) View.GONE else View.VISIBLE
                 note.text = top?.title.orEmpty()
-                val color = top?.let { severityColor(it.severity).toArgb() } ?: Bmw.Amber.toArgb()
+                val color = top?.let { severityColor(it.severity).toArgb() } ?: Bmw.Accent.toArgb()
                 note.setTextColor(color)
                 frame.setStroke(dp(if (top?.severity == Severity.ALERT) 2 else 1), color)
             }

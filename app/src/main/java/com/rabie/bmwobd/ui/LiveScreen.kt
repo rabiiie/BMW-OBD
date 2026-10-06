@@ -69,13 +69,14 @@ private val ON_GAUGES = setOf(Pids.RPM, Pids.SPEED, Pids.COOLANT, Pids.MAP, Pids
 @Composable
 fun LiveScreen(
     state: LiveState,
+    keepScreenOn: Boolean,
     bubbleEnabled: Boolean,
     onToggleBubble: () -> Unit,
     onSaveVehicle: (Vehicle) -> Unit,
     onDisconnect: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    KeepScreenOn()
+    if (keepScreenOn) KeepScreenOn()
     val values = state.values
     val vehicle = state.vehicle
     val context = LocalContext.current
@@ -104,7 +105,7 @@ fun LiveScreen(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(vehicle.name, color = Bmw.Text, fontSize = 18.sp, modifier = Modifier.weight(1f))
-            Label(if (vehicle.displacementLiters == null) "Completar perfil" else "Editar", color = Bmw.Amber)
+            Label(if (vehicle.displacementLiters == null) "Completar perfil" else "Editar", color = Bmw.Accent)
         }
         for (advice in state.advice) {
             AdviceCard(advice, Modifier.clickable { searchWeb(context, "${vehicle.searchTerms} ${advice.title}") })
@@ -125,7 +126,7 @@ fun LiveScreen(
             },
             center = {
                 val consumption = Pids.litersPer100Km(values)
-                Text(consumption?.let { formatValue(it, 1) } ?: "—", color = Bmw.Amber, fontSize = 22.sp)
+                Text(consumption?.let { formatValue(it, 1) } ?: "—", color = Bmw.Accent, fontSize = 22.sp)
                 Label("L/100")
             },
             right = {
@@ -193,8 +194,8 @@ fun LiveScreen(
  * la app normal.
  */
 @Composable
-fun LandscapePanel(state: LiveState, onMenu: () -> Unit, modifier: Modifier = Modifier) {
-    KeepScreenOn()
+fun LandscapePanel(state: LiveState, keepScreenOn: Boolean, onMenu: () -> Unit, modifier: Modifier = Modifier) {
+    if (keepScreenOn) KeepScreenOn()
     HideSystemBars()
     val values = state.values
     val vehicle = state.vehicle
@@ -237,7 +238,7 @@ fun LandscapePanel(state: LiveState, onMenu: () -> Unit, modifier: Modifier = Mo
                 },
                 center = {
                     val consumption = Pids.litersPer100Km(values)
-                    Text(consumption?.let { formatValue(it, 1) } ?: "—", color = Bmw.Amber, fontSize = (34 * scale).sp)
+                    Text(consumption?.let { formatValue(it, 1) } ?: "—", color = Bmw.Accent, fontSize = (34 * scale).sp)
                     Label("L/100")
                 },
                 right = {
@@ -284,7 +285,7 @@ fun LandscapePanel(state: LiveState, onMenu: () -> Unit, modifier: Modifier = Mo
                     .padding(horizontal = 14.dp, vertical = 4.dp),
             )
         }
-        Label("Menú", Modifier.align(Alignment.BottomEnd).clickable(onClick = onMenu).padding(10.dp), color = Bmw.Amber)
+        Label("Menú", Modifier.align(Alignment.BottomEnd).clickable(onClick = onMenu).padding(10.dp), color = Bmw.Accent)
     }
 }
 
@@ -344,7 +345,7 @@ private fun StatusRow(state: LiveState, onDisconnect: () -> Unit) {
         Label(
             if (state.simulated) "Salir" else "Desconectar",
             Modifier.clickable(onClick = onDisconnect).padding(start = 8.dp, top = 6.dp, bottom = 6.dp),
-            color = Bmw.Amber,
+            color = Bmw.Accent,
         )
     }
     Text(

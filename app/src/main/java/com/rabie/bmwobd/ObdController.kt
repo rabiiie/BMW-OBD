@@ -11,7 +11,9 @@ import androidx.core.content.ContextCompat
 import com.rabie.bmwobd.advice.Advice
 import com.rabie.bmwobd.advice.Advisor
 import com.rabie.bmwobd.advice.Severity
+import com.rabie.bmwobd.obd.Commands
 import com.rabie.bmwobd.obd.DiagnosticsReport
+import com.rabie.bmwobd.settings.SettingsStore
 import com.rabie.bmwobd.obd.ObdSession
 import com.rabie.bmwobd.obd.ObdTransport
 import com.rabie.bmwobd.obd.PidDef
@@ -72,6 +74,7 @@ class ObdController(
     private val context: Context,
     private val trips: TripStore,
     private val vehicles: VehicleStore,
+    private val settings: SettingsStore,
 ) {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -146,6 +149,10 @@ class ObdController(
     fun sendCommand(command: String) {
         val text = command.trim()
         if (text.isEmpty() || !isLive()) return
+        if (!settings.state.value.expertConsole && !Commands.isReadOnly(text)) {
+            appendLog("!! $text no es una consulta. Para enviarlo, activa el modo experto en Ajustes.")
+            return
+        }
         tasks.trySend { session ->
             try {
                 session.raw(text)
@@ -259,6 +266,7 @@ class ObdController(
 
     /** Pitido cuando aparece un rojo nuevo, para no tener que mirar la pantalla conduciendo. */
     private fun beep() {
+        if (!settings.state.value.sound) return
         try {
             val tone = ToneGenerator(AudioManager.STREAM_MUSIC, 90)
             tone.startTone(ToneGenerator.TONE_PROP_BEEP2, BEEP_MS)

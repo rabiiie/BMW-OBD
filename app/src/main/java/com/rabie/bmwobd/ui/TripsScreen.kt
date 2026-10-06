@@ -216,7 +216,7 @@ private fun TripDetail(
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(onClick = { shareFile(context, entry.file, "text/csv") }, modifier = Modifier.weight(1f)) {
+            OutlinedButton(onClick = { shareFile(context, entry.file, "text/csv", exportName(entry)) }, modifier = Modifier.weight(1f)) {
                 Text("Exportar CSV")
             }
             OutlinedButton(onClick = onDelete, modifier = Modifier.weight(1f)) {
@@ -236,7 +236,7 @@ private fun ReportCard(section: ReportSection) {
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Label(section.title, color = Bmw.Amber)
+        Label(section.title, color = Bmw.Accent)
         for (line in section.lines) {
             Column {
                 Text(line.label, color = Bmw.TextDim, fontSize = 12.sp)
@@ -268,7 +268,7 @@ private fun Chip(text: String, selected: Boolean, onClick: () -> Unit) {
         fontSize = 13.sp,
         modifier = Modifier
             .clip(RoundedCornerShape(50))
-            .background(if (selected) Bmw.Amber else Bmw.SurfaceHigh)
+            .background(if (selected) Bmw.Accent else Bmw.SurfaceHigh)
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 6.dp),
     )
@@ -312,7 +312,7 @@ private fun TripChart(tMs: LongArray, values: DoubleArray, unit: String, decimal
                 i += step
             }
             drawLine(Bmw.Line, Offset(0f, size.height), Offset(size.width, size.height))
-            drawPath(path, Bmw.Amber, style = Stroke(width = 2.dp.toPx()))
+            drawPath(path, Bmw.Accent, style = Stroke(width = 2.dp.toPx()))
         }
         Row {
             Label("Mín ${formatValue(min, decimals)} $unit", Modifier.weight(1f))
@@ -333,6 +333,10 @@ private fun statCells(stats: TripStats): List<Pair<String, String>> = listOfNotN
     stats.maxCoolant?.let { "Refrigerante máx" to formatValue(it, 0) + " °C" },
     stats.maxOil?.let { "Aceite máx" to formatValue(it, 0) + " °C" },
 )
+
+/** Nombre con el que sale el CSV al compartirlo: con la fecha y sin el bastidor del coche. */
+private fun exportName(entry: TripEntry): String =
+    "trayecto_" + SimpleDateFormat("yyyyMMdd_HHmm", Locale.US).format(Date(entry.startMillis)) + ".csv"
 
 private fun formatStart(millis: Long): String =
     SimpleDateFormat("EEE d MMM · HH:mm", Locale.getDefault()).format(Date(millis))

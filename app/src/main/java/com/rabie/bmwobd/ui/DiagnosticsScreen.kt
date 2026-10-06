@@ -76,7 +76,7 @@ fun DiagnosticsScreen(
                 Text("Preguntando al coche…", color = Bmw.Text)
             }
         }
-        state.message?.let { Text(it, color = Bmw.Amber, fontSize = 14.sp) }
+        state.message?.let { Text(it, color = Bmw.Accent, fontSize = 14.sp) }
 
         val report = state.report
         if (report == null) {
@@ -126,7 +126,7 @@ private fun Report(report: DiagnosticsReport, vehicleTerms: String) {
     }
 
     CodeList("Guardadas", report.stored, Bmw.MRed, vehicleTerms)
-    CodeList("Pendientes (aún sin confirmar)", report.pending, Bmw.Amber, vehicleTerms)
+    CodeList("Pendientes (aún sin confirmar)", report.pending, Bmw.Accent, vehicleTerms)
     CodeList("Permanentes (no se borran a mano)", report.permanent, Bmw.MBlueLight, vehicleTerms)
     if (listOfNotNull(report.stored, report.pending, report.permanent).any { it.isNotEmpty() }) {
         Text("Toca un código para buscarlo en internet con los datos de este coche.", color = Bmw.TextDim, fontSize = 12.sp)

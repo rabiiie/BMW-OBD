@@ -98,7 +98,7 @@ fun LogView(lines: List<String>, modifier: Modifier = Modifier) {
                 fontSize = 12.sp,
                 color = when {
                     line.startsWith("!!") -> Bmw.MRed
-                    line.startsWith(">>") -> Bmw.Amber
+                    line.startsWith(">>") -> Bmw.Accent
                     else -> Bmw.Text
                 },
             )

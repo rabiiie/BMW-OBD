@@ -30,12 +30,15 @@ fun openWaze(context: Context): Boolean {
     return runCatching { context.startActivity(intent) }.isSuccess
 }
 
-/** Comparte un fichero privado de la app a traves del FileProvider declarado en el manifiesto. */
-fun shareFile(context: Context, file: File, mimeType: String) {
-    val uri = FileProvider.getUriForFile(context, context.packageName + ".files", file)
+/**
+ * Comparte un fichero privado de la app a traves del FileProvider declarado en el manifiesto.
+ * Quien lo recibe lo ve con [displayName], no con el nombre interno.
+ */
+fun shareFile(context: Context, file: File, mimeType: String, displayName: String) {
+    val uri = FileProvider.getUriForFile(context, context.packageName + ".files", file, displayName)
     val intent = Intent(Intent.ACTION_SEND)
         .setType(mimeType)
         .putExtra(Intent.EXTRA_STREAM, uri)
         .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-    context.startActivity(Intent.createChooser(intent, file.name))
+    context.startActivity(Intent.createChooser(intent, displayName))
 }

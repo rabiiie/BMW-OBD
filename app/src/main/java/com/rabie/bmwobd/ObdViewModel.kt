@@ -7,6 +7,7 @@ import android.bluetooth.BluetoothManager
 import androidx.lifecycle.AndroidViewModel
 import com.rabie.bmwobd.obd.BluetoothSppTransport
 import com.rabie.bmwobd.obd.SimulatedTransport
+import com.rabie.bmwobd.settings.AppSettings
 import com.rabie.bmwobd.trips.TripStore
 import com.rabie.bmwobd.vehicle.Vehicle
 import com.rabie.bmwobd.vehicle.VehicleStore
@@ -66,6 +67,11 @@ class ObdViewModel(app: Application) : AndroidViewModel(app) {
     val vehicles: VehicleStore = (app as BmwObdApp).vehicles
 
     fun updateVehicle(vehicle: Vehicle) = controller.updateVehicle(vehicle)
+
+    private val settingsStore = (app as BmwObdApp).settings
+    val settings: StateFlow<AppSettings> = settingsStore.state
+
+    fun updateSettings(transform: (AppSettings) -> AppSettings) = settingsStore.update(transform)
 
     fun probe() = controller.probe()
 

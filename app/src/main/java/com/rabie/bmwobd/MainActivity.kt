@@ -47,7 +47,9 @@ import com.rabie.bmwobd.ui.Bmw
 import com.rabie.bmwobd.ui.BmwObdTheme
 import com.rabie.bmwobd.ui.ConnectScreen
 import com.rabie.bmwobd.ui.DiagnosticsScreen
-import com.rabie.bmwobd.ui.Label
+import androidx.compose.material3.Text
+import androidx.compose.ui.unit.sp
+import com.rabie.bmwobd.ui.SettingsScreen
 import com.rabie.bmwobd.ui.LandscapePanel
 import com.rabie.bmwobd.ui.LiveScreen
 import com.rabie.bmwobd.ui.LogScreen
@@ -74,7 +76,7 @@ class MainActivity : ComponentActivity() {
 private const val COMPACT_HEIGHT_DP = 500
 
 private enum class Tab(val title: String) {
-    PANEL("Panel"), TRIPS("Trayectos"), FAULTS("Averías"), LOG("Registro")
+    PANEL("Panel"), TRIPS("Trayectos"), FAULTS("Averías"), LOG("Registro"), SETTINGS("Ajustes")
 }
 
 @Composable
@@ -87,6 +89,13 @@ private fun MainScreen(vm: ObdViewModel = viewModel()) {
         permissionGranted = hasBluetoothPermission(context)
     }
     var tab by rememberSaveable { mutableStateOf(Tab.PANEL) }
+    val settings by vm.settings.collectAsStateWithLifecycle()
+    val bubbleEnabled by vm.bubbleEnabled.collectAsStateWithLifecycle()
+    val toggleBubble = { if (!vm.toggleBubble()) openOverlaySettings(context) }
+
+    LaunchedEffect(settings.accent) {
+        Bmw.Accent = androidx.compose.ui.graphics.Color(settings.accent.argb)
+    }
 
     LaunchedEffect(permissionGranted) {
         if (permissionGranted) vm.refreshDevices() else launcher.launch(runtimePermissions())
@@ -101,7 +110,12 @@ private fun MainScreen(vm: ObdViewModel = viewModel()) {
     var menuInLandscape by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(landscape) { if (!landscape) menuInLandscape = false }
     if (landscape && !menuInLandscape && tab == Tab.PANEL && state.phase == Phase.LIVE) {
-        LandscapePanel(state = state, onMenu = { menuInLandscape = true }, modifier = Modifier.safeDrawingPadding())
+        LandscapePanel(
+            state = state,
+            keepScreenOn = settings.keepScreenOn,
+            onMenu = { menuInLandscape = true },
+            modifier = Modifier.safeDrawingPadding(),
+        )
         return
     }
 
@@ -109,11 +123,11 @@ private fun MainScreen(vm: ObdViewModel = viewModel()) {
         val content = Modifier.weight(1f)
         when (tab) {
             Tab.PANEL -> if (state.phase == Phase.LIVE) {
-                val bubbleEnabled by vm.bubbleEnabled.collectAsStateWithLifecycle()
                 LiveScreen(
                     state = state,
+                    keepScreenOn = settings.keepScreenOn,
                     bubbleEnabled = bubbleEnabled,
-                    onToggleBubble = { if (!vm.toggleBubble()) openOverlaySettings(context) },
+                    onToggleBubble = toggleBubble,
                     onSaveVehicle = vm::updateVehicle,
                     onDisconnect = vm::disconnect,
                     modifier = content,
@@ -156,6 +170,14 @@ private fun MainScreen(vm: ObdViewModel = viewModel()) {
                     modifier = content,
                 )
             }
+
+            Tab.SETTINGS -> SettingsScreen(
+                settings = settings,
+                bubbleEnabled = bubbleEnabled,
+                onChange = vm::updateSettings,
+                onToggleBubble = toggleBubble,
+                modifier = content,
+            )
         }
         Tabs(
             selected = tab,
@@ -177,8 +199,15 @@ private fun Tabs(selected: Tab, onSelect: (Tab) -> Unit) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                Label(tab.title, color = if (active) Bmw.Text else Bmw.TextDim)
-                Box(Modifier.width(28.dp).height(2.dp).background(if (active) Bmw.Amber else Bmw.Surface))
+                // Mas pequeño que el rotulo normal: son cinco pestañas y tienen que caber en una linea.
+                Text(
+                    tab.title.uppercase(),
+                    color = if (active) Bmw.Text else Bmw.TextDim,
+                    fontSize = 10.sp,
+                    letterSpacing = 0.5.sp,
+                    maxLines = 1,
+                )
+                Box(Modifier.width(28.dp).height(2.dp).background(if (active) Bmw.Accent else Bmw.Surface))
             }
         }
     }

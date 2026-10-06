@@ -3,7 +3,10 @@ package com.rabie.bmwobd
 import android.app.Activity
 import android.app.Application
 import android.os.Bundle
+import androidx.compose.ui.graphics.Color
+import com.rabie.bmwobd.settings.SettingsStore
 import com.rabie.bmwobd.trips.TripStore
+import com.rabie.bmwobd.ui.Bmw
 import com.rabie.bmwobd.vehicle.VehicleStore
 import java.io.File
 
@@ -13,6 +16,9 @@ class BmwObdApp : Application() {
         private set
 
     lateinit var vehicles: VehicleStore
+        private set
+
+    lateinit var settings: SettingsStore
         private set
 
     lateinit var controller: ObdController
@@ -25,7 +31,9 @@ class BmwObdApp : Application() {
         super.onCreate()
         trips = TripStore(File(filesDir, "trips"))
         vehicles = VehicleStore(getSharedPreferences("vehicles", MODE_PRIVATE))
-        controller = ObdController(this, trips, vehicles)
+        settings = SettingsStore(getSharedPreferences("settings", MODE_PRIVATE))
+        Bmw.Accent = Color(settings.state.value.accent.argb)
+        controller = ObdController(this, trips, vehicles, settings)
         bubble = Bubble(this, controller)
         registerActivityLifecycleCallbacks(VisibilityTracker())
     }
