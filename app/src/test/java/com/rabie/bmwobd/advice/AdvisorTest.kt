@@ -92,6 +92,36 @@ class AdvisorTest {
     }
 
     @Test
+    fun `turbo y aire a plena carga contra la referencia del motor`() {
+        val bmw = com.rabie.bmwobd.vehicle.Vehicle.GENERIC.copy(name = "118d", make = "BMW", displacementLiters = 2.0)
+        fun pull(rpm: Double, map: Double, air: Double): List<Advice> {
+            val advisor = Advisor()
+            val values = mapOf(
+                Pids.RPM to rpm, Pids.SPEED to 100.0, Pids.COOLANT to 90.0, Pids.LOAD to 100.0,
+                Pids.MAP to map, Pids.BAROMETRIC to 95.0, Moment.MAF to air,
+            )
+            var last = emptyList<Advice>()
+            for (s in 0..10) last = advisor.update(s * 1000L, values, bmw)
+            return last
+        }
+        assertNull(pull(3000.0, 240.0, 105.0).find("boost_low"))
+        assertEquals(Severity.WARN, pull(3000.0, 200.0, 90.0).find("boost_low")?.severity)
+        assertEquals(Severity.ALERT, pull(3000.0, 180.0, 80.0).find("boost_low")?.severity)
+        // A 3000 rpm el aire no se compara; a 3800 si.
+        assertNull(pull(3000.0, 240.0, 70.0).find("air_full"))
+        assertNull(pull(3800.0, 240.0, 110.0).find("air_full"))
+        assertEquals(Severity.WARN, pull(3800.0, 240.0, 80.0).find("air_full")?.severity)
+    }
+
+    @Test
+    fun `ralenti subido con tension alta es el coche cargando la bateria`() {
+        val charging = warmIdle + (Pids.RPM to 980.0) + (Moment.MODULE_VOLTAGE to 14.6)
+        assertEquals(Severity.INFO, hold(charging, 60).find("idle_rpm")?.severity)
+        val odd = warmIdle + (Pids.RPM to 980.0) + (Moment.MODULE_VOLTAGE to 13.8)
+        assertEquals(Severity.WARN, hold(odd, 60).find("idle_rpm")?.severity)
+    }
+
+    @Test
     fun `motor frio exigido es solo un consejo`() {
         val cold = mapOf(Pids.RPM to 3400.0, Pids.SPEED to 60.0, Pids.COOLANT to 35.0, Pids.OIL to 30.0, Pids.LOAD to 60.0)
         assertEquals(Severity.INFO, hold(cold, 5).find("cold_push")?.severity)

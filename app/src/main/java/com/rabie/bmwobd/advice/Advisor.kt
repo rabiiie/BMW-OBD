@@ -41,6 +41,11 @@ object Limits {
     const val FULL_LOAD_MAP_ALERT_BELOW = 45.0
     const val RAIL_OVER_MAX_ALERT = 150.0
 
+    // El caudal de aire de referencia es a 4000 rpm; mas abajo entra menos y no se compara.
+    const val FULL_LOAD_AIR_MIN_RPM = 3500.0
+    const val FULL_LOAD_AIR_WARN_BELOW = 15.0
+    const val FULL_LOAD_AIR_ALERT_BELOW = 30.0
+
     const val OIL_WARN = 125.0
     const val OIL_ALERT = 135.0
     const val INTAKE_WARN = 65.0
@@ -59,6 +64,7 @@ object Limits {
     const val VOLTAGE_LOW_WARN = 11.8
     const val VOLTAGE_LOW_ALERT = 11.4
     const val VOLTAGE_HIGH_ALERT = 15.4
+    const val CHARGING_HARD_VOLTAGE = 14.4
 
     // Presion diferencial del filtro de particulas, en kPa (1 kPa = 10 mbar).
     const val FILTER_IDLE_WARN_KPA = 2.0
@@ -387,6 +393,16 @@ class Advisor {
             Rule("idle_rpm", 30_000) { m ->
                 val rpm = m.rpm ?: return@Rule null
                 if (!m.idle || !m.warm || rpm in Limits.IDLE_RPM_LOW..Limits.IDLE_RPM_HIGH) return@Rule null
+                // Ralenti subido y tension de carga alta a la vez: el coche lo sube a proposito para
+                // recargar la bateria. No es averia del motor, pero dice algo de la bateria.
+                val volts = m.values[Moment.MODULE_VOLTAGE] ?: m.values[Pids.ADAPTER_VOLTAGE]
+                if (rpm > Limits.IDLE_RPM_HIGH && volts != null && volts >= Limits.CHARGING_HARD_VOLTAGE) {
+                    return@Rule Advice(
+                        "idle_rpm", Severity.INFO, "Ralentí subido para cargar la batería",
+                        "A ${n(rpm)} rpm con ${n(volts, 1)} V. El coche sube el ralentí para recargar. " +
+                            "Si pasa a menudo, la batería está baja o envejecida, o se hacen muchos trayectos cortos.",
+                    )
+                }
                 Advice(
                     "idle_rpm", Severity.WARN, "Ralentí a ${n(rpm)} rpm en caliente",
                     "Fuera de lo habitual. Un ralentí alto y sostenido también pasa durante una regeneración del filtro.",
@@ -443,6 +459,19 @@ class Advisor {
                 Advice(
                     "boost_low", Severity.WARN, "Poco turbo acelerando a fondo",
                     "Solo ${n(boost / 100, 2)} bar con carga alta. Puede haber una fuga en la admisión.",
+                )
+            },
+            Rule("air_full", 3_000) { m ->
+                val normal = m.reference?.fullLoadAirGramsPerSecond ?: return@Rule null
+                val air = m.values[Moment.MAF] ?: return@Rule null
+                val fullLoad = (m.rpm ?: 0.0) >= Limits.FULL_LOAD_AIR_MIN_RPM && (m.load ?: 0.0) >= Limits.FULL_LOAD_MIN_LOAD
+                if (!fullLoad) return@Rule null
+                val severity = level(normal.start - air, Limits.FULL_LOAD_AIR_WARN_BELOW, Limits.FULL_LOAD_AIR_ALERT_BELOW)
+                    ?: return@Rule null
+                Advice(
+                    "air_full", severity, "Aire de ${n(air)} g/s a plena carga",
+                    "La referencia de este motor a fondo es ${n(normal.start)}–${n(normal.endInclusive)} g/s. " +
+                        "Mira filtro de aire, caudalímetro y fugas en la admisión.",
                 )
             },
             Rule("boost_high", 2_000) { m ->
