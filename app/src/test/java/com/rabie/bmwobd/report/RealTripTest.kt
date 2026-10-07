@@ -19,9 +19,24 @@ class RealTripTest {
 
     private val vehicle = Vehicle.GENERIC.copy(name = "Real", displacementLiters = 1.995)
 
-    private fun trip(): TripData {
-        val stream = checkNotNull(javaClass.classLoader?.getResourceAsStream("trayecto_real_corto.csv"))
+    private fun trip(name: String = "trayecto_real_corto.csv"): TripData {
+        val stream = checkNotNull(javaClass.classLoader?.getResourceAsStream(name))
         return stream.bufferedReader().useLines { TripCsv.parse(it) }
+    }
+
+    @Test
+    fun `ir con poco pedal y la EGR abierta no cuenta como acelerar a fondo`() {
+        // En este trayecto hay un tramo a 1600-1700 rpm con el 30 % de pedal, la EGR abierta y la
+        // carga del OBD por encima del 80 %, y despues una aceleracion de verdad hasta 227 kPa.
+        val data = trip("trayecto_real_acelerones.csv")
+        val pulls = TripReport.pulls(data, vehicle)
+        println("Aceleraciones: " + pulls.map { "${it.startMs / 1000}s ${it.boostPeakBar}" })
+        assertTrue(pulls.isNotEmpty())
+        assertTrue(pulls.all { it.boostPeakBar!! > 0.9 })
+        assertEquals(1.33, pulls.maxOf { it.boostPeakBar!! }, 0.02)
+        val findings = Advisor.review(data, Vehicle.GENERIC.copy(name = "118d N47", make = "BMW", displacementLiters = 1.995))
+        println("Indicios: " + findings.map { "${it.advice.severity} ${it.advice.id} ${it.seconds}s" })
+        assertTrue(findings.none { it.advice.severity != Severity.INFO })
     }
 
     @Test

@@ -126,7 +126,10 @@ object TripReport {
         return null
     }
 
-    /** Tramos seguidos con carga alta y el motor ya en la zona del turbo. */
+    /**
+     * Tramos seguidos con carga alta, la EGR cerrada y el motor ya en la zona del turbo. La EGR
+     * cerrada separa pisar de verdad de ir con poco pedal y la carga del OBD alta.
+     */
     fun pulls(data: TripData, vehicle: Vehicle): List<Pull> {
         val rows = Rows(data)
         val result = mutableListOf<Pull>()
@@ -134,6 +137,7 @@ object TripReport {
         for (i in 0..data.size) {
             val inPull = i < data.size &&
                 (rows.at(Pids.LOAD, i) ?: 0.0) >= Limits.PULL_MIN_LOAD &&
+                (rows.at(Moment.EGR_COMMANDED, i) ?: 0.0) < Limits.EGR_MIN_COMMANDED &&
                 (rows.at(Pids.RPM, i) ?: 0.0) >= PULL_MIN_RPM
             if (inPull && start < 0) start = i
             if (!inPull && start >= 0) {

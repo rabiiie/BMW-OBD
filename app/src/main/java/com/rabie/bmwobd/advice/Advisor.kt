@@ -100,6 +100,7 @@ object Limits {
     const val COLD_OIL = 60.0
     const val COLD_MAX_RPM = 3000.0
     const val HOT_STOP_AVG_LOAD = 50.0
+    const val HOT_STOP_EXHAUST = 350.0
     const val HOT_STOP_WINDOW_MS = 120_000L
 }
 
@@ -126,8 +127,15 @@ class Moment(
     val idle = running && (rpm ?: 0.0) < Limits.IDLE_MAX_RPM && (speed ?: 99.0) < Limits.IDLE_MAX_SPEED
 
     /** Acelerando a fondo en la zona donde el turbo ya deberia soplar. */
-    val pull = (load ?: 0.0) >= Limits.PULL_MIN_LOAD &&
-        (rpm ?: 0.0) in Limits.PULL_MIN_RPM..Limits.PULL_MAX_RPM
+    /**
+     * Carga alta de verdad. En un diesel la carga del OBD tambien sube con poco pedal si la EGR va
+     * abierta, porque entra menos aire fresco; cuando se le pide fuerza, la centralita la cierra.
+     * Sin el dato de la EGR se da por cerrada.
+     */
+    val demanding = (load ?: 0.0) >= Limits.PULL_MIN_LOAD &&
+        (values[EGR_COMMANDED] ?: 0.0) < Limits.EGR_MIN_COMMANDED
+
+    val pull = demanding && (rpm ?: 0.0) in Limits.PULL_MIN_RPM..Limits.PULL_MAX_RPM
 
     /**
      * Aire que cabe en el motor a estas revoluciones, presion y temperatura, en g/s. Sin la
@@ -469,7 +477,7 @@ class Advisor {
                 val normal = m.reference?.fullLoadMapKpa
                 val map = m.values[Pids.MAP]
                 if (normal != null && map != null) {
-                    val fullLoad = (m.rpm ?: 0.0) > Limits.FULL_LOAD_MIN_RPM &&
+                    val fullLoad = m.demanding && (m.rpm ?: 0.0) > Limits.FULL_LOAD_MIN_RPM &&
                         (m.load ?: 0.0) >= Limits.FULL_LOAD_MIN_LOAD
                     if (!fullLoad) return@Rule null
                     val severity = level(normal.start - map, Limits.FULL_LOAD_MAP_WARN_BELOW, Limits.FULL_LOAD_MAP_ALERT_BELOW)
@@ -490,7 +498,8 @@ class Advisor {
             Rule("air_full", 3_000) { m ->
                 val normal = m.reference?.fullLoadAirGramsPerSecond ?: return@Rule null
                 val air = m.values[Moment.MAF] ?: return@Rule null
-                val fullLoad = (m.rpm ?: 0.0) >= Limits.FULL_LOAD_AIR_MIN_RPM && (m.load ?: 0.0) >= Limits.FULL_LOAD_MIN_LOAD
+                val fullLoad = m.demanding && (m.rpm ?: 0.0) >= Limits.FULL_LOAD_AIR_MIN_RPM &&
+                    (m.load ?: 0.0) >= Limits.FULL_LOAD_MIN_LOAD
                 if (!fullLoad) return@Rule null
                 val severity = level(normal.start - air, Limits.FULL_LOAD_AIR_WARN_BELOW, Limits.FULL_LOAD_AIR_ALERT_BELOW)
                     ?: return@Rule null
@@ -552,7 +561,7 @@ class Advisor {
             },
             Rule("lugging", 3_000) { m ->
                 val rpm = m.rpm ?: return@Rule null
-                if ((m.load ?: 0.0) < Limits.PULL_MIN_LOAD || rpm > Limits.LUGGING_MAX_RPM || m.idle) return@Rule null
+                if (!m.demanding || rpm > Limits.LUGGING_MAX_RPM || m.idle) return@Rule null
                 Advice(
                     "lugging", Severity.INFO, "Motor ahogado",
                     "Mucha carga a ${n(rpm)} rpm. Reduce una marcha: castiga el volante bimasa y la cadena.",
@@ -561,15 +570,23 @@ class Advisor {
             Rule("cold_push", 2_000) { m ->
                 val cold = m.oil ?: m.coolant ?: return@Rule null
                 if (cold >= Limits.COLD_OIL) return@Rule null
-                if ((m.rpm ?: 0.0) < Limits.COLD_MAX_RPM && (m.load ?: 0.0) < Limits.PULL_MIN_LOAD) return@Rule null
+                if ((m.rpm ?: 0.0) < Limits.COLD_MAX_RPM && !m.demanding) return@Rule null
                 Advice(
                     "cold_push", Severity.INFO, "Motor frío",
                     "Está a ${n(cold)} °C. Mejor no exigirle hasta que el aceite pase de ${n(Limits.COLD_OIL)} °C.",
                 )
             },
             Rule("hot_stop", 0) { m ->
-                val recent = m.recentLoad ?: return@Rule null
-                if (!m.idle || recent < Limits.HOT_STOP_AVG_LOAD) return@Rule null
+                if (!m.idle) return@Rule null
+                // Con temperatura de escape se mira esa, que es lo que calienta el turbo; la carga
+                // media solo vale de aproximacion cuando el coche no la da.
+                val exhaust = Moment.EXHAUST_TEMPS.mapNotNull { m.values[it] }.maxOrNull()
+                if (exhaust != null) {
+                    if (exhaust < Limits.HOT_STOP_EXHAUST) return@Rule null
+                } else {
+                    val recent = m.recentLoad ?: return@Rule null
+                    if (recent < Limits.HOT_STOP_AVG_LOAD) return@Rule null
+                }
                 Advice(
                     "hot_stop", Severity.INFO, "Deja enfriar el turbo",
                     "Vienes de exigirle al motor. Espera medio minuto al ralentí antes de apagar.",
