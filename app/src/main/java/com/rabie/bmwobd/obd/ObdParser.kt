@@ -9,6 +9,21 @@ object ObdParser {
     fun dataBytes(response: String, pid: Int): IntArray? =
         payloads(response, "41" + "%02X".format(pid)).firstOrNull { it.isNotEmpty() }
 
+    /** La respuesta trae un mensaje troceado en varias tramas (lineas `0:`, `1:`...). */
+    fun isMultiFrame(response: String): Boolean = cleanLines(response).any(::isFrameLine)
+
+    /**
+     * La respuesta trae datos del coche, aunque no sean de lo que se pregunto: otra respuesta del
+     * modo 01 o un trozo de un mensaje largo. No lo son NO DATA, la interrogacion ni los errores.
+     */
+    fun isForeignAnswer(response: String): Boolean =
+        cleanLines(response).any { isFrameLine(it) || (it.length >= 4 && it.startsWith("41") && it.all(::isHex)) }
+
+    private fun cleanLines(response: String): List<String> =
+        response.lines().map { it.replace(" ", "").uppercase() }.filter { it.isNotEmpty() }
+
+    private fun isFrameLine(line: String): Boolean = line.length > 2 && line[1] == ':' && isHex(line[0])
+
     /**
      * Los bytes que siguen a [prefix] en cada mensaje de la respuesta. Un mensaje corto es una
      * linea. Uno largo llega troceado: primero su longitud en tres cifras hexadecimales y luego

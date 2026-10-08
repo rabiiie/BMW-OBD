@@ -25,6 +25,9 @@ class SimulatedTransport(
     // Al borrar averias las autocomprobaciones vuelven a empezar, como en un coche de verdad.
     private var cleared = false
 
+    // Tramas recibidas del coche que el adaptador todavia no ha entregado.
+    private val waitingFrames = ArrayDeque<String>()
+
     override suspend fun open() {
         startMs = clock()
         protocolFound = false
@@ -48,7 +51,32 @@ class SimulatedTransport(
         command == "ATDP" -> "AUTO, ISO 15765-4 (CAN 11/500)"
         command == "ATRV" -> "%.1fV".format(java.util.Locale.US, engine().voltage)
         command.startsWith("AT") -> "OK"
-        else -> obd(command)?.let(::frames)?.let(::withSearch) ?: if (isHex(command)) "NO DATA" else "?"
+        else -> answer(command)
+    }
+
+    /**
+     * La respuesta del coche tal como la entrega el adaptador. Con una cifra de mas al final del
+     * comando (el numero de respuestas esperadas) entrega una sola trama y se guarda el resto, que
+     * sale en las consultas siguientes: asi se comporta un ELM327 de verdad, y por eso un mensaje
+     * largo pedido asi desplaza todo lo que viene detras. Sin esa cifra entrega todo lo pendiente.
+     */
+    private fun answer(command: String): String {
+        val message = obd(command) ?: return if (isHex(command)) "NO DATA" else "?"
+        val counted = command.length % 2 == 1
+        val delivered = if (counted) {
+            waitingFrames += singleFrames(message)
+            waitingFrames.removeFirst()
+        } else {
+            (waitingFrames + frames(message)).joinToString("\r").also { waitingFrames.clear() }
+        }
+        return withSearch(delivered)
+    }
+
+    /** Un mensaje partido en lo que el adaptador entrega de una en una con la lectura rapida. */
+    private fun singleFrames(message: IntArray): List<String> {
+        val lines = frames(message).split("\r")
+        if (lines.size == 1) return lines
+        return listOf(lines[0] + "\r" + lines[1]) + lines.drop(2).map { "000\r$it" }
     }
 
     /** Los bytes de la respuesta completa, o null si el coche no contestaria. */
@@ -200,7 +228,8 @@ class SimulatedTransport(
                 0x45 -> percent(85.0)
                 0x46 -> byte(s.ambient + 40)
                 0x49 -> percent(s.load)
-                0x4C -> percent(88.0)
+                // Como en el BMW real: un solo dato util y trece bytes de relleno, en tres tramas.
+                0x4C -> percent(88.0) + IntArray(13)
                 0x4D -> word(90.0)
                 0x4E -> word(4000.0)
                 0x5A -> percent(s.load)

@@ -71,6 +71,7 @@ object Pids {
         PidDef(LOAD, "Carga motor", "%", 1, 0, tier = Tier.FAST) { percent(it) },
         PidDef(0x43, "Carga absoluta", "%", 2, 0) { word(it) * 100.0 / 255 },
         PidDef(0x49, "Pedal acelerador", "%", 1, 0, tier = Tier.MEDIUM) { percent(it) },
+        PidDef(0x4A, "Pedal acelerador (segundo sensor)", "%", 1, 0) { percent(it) },
         PidDef(0x5A, "Pedal relativo", "%", 1, 0) { percent(it) },
         PidDef(0x11, "Mariposa", "%", 1, 0) { percent(it) },
         PidDef(0x45, "Mariposa relativa", "%", 1, 0) { percent(it) },
@@ -140,6 +141,8 @@ object Pids {
         PidDef(0x0A, "Presión combustible", "kPa", 1, 0) { it[0] * 3.0 },
         PidDef(0x5D, "Avance inyección", "°", 2, 1) { word(it) / 128.0 - 210.0 },
         PidDef(0x44, "Lambda mandada", "λ", 2, 2) { word(it) * 2.0 / 65536 },
+        // Sonda lambda de banda ancha. Por el estandar no pasa de 2: con mezcla mas pobre se queda ahi.
+        PidDef(0x24, "Lambda medida", "λ", 2, 2, tier = Tier.MEDIUM) { word(it) * 2.0 / 65536 },
         PidDef(FUEL_RATE, "Consumo", "L/h", 2, 1, tier = Tier.MEDIUM) { word(it) / 20.0 },
         PidDef(0x2F, "Nivel combustible", "%", 1, 0) { percent(it) },
     )

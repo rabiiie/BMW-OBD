@@ -232,7 +232,7 @@ class ObdController(
         val advisor = Advisor()
         var soundedAlerts = emptySet<String>()
 
-        for (request in requests) read(session, request, values)
+        for (request in requests) read(session, request, values, first = true)
         var lastAnswerNanos = System.nanoTime()
         var windowStartNanos = lastAnswerNanos
         var cyclesInWindow = 0
@@ -279,13 +279,22 @@ class ObdController(
         }
     }
 
-    /** Devuelve si ha contestado el coche. La tension del adaptador no cuenta: contesta siempre. */
-    private suspend fun read(session: ObdSession, request: Request, values: MutableMap<Int, Double>): Boolean {
+    /**
+     * Devuelve si ha contestado el coche. La tension del adaptador no cuenta: contesta siempre.
+     * Con [first] la lectura va sin lectura rapida, para que la sesion vea como contesta cada medida.
+     */
+    private suspend fun read(
+        session: ObdSession,
+        request: Request,
+        values: MutableMap<Int, Double>,
+        first: Boolean = false,
+    ): Boolean {
         if (request.pid == Pids.ADAPTER_PID) {
             session.adapterVoltage()?.let { values[Pids.ADAPTER_VOLTAGE] = it }
             return false
         }
-        val data = session.read(request.pid, request.singleFrame) ?: return false
+        val data = (if (first) session.readFirst(request.pid) else session.read(request.pid, request.singleFrame))
+            ?: return false
         for (def in request.defs) def.decodeOrNull(data)?.let { values[def.id] = it }
         return true
     }

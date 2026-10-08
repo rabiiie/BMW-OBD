@@ -19,6 +19,9 @@ class ObdSession(
     private var timeouts = 0
     private var quick = false
 
+    // PIDs cuya respuesta no cabe en una trama: con lectura rapida dejarian tramas pendientes.
+    private val longAnswers = mutableSetOf<Int>()
+
     suspend fun connect(): SessionInfo {
         transport.open()
         val version = elm.initialize()
@@ -51,15 +54,48 @@ class ObdSession(
      * silencio suelto se tolera; varios seguidos significan que el adaptador se ha ido.
      */
     suspend fun read(pid: Int, singleFrame: Boolean = false): IntArray? {
-        val suffix = if (quick && singleFrame) QUICK_SUFFIX else ""
+        val quickly = quick && singleFrame && pid !in longAnswers
+        val response = request(pid, quickly) ?: return null
+        val data = ObdParser.dataBytes(response, pid)
+        if (!quickly) return data
+
+        // Con la lectura rapida el adaptador entrega una sola trama. Si la respuesta era larga, o
+        // llega la de otra pregunta, quedan tramas pendientes y todo lo siguiente sale desplazado.
+        // Releer sin lectura rapida las vacia: el adaptador espera y entrega todo lo que tenga.
+        val long = data != null && ObdParser.isMultiFrame(response)
+        if (long) {
+            longAnswers += pid
+            log("## %02X contesta con un mensaje largo: se leerá sin lectura rápida".format(pid))
+        }
+        if (!long && (data != null || !ObdParser.isForeignAnswer(response))) return data
+        if (!long) log("## Desfase preguntando %02X: se relee sin lectura rápida".format(pid))
+        val again = request(pid, quickly = false) ?: return data
+        return ObdParser.dataBytes(again, pid) ?: data
+    }
+
+    /**
+     * Primera lectura de una medida, sin lectura rapida. De paso apunta las que contestan con un
+     * mensaje largo, que no se pueden pedir con lectura rapida.
+     */
+    suspend fun readFirst(pid: Int): IntArray? {
+        val response = request(pid, quickly = false) ?: return null
+        val data = ObdParser.dataBytes(response, pid)
+        if (data != null && ObdParser.isMultiFrame(response) && longAnswers.add(pid)) {
+            log("## %02X contesta con un mensaje largo: se leerá sin lectura rápida".format(pid))
+        }
+        return data
+    }
+
+    /** Envia la consulta de un PID del modo 01. Devuelve null si el adaptador no contesta a tiempo. */
+    private suspend fun request(pid: Int, quickly: Boolean): String? {
         val response = try {
-            elm.send("01%02X".format(pid) + suffix, READ_TIMEOUT_MS)
+            elm.send("01%02X".format(pid) + if (quickly) QUICK_SUFFIX else "", READ_TIMEOUT_MS)
         } catch (e: SocketTimeoutException) {
             if (++timeouts > MAX_TIMEOUTS) throw IOException("El adaptador ha dejado de responder.")
             return null
         }
         timeouts = 0
-        return ObdParser.dataBytes(response, pid)
+        return response
     }
 
     /**
