@@ -101,7 +101,11 @@ class ObdSession(
         }
 
     private fun queryOf(pid: Int): String =
-        if (Pids.isBmw(pid)) BMW_QUERY + "%04X".format(pid - Pids.BMW_BASE) else "01%02X".format(pid)
+        if (Pids.isBmw(pid)) {
+            BMW_QUERY + Pids.bmwAddresses(pid).joinToString("") { "%04X".format(it) }
+        } else {
+            "01%02X".format(pid)
+        }
 
     /**
      * Las medidas propias de BMW que contesta esta centralita, de entre [candidates]. Primero se
@@ -113,9 +117,11 @@ class ObdSession(
         attempt(BMW_IDENT)
         if (!bmwAnswers()) return emptyList()
         val found = mutableListOf<PidDef>()
+        val answers = HashMap<Int, IntArray?>()
         for (def in candidates) {
             if (found.any { it.id == def.id }) continue
-            val value = readFirst(def.pid)?.let(def::decodeOrNull) ?: continue
+            if (def.pid !in answers) answers[def.pid] = readFirst(def.pid)
+            val value = answers[def.pid]?.let(def::decodeOrNull) ?: continue
             log("## BMW: %s = %.2f %s".format(java.util.Locale.US, def.name, value, def.unit))
             found += def
         }

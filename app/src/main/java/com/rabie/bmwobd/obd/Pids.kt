@@ -2,9 +2,10 @@ package com.rabie.bmwobd.obd
 
 /**
  * Cada cuanto se lee una medida. Las rapidas, en cada vuelta. De las medias, una por vuelta. De
- * las lentas (temperaturas, tension, contadores), una cada varias vueltas.
+ * las lentas (temperaturas, tension, contadores), una cada varias vueltas. Las que no cambian
+ * durante un trayecto, una sola vez al conectar.
  */
-enum class Tier { FAST, MEDIUM, SLOW }
+enum class Tier { FAST, MEDIUM, SLOW, ONCE }
 
 enum class PidGroup(val title: String) {
     ENGINE("Motor"),
@@ -59,6 +60,15 @@ object Pids {
     fun bmw(address: Int) = BMW_BASE + address
 
     fun isBmw(pid: Int) = pid >= BMW_BASE
+
+    /** Dos medidas de BMW pedidas en una sola consulta: contesta con los dos valores seguidos. */
+    private const val BMW_PAIR = 0x4000_0000
+
+    fun bmwPair(first: Int, second: Int) = BMW_PAIR or (first shl 16) or second
+
+    /** Las direcciones que hay que pedir a la centralita para la consulta [pid]. */
+    fun bmwAddresses(pid: Int): List<Int> =
+        if (pid >= BMW_PAIR) listOf((pid shr 16) and 0x3FFF, pid and 0xFFFF) else listOf(pid - BMW_BASE)
 
     /** Refrigerante por el protocolo de BMW: tambien sale por OBD, y sirve para saber si contesta. */
     val BMW_CHECK = bmw(0x0547)
@@ -214,40 +224,100 @@ object Pids {
         PidDef(0x4D, "Tiempo con el testigo encendido", "min", 2, 0) { word(it).toDouble() },
     )
 
+    /** Una medida de la centralita de BMW: direccion, tamaño en bytes y escala de su tabla. */
+    private class BmwSpec(
+        val address: Int,
+        val name: String,
+        val unit: String,
+        val decimals: Int,
+        val group: PidGroup,
+        val size: Int = 2,
+        val id: Int = bmw(address),
+        val scale: (Long) -> Double,
+    ) {
+        /** La medida leida con la consulta [pid], cuyo valor empieza en el byte [offset]. */
+        fun def(pid: Int, offset: Int, tier: Tier) =
+            PidDef(id, name, unit, offset + size, decimals, tier, group, pid) { data ->
+                var raw = 0L
+                for (i in offset until offset + size) raw = raw * 256 + data[i]
+                scale(raw)
+            }
+    }
+
+    /**
+     * Las medidas de [requests], primero pedidas de dos en dos y luego cada una por su cuenta. Al
+     * conectar vale la primera forma que conteste, asi que si la centralita no admite dos
+     * direcciones en una consulta se leen sueltas.
+     */
+    private fun bmwDefs(tier: Tier, vararg requests: List<BmwSpec>): List<PidDef> {
+        val together = requests.filter { it.size == 2 }.flatMap { (first, second) ->
+            val pid = bmwPair(first.address, second.address)
+            listOf(first.def(pid, 0, tier), second.def(pid, first.size, tier))
+        }
+        val alone = requests.flatMap { specs -> specs.map { it.def(bmw(it.address), 0, tier) } }
+        return together + alone
+    }
+
+    private val E = PidGroup.ENGINE
+    private val A = PidGroup.AIR
+    private val F = PidGroup.FUEL
+    private val X = PidGroup.EXHAUST
+
     /**
      * Medidas de la DDE 7 del motor N47, con la direccion y la formula de la tabla MESSWERTETAB de
-     * su descripcion (d70n47b0). El valor llega con el byte alto primero. Aceite y kilometros usan
-     * el identificador de la medida estandar equivalente, que este coche no da: asi sirven para
-     * todo lo que ya la usa. Del aceite hay dos direcciones y vale la primera que conteste.
+     * su descripcion (d70n47b0). El valor llega con el byte alto primero. Comprobadas en el coche:
+     * inyeccion, rail y turbo pedidos, gasoleo, hollin y distancia desde la regeneracion. Del
+     * aceite, del actuador del turbo y de la presion del filtro hay varias direcciones y todavia
+     * no se sabe cual vale: se graban todas para compararlas.
      */
-    val bmwDiesel: List<PidDef> = listOf(
-        PidDef(OIL, "Aceite", "°C", 2, 0, group = PidGroup.ENGINE, pid = bmw(0x0458)) { word(it) * 0.01 - 100.0 },
-        PidDef(OIL, "Aceite", "°C", 2, 0, group = PidGroup.ENGINE, pid = bmw(0x0A8C)) { word(it) * 0.01 - 100.0 },
-        PidDef(bmw(0x044F), "Nivel de aceite", "mm", 1, 0, group = PidGroup.ENGINE) { it[0] * 0.292969 },
-        PidDef(BMW_INJECTION, "Cantidad inyectada", "mg/emb", 2, 1, Tier.MEDIUM, PidGroup.FUEL) {
-            word(it) * 0.003052 - 100.0
-        },
-        PidDef(bmw(0x0641), "Presión raíl pedida", "bar", 2, 0, group = PidGroup.FUEL) { word(it) * 0.045777 },
-        PidDef(bmw(0x0385), "Temp. gasóleo", "°C", 2, 0, group = PidGroup.FUEL) { word(it) * 0.01 - 50.0 },
-        PidDef(bmw(0x01F4), "Presión turbo pedida", "kPa", 2, 0, group = PidGroup.AIR) { word(it) * 0.0091554 },
-        PidDef(bmw(0x0BF0), "Actuador del turbo", "%", 2, 0, group = PidGroup.AIR) { word(it) * 0.001526 },
-        PidDef(bmw(0x03EA), "Filtro: hollín", "g", 2, 1, group = PidGroup.EXHAUST) { word(it) * 0.015259 },
-        PidDef(bmw(0x03EB), "Filtro: desde la última regeneración", "km", 4, 0, group = PidGroup.EXHAUST) {
-            long(it, 0) / 1000.0
-        },
-        PidDef(bmw(0x03F3), "Filtro: intervalo medio entre regeneraciones", "km", 2, 0, group = PidGroup.EXHAUST) {
-            word(it).toDouble()
-        },
-        PidDef(bmw(0x043C), "Filtro: presión diferencial", "hPa", 2, 0, group = PidGroup.EXHAUST) {
-            word(it) * 0.045777 - 1000.0
-        },
-        PidDef(bmw(0x05AA), "Filtro: estado de regeneración", "", 4, 0, group = PidGroup.EXHAUST) {
-            long(it, 0).toDouble()
-        },
-        PidDef(ODOMETER, "Cuentakilómetros", "km", 4, 0, group = PidGroup.COUNTERS, pid = bmw(0x16B2)) {
-            long(it, 0).toDouble()
-        },
-    )
+    val bmwDiesel: List<PidDef> =
+        bmwDefs(
+            Tier.MEDIUM,
+            listOf(BmwSpec(0x0500, "Cantidad inyectada", "mg/emb", 1, F) { it * 0.003052 - 100.0 }),
+            listOf(
+                BmwSpec(0x01F4, "Presión turbo pedida", "kPa", 0, A) { it * 0.0091554 },
+                BmwSpec(0x0641, "Presión raíl pedida", "bar", 0, F) { it * 0.045777 },
+            ),
+        ) + bmwDefs(
+            Tier.SLOW,
+            listOf(
+                BmwSpec(0x0A8C, "Aceite", "°C", 0, E, id = OIL) { it * 0.01 - 100.0 },
+                BmwSpec(0x0458, "Aceite (valor filtrado)", "°C", 0, E) { it * 0.01 - 100.0 },
+            ),
+            listOf(
+                BmwSpec(0x01BA, "Aceite (valor para el cuadro)", "°C", 0, E) { it * 0.005417 - 100.0 },
+                BmwSpec(0x0385, "Temp. gasóleo", "°C", 0, F) { it * 0.01 - 50.0 },
+            ),
+            listOf(
+                BmwSpec(0x0BEB, "Actuador del turbo (salida)", "%", 0, A) { it * 0.001526 },
+                BmwSpec(0x0BEA, "Actuador del turbo (consigna)", "%", 0, A) { it * 0.003052 },
+            ),
+            listOf(
+                BmwSpec(0x0BF2, "Actuador del turbo (posición)", "%", 0, A) { it * 0.001526 },
+                BmwSpec(0x041B, "Escape antes del filtro", "°C", 0, X) { it * 0.031281 - 50.0 },
+            ),
+            listOf(
+                BmwSpec(0x03EA, "Filtro: hollín", "g", 1, X) { it * 0.015259 },
+                BmwSpec(0x03ED, "Filtro: hollín calculado", "g", 1, X) { it * 0.01 },
+            ),
+            listOf(
+                BmwSpec(0x043A, "Filtro: presión diferencial (sensor)", "hPa", 0, X) { it * 0.038148 + 500.0 },
+                BmwSpec(0x0426, "Filtro: presión diferencial (filtrada)", "hPa", 0, X) { it * 0.045777 - 1000.0 },
+            ),
+            listOf(
+                BmwSpec(0x0424, "Filtro: presión diferencial (corregida)", "hPa", 0, X) { it * 0.045777 - 1000.0 },
+                BmwSpec(0x0432, "Filtro: presión de entrada", "hPa", 0, X) { it * 0.1 },
+            ),
+            listOf(
+                BmwSpec(0x0D16, "Depósito", "L", 1, F) { it * 0.01 },
+                BmwSpec(0x0384, "Depósito (volumen)", "L", 1, F) { it * 0.001907 },
+            ),
+            listOf(BmwSpec(0x03EB, "Filtro: desde la última regeneración", "km", 1, X, size = 4) { it / 1000.0 }),
+        ) + bmwDefs(
+            Tier.ONCE,
+            listOf(BmwSpec(0x03F3, "Filtro: intervalo medio entre regeneraciones", "km", 0, X) { it.toDouble() }),
+            listOf(BmwSpec(0x16B2, "Km guardados en la centralita", "km", 0, PidGroup.COUNTERS, size = 4) { it.toDouble() }),
+        )
 
     /** Si a un coche se le pueden pedir las medidas de [bmwDiesel]. */
     fun hasBmwMeasures(make: String?, diesel: Boolean) = diesel && make != null && make.startsWith("BMW")
