@@ -120,9 +120,10 @@ class BmwProbeTest {
     }
 
     @Test
-    fun `con un coche que no contesta acaba y deja el adaptador como estaba`() {
+    fun `el coche simulado solo contesta con el formato del adaptador, como el de verdad`() {
         probe(SimulatedTransport(latencyMs = 0))
-        assertTrue(notes().any { it.contains("no ha contestado en ningún modo") })
+        assertEquals(2, notes().count { it == "## Sin respuesta de la centralita en este modo" })
+        assertFalse(notes().any { it.contains("no ha contestado en ningún modo") })
         assertEquals("## Sondeo: fin", log.last())
     }
 }

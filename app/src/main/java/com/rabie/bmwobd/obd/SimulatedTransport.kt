@@ -100,6 +100,9 @@ class SimulatedTransport(
             bytes.size == 2 && bytes[0] == 0x06 -> monitor(bytes[1])?.let { intArrayOf(0x46) + it }
             bytes.size == 2 && bytes[0] == 0x09 && bytes[1] == 0x02 -> intArrayOf(0x49, 0x02, 0x01) + ascii(VIN, 17)
             bytes.size == 2 && bytes[0] == 0x09 && bytes[1] == 0x04 -> intArrayOf(0x49, 0x04, 0x01) + ascii(CALIBRATION, 16)
+            bytes.size == 2 && bytes[0] == 0x1A && bytes[1] == 0x80 -> intArrayOf(0x5A, 0x80) + ascii(BMW_IDENT, 20)
+            bytes.size == 4 && bytes[0] == 0x2C && bytes[1] == 0x10 ->
+                bmw(bytes[2] * 256 + bytes[3], engine())?.let { intArrayOf(0x6C, 0x10) + it }
             else -> null
         }
     }
@@ -178,6 +181,29 @@ class SimulatedTransport(
     private companion object {
         const val VIN = "WBASIMULADO000000"
         const val CALIBRATION = "SIM-N47D20C-01"
+        const val BMW_IDENT = "7812345 DDE70 SIM"
+
+        /** Las medidas propias de la centralita, con la escala de la tabla de la DDE 7 del N47. */
+        fun bmw(address: Int, s: EngineState): IntArray? = when (address) {
+            0x0547 -> word((s.coolant + 100) / 0.01)
+            0x0458 -> word((s.oil + 100) / 0.01)
+            0x044F -> byte(62.0 / 0.292969)
+            0x0500 -> word((injectedMg(s) + 100) / 0.003052)
+            0x0641 -> word((s.railBar + 8) / 0.045777)
+            0x0385 -> word((34.0 + 50) / 0.01)
+            0x01F4 -> word((s.mapKpa + 3) / 0.0091554)
+            0x0BF0 -> word((85 - s.load * 0.5) / 0.001526)
+            0x03EA -> word(14.2 / 0.015259)
+            0x03EB -> long(183_400.0)
+            0x03F3 -> word(420.0)
+            0x043C -> word((8 + s.load * 0.6 + 1000) / 0.045777)
+            0x05AA -> long(0.0)
+            0x16B2 -> long(214_530.0)
+            else -> null
+        }
+
+        /** La cantidad por embolada que da el consumo del motor simulado en un cuatro cilindros. */
+        fun injectedMg(s: EngineState) = s.fuelRate * 835.0 * 1000.0 / (s.rpm * 2 * 60)
         const val FREEZE_SECOND = 68.0
 
         // Diesel con las tres comprobaciones continuas; catalizador, turbo, filtro y EGR disponibles;

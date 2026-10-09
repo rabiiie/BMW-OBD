@@ -13,11 +13,11 @@ object ObdParser {
     fun isMultiFrame(response: String): Boolean = cleanLines(response).any(::isFrameLine)
 
     /**
-     * La respuesta trae datos del coche, aunque no sean de lo que se pregunto: otra respuesta del
-     * modo 01 o un trozo de un mensaje largo. No lo son NO DATA, la interrogacion ni los errores.
+     * La respuesta trae datos del coche, aunque no sean de lo que se pregunto: otra respuesta
+     * o un trozo de un mensaje largo. No lo son NO DATA, la interrogacion ni los errores.
      */
     fun isForeignAnswer(response: String): Boolean =
-        cleanLines(response).any { isFrameLine(it) || (it.length >= 4 && it.startsWith("41") && it.all(::isHex)) }
+        cleanLines(response).any { isFrameLine(it) || (it.length >= 4 && it.all(::isHex)) }
 
     private fun cleanLines(response: String): List<String> =
         response.lines().map { it.replace(" ", "").uppercase() }.filter { it.isNotEmpty() }

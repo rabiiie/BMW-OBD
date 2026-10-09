@@ -470,7 +470,7 @@ private fun tiles(state: LiveState): List<Pair<PidGroup, List<Reading>>> {
                 .add(Reading("Consumo (estimado)", formatValue(it, 1), "L/h", null))
         }
     }
-    for (def in Pids.all) {
+    for (def in Pids.all.distinctBy { it.id }) {
         if (def.id !in state.supported || def.id in ON_GAUGES) continue
         val value = state.values[def.id]
         if (value == null && def.pid != def.id) continue

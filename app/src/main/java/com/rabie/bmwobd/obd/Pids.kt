@@ -48,6 +48,21 @@ object Pids {
     const val MAF = 0x10
     const val LAMBDA = 0x24
     const val PEDAL = 0x49
+    const val ODOMETER = 0xA6
+
+    /**
+     * Medidas propias de la centralita del motor de BMW. No son PIDs: se piden con el servicio 2C
+     * y la direccion de dos bytes de la medida, y lo que se pide al coche es BMW_BASE + direccion.
+     */
+    const val BMW_BASE = 0x20000
+
+    fun bmw(address: Int) = BMW_BASE + address
+
+    fun isBmw(pid: Int) = pid >= BMW_BASE
+
+    /** Refrigerante por el protocolo de BMW: tambien sale por OBD, y sirve para saber si contesta. */
+    val BMW_CHECK = bmw(0x0547)
+    val BMW_INJECTION = bmw(0x0500)
 
     /** La tension que mide el propio adaptador con ATRV: no es un PID y no depende del coche. */
     const val ADAPTER_PID = -1
@@ -191,13 +206,51 @@ object Pids {
         PidDef(part(0x7F, 0), "Horas de motor", "h", 5, 0, pid = 0x7F) {
             if (has(it, 0)) long(it, 1) / 3600.0 else null
         },
-        PidDef(0xA6, "Cuentakilómetros", "km", 4, 0) { long(it, 0) / 10.0 },
+        PidDef(ODOMETER, "Cuentakilómetros", "km", 4, 0) { long(it, 0) / 10.0 },
         PidDef(0x31, "Km desde el borrado de averías", "km", 2, 0) { word(it).toDouble() },
         PidDef(0x4E, "Tiempo desde el borrado", "min", 2, 0) { word(it).toDouble() },
         PidDef(0x30, "Calentamientos desde el borrado", "", 1, 0) { it[0].toDouble() },
         PidDef(0x21, "Km con el testigo encendido", "km", 2, 0) { word(it).toDouble() },
         PidDef(0x4D, "Tiempo con el testigo encendido", "min", 2, 0) { word(it).toDouble() },
     )
+
+    /**
+     * Medidas de la DDE 7 del motor N47, con la direccion y la formula de la tabla MESSWERTETAB de
+     * su descripcion (d70n47b0). El valor llega con el byte alto primero. Aceite y kilometros usan
+     * el identificador de la medida estandar equivalente, que este coche no da: asi sirven para
+     * todo lo que ya la usa. Del aceite hay dos direcciones y vale la primera que conteste.
+     */
+    val bmwDiesel: List<PidDef> = listOf(
+        PidDef(OIL, "Aceite", "°C", 2, 0, group = PidGroup.ENGINE, pid = bmw(0x0458)) { word(it) * 0.01 - 100.0 },
+        PidDef(OIL, "Aceite", "°C", 2, 0, group = PidGroup.ENGINE, pid = bmw(0x0A8C)) { word(it) * 0.01 - 100.0 },
+        PidDef(bmw(0x044F), "Nivel de aceite", "mm", 1, 0, group = PidGroup.ENGINE) { it[0] * 0.292969 },
+        PidDef(BMW_INJECTION, "Cantidad inyectada", "mg/emb", 2, 1, Tier.MEDIUM, PidGroup.FUEL) {
+            word(it) * 0.003052 - 100.0
+        },
+        PidDef(bmw(0x0641), "Presión raíl pedida", "bar", 2, 0, group = PidGroup.FUEL) { word(it) * 0.045777 },
+        PidDef(bmw(0x0385), "Temp. gasóleo", "°C", 2, 0, group = PidGroup.FUEL) { word(it) * 0.01 - 50.0 },
+        PidDef(bmw(0x01F4), "Presión turbo pedida", "kPa", 2, 0, group = PidGroup.AIR) { word(it) * 0.0091554 },
+        PidDef(bmw(0x0BF0), "Actuador del turbo", "%", 2, 0, group = PidGroup.AIR) { word(it) * 0.001526 },
+        PidDef(bmw(0x03EA), "Filtro: hollín", "g", 2, 1, group = PidGroup.EXHAUST) { word(it) * 0.015259 },
+        PidDef(bmw(0x03EB), "Filtro: desde la última regeneración", "km", 4, 0, group = PidGroup.EXHAUST) {
+            long(it, 0) / 1000.0
+        },
+        PidDef(bmw(0x03F3), "Filtro: intervalo medio entre regeneraciones", "km", 2, 0, group = PidGroup.EXHAUST) {
+            word(it).toDouble()
+        },
+        PidDef(bmw(0x043C), "Filtro: presión diferencial", "hPa", 2, 0, group = PidGroup.EXHAUST) {
+            word(it) * 0.045777 - 1000.0
+        },
+        PidDef(bmw(0x05AA), "Filtro: estado de regeneración", "", 4, 0, group = PidGroup.EXHAUST) {
+            long(it, 0).toDouble()
+        },
+        PidDef(ODOMETER, "Cuentakilómetros", "km", 4, 0, group = PidGroup.COUNTERS, pid = bmw(0x16B2)) {
+            long(it, 0).toDouble()
+        },
+    )
+
+    /** Si a un coche se le pueden pedir las medidas de [bmwDiesel]. */
+    fun hasBmwMeasures(make: String?, diesel: Boolean) = diesel && make != null && make.startsWith("BMW")
 
     private fun List<PidDef>.inGroup(group: PidGroup) = map { it.copy(group = group) }
 
@@ -208,9 +261,11 @@ object Pids {
             fuel.inGroup(PidGroup.FUEL) +
             exhaust.inGroup(PidGroup.EXHAUST) +
             electric.inGroup(PidGroup.ELECTRIC) +
-            counters.inGroup(PidGroup.COUNTERS)
+            counters.inGroup(PidGroup.COUNTERS) +
+            bmwDiesel
 
-    val byId: Map<Int, PidDef> = all.associateBy { it.id }
+    // Donde una medida de BMW comparte identificador con una estandar, manda la estandar.
+    val byId: Map<Int, PidDef> = all.asReversed().associateBy { it.id }
 
     /** Sobrealimentación: presión de admisión menos presión barométrica, en bar. */
     fun boostBar(values: Map<Int, Double>): Double? {
@@ -220,22 +275,38 @@ object Pids {
     }
 
     /** Las medidas de las que sale el consumo, medido o estimado. */
-    val FUEL_INPUTS = listOf(FUEL_RATE, MAF, LAMBDA, PEDAL, RPM)
+    val FUEL_INPUTS = listOf(FUEL_RATE, BMW_INJECTION, MAF, LAMBDA, PEDAL, RPM)
 
     /** Si con lo que anuncia el coche se puede dar un consumo. */
-    fun hasFuelRate(supported: Set<Int>) = FUEL_RATE in supported || (MAF in supported && LAMBDA in supported)
+    fun hasFuelRate(supported: Set<Int>) =
+        FUEL_RATE in supported || BMW_INJECTION in supported || (MAF in supported && LAMBDA in supported)
 
-    /** Si el consumo sale de la estimacion y no del caudal que da el coche. */
-    fun fuelRateIsEstimated(supported: Set<Int>) = FUEL_RATE !in supported && hasFuelRate(supported)
+    /** Si el consumo sale de la estimacion con la lambda y no de un dato de combustible del coche. */
+    fun fuelRateIsEstimated(supported: Set<Int>) =
+        FUEL_RATE !in supported && BMW_INJECTION !in supported && hasFuelRate(supported)
 
     /**
-     * Consumo en L/h. El que da el coche si lo da. Si no, estimado: el aire que entra dividido por
+     * Consumo en L/h a partir de lo que la centralita inyecta en cada embolada: en un motor de
+     * cuatro cilindros y cuatro tiempos hay dos inyecciones por vuelta. Un valor fuera de lo
+     * posible se descarta, por si la direccion no es la de esta centralita.
+     */
+    private fun injectedRate(values: Map<Int, Double>): Double? {
+        val perStroke = values[BMW_INJECTION]?.takeIf { it in -1.0..MAX_INJECTION_MG } ?: return null
+        val rpm = values[RPM] ?: return null
+        val gramsPerHour = perStroke.coerceAtLeast(0.0) / 1000.0 * rpm * INJECTIONS_PER_TURN * 60.0
+        return gramsPerHour / DIESEL_GRAMS_PER_LITER
+    }
+
+    /**
+     * Consumo en L/h. El que da el coche si lo da, o el que sale de la cantidad inyectada si la
+     * centralita la da. Si no, estimado: el aire que entra dividido por
      * la proporcion de aire por gramo de combustible que mide la sonda lambda. Con la sonda fria la
      * lambda marca 0 y no hay estimacion. En retencion la sonda se queda en su tope y la cuenta
      * daria combustible que no se inyecta: sin pedal y por encima del ralenti se toma como cero.
      */
     fun fuelRate(values: Map<Int, Double>, diesel: Boolean = true): Double? {
         values[FUEL_RATE]?.let { return it }
+        injectedRate(values)?.let { return it }
         val air = values[MAF] ?: return null
         val lambda = values[LAMBDA]?.takeIf { it >= MIN_LAMBDA } ?: return null
         val overrun = lambda >= LAMBDA_TOP && values[PEDAL] == 0.0 && (values[RPM] ?: 0.0) > OVERRUN_MIN_RPM
@@ -253,6 +324,8 @@ object Pids {
     }
 
     private const val MIN_SPEED_FOR_CONSUMPTION = 5.0
+    private const val MAX_INJECTION_MG = 120.0
+    private const val INJECTIONS_PER_TURN = 2
     private const val MIN_LAMBDA = 0.5
     private const val LAMBDA_TOP = 1.99
     private const val OVERRUN_MIN_RPM = 1100.0

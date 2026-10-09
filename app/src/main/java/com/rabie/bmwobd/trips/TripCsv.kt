@@ -88,7 +88,7 @@ object TripCsv {
             maxOil = max(data.series[Pids.OIL]),
             fuelLiters = fuel?.liters?.takeIf { whole },
             litersPer100Km = fuel?.takeIf { it.km >= MIN_KM_FOR_CONSUMPTION }?.let { it.liters / it.km * 100.0 },
-            fuelEstimated = fuel != null && Pids.FUEL_RATE !in data.series,
+            fuelEstimated = fuel != null && Pids.FUEL_RATE !in data.series && Pids.BMW_INJECTION !in data.series,
             fuelKm = fuel?.km,
         )
     }

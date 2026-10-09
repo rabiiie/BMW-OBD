@@ -19,6 +19,9 @@ class ObdSession(
     private var timeouts = 0
     private var quick = false
 
+    // La centralita solo contesta a las consultas de BMW si el adaptador espera un tiempo fijo.
+    private var fixedWait = false
+
     // PIDs cuya respuesta no cabe en una trama: con lectura rapida dejarian tramas pendientes.
     private val longAnswers = mutableSetOf<Int>()
 
@@ -54,9 +57,9 @@ class ObdSession(
      * silencio suelto se tolera; varios seguidos significan que el adaptador se ha ido.
      */
     suspend fun read(pid: Int, singleFrame: Boolean = false): IntArray? {
-        val quickly = quick && singleFrame && pid !in longAnswers
+        val quickly = quick && singleFrame && pid !in longAnswers && !Pids.isBmw(pid)
         val response = request(pid, quickly) ?: return null
-        val data = ObdParser.dataBytes(response, pid)
+        val data = dataOf(response, pid)
         if (!quickly) return data
 
         // Con la lectura rapida el adaptador entrega una sola trama. Si la respuesta era larga, o
@@ -70,7 +73,7 @@ class ObdSession(
         if (!long && (data != null || !ObdParser.isForeignAnswer(response))) return data
         if (!long) log("## Desfase preguntando %02X: se relee sin lectura rápida".format(pid))
         val again = request(pid, quickly = false) ?: return data
-        return ObdParser.dataBytes(again, pid) ?: data
+        return dataOf(again, pid) ?: data
     }
 
     /**
@@ -79,17 +82,83 @@ class ObdSession(
      */
     suspend fun readFirst(pid: Int): IntArray? {
         val response = request(pid, quickly = false) ?: return null
-        val data = ObdParser.dataBytes(response, pid)
+        val data = dataOf(response, pid)
         if (data != null && ObdParser.isMultiFrame(response) && longAnswers.add(pid)) {
             log("## %02X contesta con un mensaje largo: se leerá sin lectura rápida".format(pid))
         }
         return data
     }
 
-    /** Envia la consulta de un PID del modo 01. Devuelve null si el adaptador no contesta a tiempo. */
+    /**
+     * Los bytes del valor en la respuesta. Una medida de BMW contesta 6C 10 y el valor, sin
+     * repetir su direccion: por eso se pide siempre sin lectura rapida, que es donde hay desfases.
+     */
+    private fun dataOf(response: String, pid: Int): IntArray? =
+        if (Pids.isBmw(pid)) {
+            ObdParser.payloads(response, BMW_ANSWER).firstOrNull { it.isNotEmpty() }
+        } else {
+            ObdParser.dataBytes(response, pid)
+        }
+
+    private fun queryOf(pid: Int): String =
+        if (Pids.isBmw(pid)) BMW_QUERY + "%04X".format(pid - Pids.BMW_BASE) else "01%02X".format(pid)
+
+    /**
+     * Las medidas propias de BMW que contesta esta centralita, de entre [candidates]. Primero se
+     * comprueba que atiende ese protocolo, con una medida que tambien sale por OBD. Las que no
+     * contestan se descartan; de las que comparten identificador vale la primera que conteste.
+     */
+    suspend fun discoverBmw(candidates: List<PidDef>): List<PidDef> {
+        log("## BMW: se piden las medidas propias de la centralita del motor")
+        attempt(BMW_IDENT)
+        if (!bmwAnswers()) return emptyList()
+        val found = mutableListOf<PidDef>()
+        for (def in candidates) {
+            if (found.any { it.id == def.id }) continue
+            val value = readFirst(def.pid)?.let(def::decodeOrNull) ?: continue
+            log("## BMW: %s = %.2f %s".format(java.util.Locale.US, def.name, value, def.unit))
+            found += def
+        }
+        log("## BMW: contestan ${found.size} de ${candidates.map { it.id }.distinct().size} medidas")
+        return found
+    }
+
+    /**
+     * Si la centralita atiende las consultas de BMW. Si calla con la espera adaptativa del
+     * adaptador se prueba con una espera fija mas larga, que se queda puesta. Si tampoco, se
+     * repite con la configuracion del sondeo que funciono, solo para dejarlo en el registro.
+     */
+    private suspend fun bmwAnswers(): Boolean {
+        if (readFirst(Pids.BMW_CHECK) != null) return true
+        log("## BMW: sin respuesta con la espera adaptativa; se prueba con espera fija")
+        fixedWait = true
+        applyWait()
+        if (readFirst(Pids.BMW_CHECK) != null) return true
+        fixedWait = false
+        log("## BMW: tampoco; se prueba la configuración del sondeo")
+        for (command in BMW_PROBE_SETUP) attempt(command)
+        val works = readFirst(Pids.BMW_CHECK) != null
+        attempt("010C")
+        restore()
+        log("## BMW: " + if (works) "contesta solo con la configuración del sondeo; no se usa todavía" else "no contesta")
+        return false
+    }
+
+    private suspend fun applyWait() {
+        if (fixedWait) for (command in FIXED_WAIT) attempt(command)
+    }
+
+    /** Reinicia el adaptador y lo deja como lo espera la lectura normal. */
+    private suspend fun restore() {
+        elm.initialize()
+        attempt("0100", FIRST_QUERY_TIMEOUT_MS)
+        applyWait()
+    }
+
+    /** Envia la consulta de una medida. Devuelve null si el adaptador no contesta a tiempo. */
     private suspend fun request(pid: Int, quickly: Boolean): String? {
         val response = try {
-            elm.send("01%02X".format(pid) + if (quickly) QUICK_SUFFIX else "", READ_TIMEOUT_MS)
+            elm.send(queryOf(pid) + if (quickly) QUICK_SUFFIX else "", READ_TIMEOUT_MS)
         } catch (e: SocketTimeoutException) {
             if (++timeouts > MAX_TIMEOUTS) throw IOException("El adaptador ha dejado de responder.")
             return null
@@ -132,8 +201,7 @@ class ObdSession(
         try {
             BmwProbe(elm, log).run()
         } finally {
-            elm.initialize()
-            attempt("0100", FIRST_QUERY_TIMEOUT_MS)
+            restore()
         }
         log("## Sondeo: fin")
     }
@@ -262,6 +330,17 @@ class ObdSession(
         const val FUEL_GASOLINE = 1
         const val FUEL_DIESEL = 4
         const val SHORT_FUEL_TRIM = 0x06
+        const val BMW_QUERY = "2C10"
+        const val BMW_ANSWER = "6C10"
+        const val BMW_IDENT = "1A80"
+
+        // Espera fija de 400 ms en vez de la adaptativa.
+        val FIXED_WAIT = listOf("ATAT0", "ATST64")
+
+        // Lo que estaba puesto en el sondeo cuando la centralita contesto por primera vez.
+        val BMW_PROBE_SETUP = listOf(
+            "ATSP6", "ATSH6F1", "ATCEA12", "ATFCSH6F1", "ATFCSD123000", "ATFCSM1", "ATCRA612", "ATAT0", "ATSTFF",
+        )
 
         val FREEZE_PIDS = listOf(Pids.RPM, Pids.SPEED, Pids.LOAD, Pids.COOLANT, Pids.MAP)
 

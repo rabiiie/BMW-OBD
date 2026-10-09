@@ -72,7 +72,7 @@ private class Request(val pid: Int, val defs: List<PidDef>) {
     val tier: Tier = defs.minOf { it.tier }
 
     /** Los PIDs de una sola medida caben en una trama y admiten la lectura rapida. */
-    val singleFrame: Boolean = defs.all { it.pid == it.id }
+    val singleFrame: Boolean = !Pids.isBmw(pid) && defs.all { it.pid == it.id }
 }
 
 /**
@@ -119,8 +119,15 @@ class ObdController(
             var recorder: TripRecorder? = null
             try {
                 val info = session.connect()
-                val defs = Pids.all.filter { it.pid == Pids.ADAPTER_PID || it.pid in info.supportedPids }
                 val vehicle = vehicles.resolve(info.vin, info.diesel)
+                val standard = Pids.all.filter { it.pid == Pids.ADAPTER_PID || it.pid in info.supportedPids }
+                val taken = standard.map { it.id }.toSet()
+                val own = if (Pids.hasBmwMeasures(vehicle.make, vehicle.diesel)) {
+                    session.discoverBmw(Pids.bmwDiesel.filter { it.id !in taken })
+                } else {
+                    emptyList()
+                }
+                val defs = standard + own
                 appendLog("## Coche: ${vehicle.name} · ${if (vehicle.diesel) "diésel" else "gasolina"} · bastidor ${info.vin ?: "no leído"}")
                 val started = withContext(Dispatchers.IO) {
                     TripRecorder(trips.newFile(simulated, vehicle.key), defs.map { it.id })
@@ -262,6 +269,8 @@ class ObdController(
         var mediumIndex = 0
         var slowIndex = 0
         var cycle = 0
+        // Con muchas medidas lentas se lee una cada dos vueltas, para que no tarden en repetirse.
+        val slowEvery = if (slow.size > MANY_SLOW) SLOW_EVERY / 2 else SLOW_EVERY
 
         while (currentCoroutineContext().isActive) {
             while (true) {
@@ -272,7 +281,7 @@ class ObdController(
             var answered = false
             val turn = fast.toMutableList()
             if (medium.isNotEmpty()) turn += medium[mediumIndex++ % medium.size]
-            if (slow.isNotEmpty() && (cycle++ % SLOW_EVERY == 0 || medium.isEmpty())) turn += slow[slowIndex++ % slow.size]
+            if (slow.isNotEmpty() && (cycle++ % slowEvery == 0 || medium.isEmpty())) turn += slow[slowIndex++ % slow.size]
             for (request in turn) {
                 if (read(session, request, values)) answered = true
             }
@@ -359,6 +368,7 @@ class ObdController(
     private companion object {
         const val IDLE_DELAY_MS = 200L
         const val SLOW_EVERY = 4
+        const val MANY_SLOW = 16
         const val BEEP_MS = 600
         const val SILENCE_LIMIT_NANOS = 10_000_000_000L
         const val RATE_WINDOW_NANOS = 2_000_000_000L
