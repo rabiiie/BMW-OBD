@@ -64,6 +64,9 @@ data class DiagnosticsState(
     val tests: List<MonitorTest>? = null,
 )
 
+/** [finished] cuenta los sondeos terminados, para que la pantalla sepa cuando acaba uno. */
+data class ProbeState(val running: Boolean = false, val finished: Int = 0)
+
 /** Una peticion al coche y las medidas que salen de su respuesta. */
 private class Request(val pid: Int, val defs: List<PidDef>) {
     val tier: Tier = defs.minOf { it.tier }
@@ -90,6 +93,10 @@ class ObdController(
 
     private val _log = MutableStateFlow<List<String>>(emptyList())
     val log: StateFlow<List<String>> = _log.asStateFlow()
+    private val logBuffer = LogBuffer()
+
+    private val _probe = MutableStateFlow(ProbeState())
+    val probeState: StateFlow<ProbeState> = _probe.asStateFlow()
 
     private val _diagnostics = MutableStateFlow(DiagnosticsState())
     val diagnostics: StateFlow<DiagnosticsState> = _diagnostics.asStateFlow()
@@ -101,7 +108,9 @@ class ObdController(
     fun connect(transport: ObdTransport, simulated: Boolean) {
         job?.cancel()
         while (tasks.tryReceive().isSuccess) Unit
+        logBuffer.clear()
         _log.value = emptyList()
+        _probe.update { it.copy(running = false) }
         _diagnostics.value = DiagnosticsState()
         _state.value = LiveState(phase = Phase.CONNECTING, simulated = simulated)
         startService()
@@ -142,6 +151,7 @@ class ObdController(
     fun disconnect() {
         job?.cancel()
         job = null
+        _probe.update { it.copy(running = false) }
         _state.value = LiveState()
     }
 
@@ -168,14 +178,26 @@ class ObdController(
         }
     }
 
-    /** Lanza el sondeo de consultas de respuesta desconocida; el resultado queda en el registro. */
+    /**
+     * Lanza el sondeo de consultas de respuesta desconocida. Mientras dura no hay lecturas
+     * normales; lo que conteste el coche queda fijo en el registro.
+     */
     fun probe() {
-        if (!isLive()) return
+        if (!isLive() || _probe.value.running) return
+        _probe.update { it.copy(running = true) }
         tasks.trySend { session ->
+            logBuffer.pin()
+            // Si se desconecta a medias no cuenta como terminado.
+            var ended = false
             try {
                 session.probe()
+                ended = true
             } catch (e: IOException) {
                 appendLog("!! Sondeo interrumpido: ${e.message}")
+                ended = true
+            } finally {
+                logBuffer.unpin()
+                _probe.update { ProbeState(running = false, finished = it.finished + if (ended) 1 else 0) }
             }
         }
     }
@@ -331,16 +353,10 @@ class ObdController(
     }
 
     private fun appendLog(line: String) {
-        _log.update { lines ->
-            val all = lines + line
-            if (all.size <= MAX_LOG_LINES) all else all.take(HEAD_LOG_LINES) + all.takeLast(MAX_LOG_LINES - HEAD_LOG_LINES)
-        }
+        _log.value = logBuffer.add(line)
     }
 
     private companion object {
-        // Del registro se conserva siempre el principio, que es donde esta la negociacion con el coche.
-        const val MAX_LOG_LINES = 800
-        const val HEAD_LOG_LINES = 120
         const val IDLE_DELAY_MS = 200L
         const val SLOW_EVERY = 4
         const val BEEP_MS = 600

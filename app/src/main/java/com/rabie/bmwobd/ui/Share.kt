@@ -5,6 +5,9 @@ import android.content.Intent
 import android.net.Uri
 import androidx.core.content.FileProvider
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 fun shareText(context: Context, subject: String, text: String) {
     val intent = Intent(Intent.ACTION_SEND)
@@ -41,4 +44,34 @@ fun shareFile(context: Context, file: File, mimeType: String, displayName: Strin
         .putExtra(Intent.EXTRA_STREAM, uri)
         .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     context.startActivity(Intent.createChooser(intent, displayName))
+}
+
+/**
+ * Comparte el registro como fichero de texto: pegado como texto, quien lo recibe lo recorta.
+ * El bastidor no sale del movil.
+ */
+fun shareLog(context: Context, lines: List<String>) {
+    val dir = File(context.filesDir, "logs").apply { mkdirs() }
+    val file = File(dir, "registro.txt")
+    file.writeText(LogExport.withoutVin(lines).joinToString("\n"))
+    val stamp = SimpleDateFormat("yyyyMMdd_HHmm", Locale.US).format(Date())
+    shareFile(context, file, "text/plain", "registro_bmwobd_$stamp.txt")
+}
+
+object LogExport {
+
+    private val VIN_IN_SUMMARY = Regex("bastidor \\S+")
+
+    /** Quita el bastidor: el de la linea del coche y la respuesta a la consulta que lo pide. */
+    fun withoutVin(lines: List<String>): List<String> {
+        var afterVinRequest = false
+        return lines.map { line ->
+            val hidden = when {
+                afterVinRequest && line.startsWith("<<") -> "<< (bastidor oculto)"
+                else -> line.replace(VIN_IN_SUMMARY, "bastidor oculto")
+            }
+            afterVinRequest = line.startsWith(">> 0902")
+            hidden
+        }
+    }
 }

@@ -15,8 +15,11 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -27,6 +30,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.rabie.bmwobd.ProbeState
 
 /** El dialogo crudo con el adaptador y una consola para mandarle comandos a mano. */
 @Composable
@@ -35,10 +39,20 @@ fun LogScreen(
     canSend: Boolean,
     onSend: (String) -> Unit,
     onProbe: () -> Unit,
+    probe: ProbeState,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
     var command by rememberSaveable { mutableStateOf("") }
+    // Al terminar un sondeo se abre solo el compartir, con el registro de ese momento.
+    var sharedProbes by rememberSaveable { mutableIntStateOf(probe.finished) }
+    val currentLines by rememberUpdatedState(lines)
+    LaunchedEffect(probe.finished) {
+        if (probe.finished > sharedProbes) {
+            sharedProbes = probe.finished
+            shareLog(context, currentLines)
+        }
+    }
     val send = {
         onSend(command)
         command = ""
@@ -50,11 +64,11 @@ fun LogScreen(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Label("Registro", Modifier.weight(1f), color = Bmw.Text)
-            OutlinedButton(onClick = onProbe, enabled = canSend, modifier = Modifier.padding(end = 8.dp)) {
-                Text("Sondeo")
+            OutlinedButton(onClick = onProbe, enabled = canSend && !probe.running, modifier = Modifier.padding(end = 8.dp)) {
+                Text(if (probe.running) "Sondeando…" else "Sondeo")
             }
             OutlinedButton(
-                onClick = { shareText(context, "Registro BMW OBD", lines.joinToString("\n")) },
+                onClick = { shareLog(context, lines) },
                 enabled = lines.isNotEmpty(),
             ) { Text("Compartir") }
         }

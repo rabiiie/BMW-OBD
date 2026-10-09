@@ -75,6 +75,7 @@ class ObdViewModel(app: Application) : AndroidViewModel(app) {
     fun updateSettings(transform: (AppSettings) -> AppSettings) = settingsStore.update(transform)
 
     fun probe() = controller.probe()
+    val probeState: StateFlow<ProbeState> = controller.probeState
 
     fun readDiagnostics() = controller.readDiagnostics()
 

@@ -175,11 +175,13 @@ private fun MainScreen(vm: ObdViewModel = viewModel()) {
 
             Tab.LOG -> {
                 val log by vm.log.collectAsStateWithLifecycle()
+                val probe by vm.probeState.collectAsStateWithLifecycle()
                 LogScreen(
                     lines = log,
                     canSend = state.phase == Phase.LIVE,
                     onSend = vm::sendCommand,
                     onProbe = vm::probe,
+                    probe = probe,
                     modifier = content,
                 )
             }
