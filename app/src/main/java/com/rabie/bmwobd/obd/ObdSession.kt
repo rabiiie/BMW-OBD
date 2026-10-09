@@ -122,27 +122,25 @@ class ObdSession(
     suspend fun raw(command: String): String = elm.send(command, READ_TIMEOUT_MS)
 
     /**
-     * Sondeo para la visita al coche: manda consultas cuya respuesta no se conoce y deja lo que
-     * conteste en el registro. Son todas de lectura. Las direcciones del modo 22 son candidatas
-     * sin contrastar; se prueban primero tal cual y luego hablando solo con la centralita del
-     * motor de BMW (direccion 12). Al acabar deja el adaptador como estaba.
+     * Sondeo para la visita al coche: deja en el registro lo que contesta la centralita del motor
+     * de BMW por su protocolo propio. Antes lee por OBD las medidas que luego sirven para comparar.
+     * Al acabar reinicia el adaptador y lo deja como lo espera la lectura normal.
      */
     suspend fun probe() {
         log("## Sondeo: inicio")
-        for (command in PROBE_PLAIN + PROBE_MODE_22) attempt(command)
-        log("## Sondeo: direccionamiento BMW")
+        for (command in PROBE_PLAIN) attempt(command)
         try {
-            for (command in BMW_ADDRESSING + PROBE_MODE_22) attempt(command)
+            BmwProbe(elm, log).run()
         } finally {
-            attempt("ATD")
-            elm.configure()
+            elm.initialize()
+            attempt("0100", FIRST_QUERY_TIMEOUT_MS)
         }
         log("## Sondeo: fin")
     }
 
-    private suspend fun attempt(command: String) {
+    private suspend fun attempt(command: String, timeoutMs: Long = READ_TIMEOUT_MS) {
         try {
-            elm.send(command, READ_TIMEOUT_MS)
+            elm.send(command, timeoutMs)
         } catch (e: SocketTimeoutException) {
             log("!! Sin respuesta a $command")
         }
@@ -267,14 +265,8 @@ class ObdSession(
 
         val FREEZE_PIDS = listOf(Pids.RPM, Pids.SPEED, Pids.LOAD, Pids.COOLANT, Pids.MAP)
 
-        // Version y tension del adaptador, y si acepta el numero de respuestas esperadas al final
-        // del comando, que evita esperar al temporizador en cada lectura.
-        val PROBE_PLAIN = listOf("ATI", "ATRV", "ATDPN", "010C", "010C1", "0902")
-
-        // Candidatas vistas fuera de la documentacion de BMW: aceite, presion diferencial del
-        // filtro, km desde la ultima regeneracion y gases antes del filtro.
-        val PROBE_MODE_22 = listOf("222020", "222A0A", "222A10", "22280A")
-
-        val BMW_ADDRESSING = listOf("ATSH6F1", "ATCEA12", "ATFCSH6F1", "ATFCSD123000", "ATFCSM1", "ATCRA612")
+        // Version del adaptador y, por OBD, refrigerante, tension, rail, admision y revoluciones:
+        // lo que el sondeo vuelve a pedir por el protocolo de BMW para comparar.
+        val PROBE_PLAIN = listOf("ATI", "AT@1", "ATRV", "ATDPN", "0105", "0142", "0123", "010B", "010C")
     }
 }
