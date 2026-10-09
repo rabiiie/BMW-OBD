@@ -101,11 +101,8 @@ class SimulatedTransport(
             bytes.size == 2 && bytes[0] == 0x09 && bytes[1] == 0x02 -> intArrayOf(0x49, 0x02, 0x01) + ascii(VIN, 17)
             bytes.size == 2 && bytes[0] == 0x09 && bytes[1] == 0x04 -> intArrayOf(0x49, 0x04, 0x01) + ascii(CALIBRATION, 16)
             bytes.size == 2 && bytes[0] == 0x1A && bytes[1] == 0x80 -> intArrayOf(0x5A, 0x80) + ascii(BMW_IDENT, 20)
-            (bytes.size == 4 || bytes.size == 6) && bytes[0] == 0x2C && bytes[1] == 0x10 -> {
-                // Una o dos direcciones por consulta; si no conoce alguna, calla.
-                val values = (2 until bytes.size step 2).map { bmw(bytes[it] * 256 + bytes[it + 1], engine()) }
-                if (values.any { it == null }) null else intArrayOf(0x6C, 0x10) + values.flatMap { it!!.toList() }
-            }
+            bytes.size == 4 && bytes[0] == 0x2C && bytes[1] == 0x10 ->
+                bmw(bytes[2] * 256 + bytes[3], engine())?.let { intArrayOf(0x6C, 0x10) + it }
             else -> null
         }
     }
@@ -189,26 +186,19 @@ class SimulatedTransport(
         /** Las medidas propias de la centralita, con la escala de la tabla de la DDE 7 del N47. */
         fun bmw(address: Int, s: EngineState): IntArray? = when (address) {
             0x0547 -> word((s.coolant + 100) / 0.01)
-            0x0A8C -> word((s.oil + 100) / 0.01)
-            0x0458 -> word((s.coolant + 100.5) / 0.01)
-            0x01BA -> word((s.oil + 100) / 0.005417)
             0x0500 -> word((injectedMg(s) + 100) / 0.003052)
             0x0641 -> word((s.railBar + 8) / 0.045777)
             0x0385 -> word((34.0 + 50) / 0.01)
             0x01F4 -> word((s.mapKpa + 3) / 0.0091554)
-            0x0BEB -> word((85 - s.load * 0.5) / 0.001526)
-            0x0BEA -> word((86 - s.load * 0.5) / 0.003052)
-            0x0BF2 -> word((84 - s.load * 0.5) / 0.001526)
+            0x0BEB -> word((90 - s.load * 0.25) / 0.001526)
             0x041B -> word((150 + s.load * 4.2 + 50) / 0.031281)
             0x03EA -> word(14.2 / 0.015259)
             0x03ED -> word(13.6 / 0.01)
             0x03EB -> long(183_400.0)
             0x03F3 -> word(420.0)
-            0x043A -> word((8 + s.load * 0.6) / 0.038148)
-            0x0426, 0x0424 -> word((8 + s.load * 0.6 + 1000) / 0.045777)
+            0x0424 -> word((8 + s.load * 0.6 + 1000) / 0.045777)
             0x0432 -> word((s.baroKpa * 10 + 8 + s.load * 0.6) / 0.1)
-            0x0D16 -> word(31.5 / 0.01)
-            0x0384 -> word(31.5 / 0.001907)
+            0x0D16 -> word(31.0 / 0.01)
             0x16B2 -> long(214_530.0)
             else -> null
         }

@@ -32,25 +32,6 @@ private class SlowDde : ObdTransport {
     }
 }
 
-/** Una centralita que solo contesta a las consultas de una direccion. */
-private class OneAtATime : ObdTransport {
-    private val car = SimulatedTransport(latencyMs = 0)
-    private var pending = ""
-
-    override suspend fun open() = car.open()
-    override fun close() = Unit
-
-    override suspend fun write(text: String) {
-        pending = text.trim()
-        car.write(text)
-    }
-
-    override suspend fun readUntilPrompt(timeoutMs: Long): String {
-        val answer = car.readUntilPrompt(timeoutMs)
-        return if (pending.startsWith("2C10") && pending.length > 8) "NO DATA\r\r" else answer
-    }
-}
-
 class BmwMeasuresTest {
 
     private val log = mutableListOf<String>()
@@ -71,15 +52,10 @@ class BmwMeasuresTest {
         session.connect()
         val found = session.discoverBmw(candidates())
 
-        assertEquals(found.size, found.map { it.id }.distinct().size)
-        assertEquals(candidates().map { it.id }.distinct().size, found.size)
+        assertEquals(candidates().size, found.size)
         assertTrue(found.any { it.id == Pids.BMW_INJECTION })
-        // Las que se pueden pedir de dos en dos comparten consulta.
-        val turbo = found.first { it.id == Pids.bmw(0x01F4) }
-        val rail = found.first { it.id == Pids.bmw(0x0641) }
-        assertEquals(turbo.pid, rail.pid)
-        assertEquals(listOf(0x01F4, 0x0641), Pids.bmwAddresses(turbo.pid))
-        assertEquals(1, log.count { it == ">> 2C1001F40641" })
+        // Una direccion por consulta: con dos, la centralita de verdad solo contesta bien a la primera.
+        assertTrue(log.filter { it.startsWith(">> 2C10") }.all { it.length == ">> 2C10".length + 4 })
         assertTrue(log.any { it.startsWith("## BMW: contestan ${found.size} de") })
         assertFalse(log.any { it.contains("espera fija") })
     }
@@ -88,27 +64,13 @@ class BmwMeasuresTest {
     fun `las medidas se leen sin lectura rapida y con su formula`() = runBlocking<Unit> {
         val session = ObdSession(SimulatedTransport(latencyMs = 0)) { log += it }
         session.connect()
-        val soot = candidates().first { it.id == Pids.bmw(0x03EA) }
-        val simulated = candidates().first { it.id == Pids.bmw(0x03ED) }
+        val soot = candidates().first { it.id == Pids.BMW_SOOT_MEASURED }
+        val distance = candidates().first { it.id == Pids.bmw(0x03EB) }
         log.clear()
 
-        val data = session.read(soot.pid, singleFrame = true)!!
-
-        assertEquals(14.2, soot.decodeOrNull(data)!!, 0.05)
-        assertEquals(13.6, simulated.decodeOrNull(data)!!, 0.05)
-        assertEquals(listOf(">> 2C1003EA03ED"), log.filter { it.startsWith(">>") })
-    }
-
-    @Test
-    fun `si la centralita no admite dos direcciones por consulta se leen sueltas`() = runBlocking<Unit> {
-        val session = ObdSession(OneAtATime()) { log += it }
-        session.connect()
-        val found = session.discoverBmw(candidates())
-
-        assertEquals(candidates().map { it.id }.distinct().size, found.size)
-        assertEquals(listOf(0x0641), Pids.bmwAddresses(found.first { it.id == Pids.bmw(0x0641) }.pid))
-        val distance = found.first { it.id == Pids.bmw(0x03EB) }
+        assertEquals(14.2, soot.decodeOrNull(session.read(soot.pid, singleFrame = true)!!)!!, 0.05)
         assertEquals(183.4, distance.decodeOrNull(session.read(distance.pid)!!)!!, 0.01)
+        assertEquals(listOf(">> 2C1003EA", ">> 2C1003EB"), log.filter { it.startsWith(">>") })
     }
 
     @Test
@@ -144,8 +106,8 @@ class BmwMeasuresTest {
     }
 
     @Test
-    fun `las medidas de BMW no pisan a las estandar del mismo identificador`() {
-        assertEquals(Pids.OIL, Pids.byId.getValue(Pids.OIL).pid)
+    fun `las medidas de BMW solo se piden a un BMW diesel`() {
+        assertEquals(Pids.all.size, Pids.byId.size)
         assertTrue(Pids.hasBmwMeasures("BMW", diesel = true))
         assertFalse(Pids.hasBmwMeasures("BMW", diesel = false))
         assertFalse(Pids.hasBmwMeasures("Volkswagen", diesel = true))

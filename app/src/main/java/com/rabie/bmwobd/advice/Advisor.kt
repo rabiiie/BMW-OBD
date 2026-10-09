@@ -96,6 +96,16 @@ object Limits {
     const val AIR_RATIO_WARN = 0.70
     const val AIR_RATIO_ALERT = 0.55
 
+    // Regenerando, el escape pasa de 500 °C sin que se le pida fuerza al motor y la mezcla va
+    // mucho mas rica de lo normal a esa carga. Visto en un N47: 535-600 °C y lambda 1,2-1,3.
+    const val REGEN_EXHAUST = 480.0
+    const val REGEN_MAX_LAMBDA = 1.7
+    const val REGEN_HOLD_MS = 45_000L
+
+    // Hollin que la centralita deduce de la presion del filtro frente al que calcula su modelo.
+    const val SOOT_GAP_WARN = 10.0
+    const val SOOT_GAP_HOLD_MS = 300_000L
+
     const val LUGGING_MAX_RPM = 1300.0
     const val COLD_OIL = 60.0
     const val COLD_MAX_RPM = 3000.0
@@ -574,6 +584,27 @@ class Advisor {
                 Advice(
                     "cold_push", Severity.INFO, "Motor frío",
                     "Está a ${n(cold)} °C. Mejor no exigirle hasta que el aceite pase de ${n(Limits.COLD_OIL)} °C.",
+                )
+            },
+            Rule("regeneration", Limits.REGEN_HOLD_MS) { m ->
+                val exhaust = Moment.EXHAUST_TEMPS.mapNotNull { m.values[it] }.maxOrNull() ?: return@Rule null
+                val lambda = m.values[Pids.LAMBDA]
+                val rich = lambda == null || lambda in 0.5..Limits.REGEN_MAX_LAMBDA
+                if (!m.running || m.demanding || exhaust < Limits.REGEN_EXHAUST || !rich) return@Rule null
+                Advice(
+                    "regeneration", Severity.INFO, "Parece que el filtro está regenerando",
+                    "Escape a ${n(exhaust)} °C sin exigirle al motor. Si puedes, sigue circulando unos minutos " +
+                        "antes de apagar: una regeneración a medias deja el filtro sin limpiar.",
+                )
+            },
+            Rule("soot_gap", Limits.SOOT_GAP_HOLD_MS) { m ->
+                val measured = m.values[Pids.BMW_SOOT_MEASURED] ?: return@Rule null
+                val model = m.values[Pids.BMW_SOOT_MODEL] ?: return@Rule null
+                if (measured - model < Limits.SOOT_GAP_WARN) return@Rule null
+                Advice(
+                    "soot_gap", Severity.WARN, "Filtro: ${n(measured)} g medidos frente a ${n(model)} calculados",
+                    "Por la presión, la centralita ve el filtro mucho más cargado de lo que calcula por el uso. " +
+                        "Suele ser ceniza acumulada, que no se quema al regenerar, o el sensor de presión o sus tubos.",
                 )
             },
             Rule("hot_stop", 0) { m ->

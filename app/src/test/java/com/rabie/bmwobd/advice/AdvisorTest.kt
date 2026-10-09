@@ -39,6 +39,27 @@ class AdvisorTest {
     }
 
     @Test
+    fun `escape muy caliente sin pedirle fuerza es una regeneracion`() {
+        // Lo grabado en el coche: 95 km/h, escape a 590 °C y lambda 1,3 durante doce minutos.
+        val cruising = mapOf(Pids.RPM to 1700.0, Pids.SPEED to 95.0, Pids.COOLANT to 91.0, Pids.LOAD to 45.0)
+        val regenerating = cruising + (Moment.CATALYST_TEMP to 590.0) + (Pids.LAMBDA to 1.3)
+        assertEquals(Severity.INFO, hold(regenerating, 60).find("regeneration")?.severity)
+        assertNull(hold(regenerating, 20).find("regeneration"))
+        // A fondo el escape tambien pasa de 500 °C y no es una regeneracion.
+        assertNull(hold(regenerating + (Pids.LOAD to 100.0) + (Pids.LAMBDA to 1.15), 60).find("regeneration"))
+        assertNull(hold(cruising + (Moment.CATALYST_TEMP to 300.0) + (Pids.LAMBDA to 2.0), 60).find("regeneration"))
+    }
+
+    @Test
+    fun `hollin medido muy por encima del calculado avisa si se mantiene`() {
+        val driving = mapOf(Pids.RPM to 1700.0, Pids.SPEED to 90.0, Pids.COOLANT to 91.0, Pids.LOAD to 40.0)
+        val apart = driving + (Pids.BMW_SOOT_MEASURED to 25.0) + (Pids.BMW_SOOT_MODEL to 5.6)
+        assertEquals(Severity.WARN, hold(apart, 320).find("soot_gap")?.severity)
+        assertNull(hold(apart, 120).find("soot_gap"))
+        assertNull(hold(driving + (Pids.BMW_SOOT_MEASURED to 9.0) + (Pids.BMW_SOOT_MODEL to 5.6), 320).find("soot_gap"))
+    }
+
+    @Test
     fun `refrigerante muy alto va en rojo`() {
         assertEquals(Severity.WARN, hold(warmIdle + (Pids.COOLANT to 110.0), 10).find("coolant_hot")?.severity)
         assertEquals(Severity.ALERT, hold(warmIdle + (Pids.COOLANT to 118.0), 10).find("coolant_hot")?.severity)
