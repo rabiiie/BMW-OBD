@@ -53,7 +53,8 @@ class LogBuffer(private val headLines: Int = HEAD_LINES, private val tailLines: 
     fun lines(): List<String> = head + pinned + tail
 
     private companion object {
-        const val HEAD_LINES = 120
+        // Caben la negociacion, la busqueda de las medidas propias de la marca y la primera lectura.
+        const val HEAD_LINES = 320
         const val TAIL_LINES = 680
     }
 }
