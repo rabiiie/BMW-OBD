@@ -39,6 +39,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rabie.bmwobd.advice.Advisor
+import com.rabie.bmwobd.health.Health
 import com.rabie.bmwobd.obd.Pids
 import com.rabie.bmwobd.report.ReportSection
 import com.rabie.bmwobd.report.TripReport
@@ -179,6 +180,14 @@ private fun TripDetail(
         if (trip == null) {
             Text("Cargando…", color = Bmw.TextDim)
         } else {
+            val reviewed = remember(trip, vehicle) { Advisor.review(trip, vehicle) }
+            val health = remember(trip, reviewed) { Health.cards(trip, reviewed) }
+            TripSummary(remember(trip, health) { Health.summary(trip, entry.stats, health) })
+            Label("Salud del coche en este trayecto", Modifier.padding(top = 6.dp))
+            for (card in health) HealthCardView(card)
+            Text("Son pistas sacadas de lo grabado, no un diagnóstico.", color = Bmw.TextDim, fontSize = 13.sp)
+
+            Label("Gráfica", Modifier.padding(top = 6.dp))
             Row(
                 modifier = Modifier.horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -203,7 +212,7 @@ private fun TripDetail(
             val second = remember(trip, compare, channel) { if (compare == channel) null else chartSeries(trip, compare) }
             if (main != null) TripChart(trip.tMs, main, second)
 
-            val findings = remember(trip, vehicle) { Advisor.review(trip, vehicle) }
+            val findings = reviewed
             Label("Indicios del trayecto", Modifier.padding(top = 6.dp))
             if (findings.isEmpty()) {
                 Text("Ninguna regla ha saltado. No significa que el coche esté revisado.", color = Bmw.TextDim)
