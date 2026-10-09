@@ -45,6 +45,9 @@ object Pids {
     const val BAROMETRIC = 0x33
     const val OIL = 0x5C
     const val FUEL_RATE = 0x5E
+    const val MAF = 0x10
+    const val LAMBDA = 0x24
+    const val PEDAL = 0x49
 
     /** La tension que mide el propio adaptador con ATRV: no es un PID y no depende del coche. */
     const val ADAPTER_PID = -1
@@ -71,7 +74,6 @@ object Pids {
         PidDef(LOAD, "Carga motor", "%", 1, 0, tier = Tier.FAST) { percent(it) },
         PidDef(0x43, "Carga absoluta", "%", 2, 0) { word(it) * 100.0 / 255 },
         PidDef(0x49, "Pedal acelerador", "%", 1, 0, tier = Tier.MEDIUM) { percent(it) },
-        PidDef(0x4A, "Pedal acelerador (segundo sensor)", "%", 1, 0) { percent(it) },
         PidDef(0x5A, "Pedal relativo", "%", 1, 0) { percent(it) },
         PidDef(0x11, "Mariposa", "%", 1, 0) { percent(it) },
         PidDef(0x45, "Mariposa relativa", "%", 1, 0) { percent(it) },
@@ -217,12 +219,46 @@ object Pids {
         return (map - baro) / 100.0
     }
 
+    /** Las medidas de las que sale el consumo, medido o estimado. */
+    val FUEL_INPUTS = listOf(FUEL_RATE, MAF, LAMBDA, PEDAL, RPM)
+
+    /** Si con lo que anuncia el coche se puede dar un consumo. */
+    fun hasFuelRate(supported: Set<Int>) = FUEL_RATE in supported || (MAF in supported && LAMBDA in supported)
+
+    /** Si el consumo sale de la estimacion y no del caudal que da el coche. */
+    fun fuelRateIsEstimated(supported: Set<Int>) = FUEL_RATE !in supported && hasFuelRate(supported)
+
+    /**
+     * Consumo en L/h. El que da el coche si lo da. Si no, estimado: el aire que entra dividido por
+     * la proporcion de aire por gramo de combustible que mide la sonda lambda. Con la sonda fria la
+     * lambda marca 0 y no hay estimacion. En retencion la sonda se queda en su tope y la cuenta
+     * daria combustible que no se inyecta: sin pedal y por encima del ralenti se toma como cero.
+     */
+    fun fuelRate(values: Map<Int, Double>, diesel: Boolean = true): Double? {
+        values[FUEL_RATE]?.let { return it }
+        val air = values[MAF] ?: return null
+        val lambda = values[LAMBDA]?.takeIf { it >= MIN_LAMBDA } ?: return null
+        val overrun = lambda >= LAMBDA_TOP && values[PEDAL] == 0.0 && (values[RPM] ?: 0.0) > OVERRUN_MIN_RPM
+        if (overrun) return 0.0
+        val airPerFuel = if (diesel) DIESEL_AIR_PER_FUEL else PETROL_AIR_PER_FUEL
+        val gramsPerLiter = if (diesel) DIESEL_GRAMS_PER_LITER else PETROL_GRAMS_PER_LITER
+        return air / (airPerFuel * lambda) * SECONDS_PER_HOUR / gramsPerLiter
+    }
+
     /** Consumo instantáneo en L/100 km. Parado o casi parado no tiene sentido y devuelve null. */
-    fun litersPer100Km(values: Map<Int, Double>): Double? {
-        val rate = values[FUEL_RATE] ?: return null
+    fun litersPer100Km(values: Map<Int, Double>, diesel: Boolean = true): Double? {
+        val rate = fuelRate(values, diesel) ?: return null
         val speed = values[SPEED] ?: return null
         return if (speed >= MIN_SPEED_FOR_CONSUMPTION) rate / speed * 100.0 else null
     }
 
     private const val MIN_SPEED_FOR_CONSUMPTION = 5.0
+    private const val MIN_LAMBDA = 0.5
+    private const val LAMBDA_TOP = 1.99
+    private const val OVERRUN_MIN_RPM = 1100.0
+    private const val DIESEL_AIR_PER_FUEL = 14.5
+    private const val PETROL_AIR_PER_FUEL = 14.7
+    private const val DIESEL_GRAMS_PER_LITER = 835.0
+    private const val PETROL_GRAMS_PER_LITER = 745.0
+    private const val SECONDS_PER_HOUR = 3600.0
 }

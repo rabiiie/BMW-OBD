@@ -16,7 +16,7 @@ data class TripEntry(
 )
 
 /** Los trayectos grabados: un CSV por trayecto en la carpeta privada de la app. */
-class TripStore(private val dir: File) {
+class TripStore(private val dir: File, private val isDiesel: (vehicleKey: String?) -> Boolean = { true }) {
 
     /** El nombre lleva la fecha y, detras, la clave del coche: `trip_20261006_081500_<clave>.csv`. */
     fun newFile(simulated: Boolean, vehicleKey: String, now: Date = Date()): File {
@@ -29,12 +29,13 @@ class TripStore(private val dir: File) {
     fun list(): List<TripEntry> {
         val files = dir.listFiles { file -> file.name.endsWith(EXTENSION) } ?: return emptyList()
         return files.map { file ->
+            val vehicleKey = file.name.removeSuffix(EXTENSION).split('_').getOrNull(3)
             TripEntry(
                 file = file,
                 startMillis = startOf(file),
                 simulated = file.name.startsWith(SIMULATED_PREFIX),
-                vehicleKey = file.name.removeSuffix(EXTENSION).split('_').getOrNull(3),
-                stats = TripCsv.stats(load(file)),
+                vehicleKey = vehicleKey,
+                stats = TripCsv.stats(load(file), isDiesel(vehicleKey)),
             )
         }.sortedByDescending { it.startMillis }
     }

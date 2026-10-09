@@ -299,7 +299,9 @@ private fun statCells(stats: TripStats): List<Pair<String, String>> = listOfNotN
     stats.distanceKm?.let { "Distancia" to formatValue(it, 1) + " km" },
     stats.avgSpeed?.let { "Velocidad media" to formatValue(it, 0) + " km/h" },
     stats.maxSpeed?.let { "Velocidad máx" to formatValue(it, 0) + " km/h" },
-    stats.litersPer100Km?.let { "Consumo medio" to formatValue(it, 1) + " L/100" },
+    stats.litersPer100Km?.let {
+        (if (stats.fuelEstimated) "Consumo estimado" else "Consumo medio") to formatValue(it, 1) + " L/100"
+    },
     stats.fuelLiters?.let { "Gasóleo" to formatValue(it, 2) + " L" },
     stats.maxRpm?.let { "RPM máx" to formatValue(it, 0) },
     stats.maxBoostBar?.let { "Turbo máx" to formatValue(it, 2) + " bar" },

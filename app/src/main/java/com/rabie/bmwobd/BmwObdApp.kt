@@ -29,7 +29,7 @@ class BmwObdApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        trips = TripStore(File(filesDir, "trips"))
+        trips = TripStore(File(filesDir, "trips")) { key -> key?.let(vehicles::byKey)?.diesel ?: true }
         vehicles = VehicleStore(getSharedPreferences("vehicles", MODE_PRIVATE))
         settings = SettingsStore(getSharedPreferences("settings", MODE_PRIVATE))
         Bmw.Accent = Color(settings.state.value.accent.argb)

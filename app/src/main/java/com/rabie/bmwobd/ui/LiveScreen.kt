@@ -288,15 +288,17 @@ fun LandscapePanel(state: LiveState, keepScreenOn: Boolean, onMenu: () -> Unit, 
 }
 
 /**
- * La cifra del hueco central del cuadro: el consumo instantaneo si el coche da el caudal de
- * combustible y, si no lo da, el turbo.
+ * La cifra del hueco central del cuadro: el consumo instantaneo, medido o estimado, y si el
+ * coche no da con que calcularlo, el turbo. Parado el consumo sale en litros por hora.
  */
 @Composable
 private fun CenterReadout(state: LiveState, size: TextUnit) {
-    if (Pids.FUEL_RATE in state.supported) {
-        val consumption = Pids.litersPer100Km(state.values)
-        Text(consumption?.let { formatValue(it, 1) } ?: "—", color = Bmw.Accent, fontSize = size)
-        Label("L/100")
+    if (Pids.hasFuelRate(state.supported)) {
+        val diesel = state.vehicle.diesel
+        val perHour = Pids.fuelRate(state.values, diesel)
+        val per100 = Pids.litersPer100Km(state.values, diesel)
+        Text((per100 ?: perHour)?.let { formatValue(it, 1) } ?: "—", color = Bmw.Accent, fontSize = size)
+        Label(if (per100 == null && perHour != null) "L/h" else "L/100")
     } else {
         val boost = Pids.boostBar(state.values)
         Text(boost?.let { formatValue(it, 2) } ?: "—", color = Bmw.Accent, fontSize = size)
@@ -315,7 +317,7 @@ private fun sideReadouts(state: LiveState): List<Side> {
     val exhaustIds = EXHAUST_IDS.filter { it in supported }
     val railId = RAIL_IDS.firstOrNull { it in supported }
     return listOfNotNull(
-        Side("Turbo", Pids.boostBar(values), 2, "bar", null).takeIf { Pids.FUEL_RATE in supported },
+        Side("Turbo", Pids.boostBar(values), 2, "bar", null).takeIf { Pids.hasFuelRate(supported) },
         Side("Agua", values[Pids.COOLANT], 0, "°C", Pids.COOLANT),
         Side("Aceite", values[Pids.OIL], 0, "°C", Pids.OIL).takeIf { Pids.OIL in supported },
         Side("Escape", exhaustIds.mapNotNull { values[it] }.maxOrNull(), 0, "°C", null).takeIf { exhaustIds.isNotEmpty() },
@@ -456,9 +458,17 @@ private fun KeepScreenOn() {
  */
 private fun tiles(state: LiveState): List<Pair<PidGroup, List<Reading>>> {
     val byGroup = LinkedHashMap<PidGroup, MutableList<Reading>>()
-    Pids.litersPer100Km(state.values)?.let {
+    val estimated = Pids.fuelRateIsEstimated(state.supported)
+    val diesel = state.vehicle.diesel
+    Pids.litersPer100Km(state.values, diesel)?.let {
         byGroup.getOrPut(PidGroup.FUEL) { mutableListOf() }
-            .add(Reading("Consumo instantáneo", formatValue(it, 1), "L/100", null))
+            .add(Reading(if (estimated) "Consumo instantáneo (estimado)" else "Consumo instantáneo", formatValue(it, 1), "L/100", null))
+    }
+    if (estimated) {
+        Pids.fuelRate(state.values, diesel)?.let {
+            byGroup.getOrPut(PidGroup.FUEL) { mutableListOf() }
+                .add(Reading("Consumo (estimado)", formatValue(it, 1), "L/h", null))
+        }
     }
     for (def in Pids.all) {
         if (def.id !in state.supported || def.id in ON_GAUGES) continue

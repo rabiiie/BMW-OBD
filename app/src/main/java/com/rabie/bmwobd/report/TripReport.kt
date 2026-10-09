@@ -91,7 +91,7 @@ object TripReport {
             warmUp(data),
             idle(data, vehicle),
             pullsSection(data, vehicle),
-            cruise(data),
+            cruise(data, vehicle),
             electric(data),
             exhaust(data),
             findingsSection(findings),
@@ -198,7 +198,20 @@ object TripReport {
             stats.fuelLiters?.let { ReportLine("Combustible gastado", "${n(it, 2)} L") },
             stats.maxRpm?.let { ReportLine("RPM máximas", n(it)) },
         ),
+        fuelNote(stats),
     )
+
+    private fun fuelNote(stats: TripStats): String? {
+        if (!stats.fuelEstimated || stats.litersPer100Km == null) return null
+        val estimated = "El consumo es una estimación con el caudal de aire y la sonda lambda; el coche no da el suyo por el OBD."
+        val distance = stats.distanceKm
+        val covered = stats.fuelKm
+        return if (stats.fuelLiters == null && distance != null && covered != null) {
+            "$estimated Cuenta ${n(covered, 1)} de ${n(distance, 1)} km: la sonda no da lectura hasta que se calienta."
+        } else {
+            estimated
+        }
+    }
 
     private fun warmUp(data: TripData): ReportSection? {
         val rows = Rows(data)
@@ -334,7 +347,7 @@ object TripReport {
         )
     }
 
-    private fun cruise(data: TripData): ReportSection? {
+    private fun cruise(data: TripData, vehicle: Vehicle): ReportSection? {
         val rows = Rows(data)
         val speed = Acc()
         val rpm = Acc()
@@ -346,7 +359,7 @@ object TripReport {
             val dt = rows.dt(i)
             speed.add(v, dt)
             rpm.add(rows.at(Pids.RPM, i), dt)
-            rate.add(rows.at(Pids.FUEL_RATE, i), dt)
+            rate.add(Pids.fuelRate(rows.values(i), vehicle.diesel), dt)
             val intake = rows.at(Moment.INTAKE_TEMP, i)
             val ambient = rows.at(Moment.AMBIENT_TEMP, i)
             if (intake != null && ambient != null) delta.add(intake - ambient, dt)

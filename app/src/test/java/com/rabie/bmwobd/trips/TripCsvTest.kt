@@ -48,6 +48,35 @@ class TripCsvTest {
     }
 
     @Test
+    fun `sin caudal de combustible el consumo se estima con el aire y la lambda`() {
+        // 29 g/s de aire con lambda 1,25 en un diesel: 1,6 g/s de gasoleo, 6,9 L/h.
+        val values = mapOf(Pids.MAF to 29.0, Pids.LAMBDA to 1.25, Pids.SPEED to 100.0, Pids.PEDAL to 30.0, Pids.RPM to 2000.0)
+        assertEquals(6.9, Pids.fuelRate(values)!!, 0.05)
+        assertEquals(6.9, Pids.litersPer100Km(values)!!, 0.05)
+        assertNull(Pids.fuelRate(values + (Pids.LAMBDA to 0.0)))
+        assertEquals(0.0, Pids.fuelRate(values + mapOf(Pids.LAMBDA to 2.0, Pids.PEDAL to 0.0))!!, 0.0)
+        assertTrue(Pids.fuelRate(values + mapOf(Pids.LAMBDA to 2.0, Pids.PEDAL to 0.0, Pids.RPM to 850.0))!! > 0)
+        assertEquals(5.0, Pids.fuelRate(values + (Pids.FUEL_RATE to 5.0))!!, 0.0)
+    }
+
+    @Test
+    fun `el consumo estimado solo cuenta los kilometros con la sonda dando lectura`() {
+        val ids = listOf(Pids.SPEED, Pids.MAF, Pids.LAMBDA)
+        val cold = mapOf(Pids.SPEED to 100.0, Pids.MAF to 29.0, Pids.LAMBDA to 0.0)
+        val warm = cold + (Pids.LAMBDA to 1.25)
+        val text = sequence {
+            yield(TripCsv.header(ids))
+            for (i in 0..3600) yield(TripCsv.row(i * 1000L, ids, if (i < 1800) cold else warm))
+        }
+        val stats = TripCsv.stats(TripCsv.parse(text))
+        assertEquals(100.0, stats.distanceKm!!, 0.01)
+        assertEquals(50.0, stats.fuelKm!!, 0.05)
+        assertEquals(6.9, stats.litersPer100Km!!, 0.05)
+        assertNull(stats.fuelLiters)
+        assertTrue(stats.fuelEstimated)
+    }
+
+    @Test
     fun `parado no hay consumo a los cien`() {
         val values = mapOf(Pids.SPEED to 0.0, Pids.FUEL_RATE to 0.7)
         assertNull(TripCsv.stats(TripCsv.parse(lines(600, values))).litersPer100Km)

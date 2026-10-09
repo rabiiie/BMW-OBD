@@ -24,6 +24,10 @@ data class TripStats(
     val maxOil: Double?,
     val fuelLiters: Double?,
     val litersPer100Km: Double?,
+    /** El consumo sale de la estimacion con aire y lambda, no del caudal que da el coche. */
+    val fuelEstimated: Boolean = false,
+    /** Kilometros en los que habia dato de consumo; menos que la distancia si falto un rato. */
+    val fuelKm: Double? = null,
 )
 
 /**
@@ -36,6 +40,7 @@ object TripCsv {
     private const val MAX_GAP_MS = 5_000L
     private const val MS_PER_HOUR = 3_600_000.0
     private const val MIN_KM_FOR_CONSUMPTION = 0.5
+    private const val FULL_COVERAGE = 0.95
 
     fun header(columns: List<Int>): String =
         TIME_COLUMN + columns.joinToString("") { ",%02X".format(it) }
@@ -67,9 +72,10 @@ object TripCsv {
         return TripData(columns, times.toLongArray(), series)
     }
 
-    fun stats(data: TripData): TripStats {
+    fun stats(data: TripData, diesel: Boolean = true): TripStats {
         val distance = integratePerHour(data, Pids.SPEED)
-        val fuel = integratePerHour(data, Pids.FUEL_RATE)
+        val fuel = fuel(data, diesel)
+        val whole = fuel != null && (distance == null || fuel.km >= distance * FULL_COVERAGE)
         val hours = data.durationMs / MS_PER_HOUR
         return TripStats(
             durationMs = data.durationMs,
@@ -80,13 +86,35 @@ object TripCsv {
             maxBoostBar = maxBoost(data),
             maxCoolant = max(data.series[Pids.COOLANT]),
             maxOil = max(data.series[Pids.OIL]),
-            fuelLiters = fuel,
-            litersPer100Km = if (fuel != null && distance != null && distance >= MIN_KM_FOR_CONSUMPTION) {
-                fuel / distance * 100.0
-            } else {
-                null
-            },
+            fuelLiters = fuel?.liters?.takeIf { whole },
+            litersPer100Km = fuel?.takeIf { it.km >= MIN_KM_FOR_CONSUMPTION }?.let { it.liters / it.km * 100.0 },
+            fuelEstimated = fuel != null && Pids.FUEL_RATE !in data.series,
+            fuelKm = fuel?.km,
         )
+    }
+
+    private class Fuel(val liters: Double, val km: Double)
+
+    /**
+     * Combustible gastado y kilometros hechos mientras habia dato de consumo. Los tramos sin dato
+     * (la sonda lambda fria, si el consumo es estimado) no cuentan en ninguno de los dos.
+     */
+    private fun fuel(data: TripData, diesel: Boolean): Fuel? {
+        val inputs = Pids.FUEL_INPUTS.mapNotNull { id -> data.series[id]?.let { id to it } }
+        val speed = data.series[Pids.SPEED]
+        var liters = 0.0
+        var km = 0.0
+        var seen = false
+        for (i in 1 until data.size) {
+            val values = HashMap<Int, Double>()
+            for ((id, series) in inputs) series[i - 1].takeIf { !it.isNaN() }?.let { values[id] = it }
+            val rate = Pids.fuelRate(values, diesel) ?: continue
+            seen = true
+            val dt = (data.tMs[i] - data.tMs[i - 1]).coerceIn(0L, MAX_GAP_MS)
+            liters += rate * dt / MS_PER_HOUR
+            speed?.get(i - 1)?.takeIf { !it.isNaN() }?.let { km += it * dt / MS_PER_HOUR }
+        }
+        return if (seen) Fuel(liters, km) else null
     }
 
     /**
