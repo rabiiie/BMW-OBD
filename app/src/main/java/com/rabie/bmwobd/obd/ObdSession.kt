@@ -234,9 +234,26 @@ class ObdSession(
             for (command in RAW_SETUP) attempt(command)
             for (target in RAW_TARGETS) attempt("%02X021A8000000000".format(target), RAW_TIMEOUT_MS)
         } finally {
-            restore()
+            restoreOrFail()
         }
         log("## Escaneo: empieza el barrido")
+    }
+
+    /**
+     * Deja el adaptador como lo espera la lectura normal y comprueba que el coche vuelve a
+     * contestar. Si no lo consigue en dos intentos corta la conexion: es mejor reconectar, que
+     * reinicia el adaptador desde cero, que seguir leyendo con el a medio configurar.
+     */
+    private suspend fun restoreOrFail() {
+        repeat(2) {
+            try {
+                restore()
+                if (readFirst(Pids.RPM) != null) return
+            } catch (e: SocketTimeoutException) {
+                log("!! El adaptador no contesta al reiniciarlo")
+            }
+        }
+        throw IOException("El adaptador no ha vuelto a la lectura normal. Vuelve a conectar.")
     }
 
     private suspend fun attempt(command: String, timeoutMs: Long = READ_TIMEOUT_MS) {

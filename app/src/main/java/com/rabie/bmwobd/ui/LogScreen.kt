@@ -108,6 +108,7 @@ private fun ScanRow(scan: ScanProgress, canScan: Boolean, onReset: () -> Unit, s
     val file = scanFile()
     if (!scan.active && file == null) return
     val status = when {
+        scan.finished -> "Escaneo terminado: contestan ${scan.answering} consultas."
         !scan.active -> "Escaneo parado. Hay resultados guardados."
         scan.pass == 1 -> "Escaneo: ${scan.done} de ${scan.total} consultas · contestan ${scan.answering}"
         else -> "Escaneo: pasada ${scan.pass}, ${scan.done} de ${scan.total} · contestan ${scan.answering}"

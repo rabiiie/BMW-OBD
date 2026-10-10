@@ -20,10 +20,10 @@ import com.rabie.bmwobd.obd.ObdTransport
 import com.rabie.bmwobd.obd.PidDef
 import com.rabie.bmwobd.obd.Pids
 import com.rabie.bmwobd.obd.Tier
-import com.rabie.bmwobd.scan.ScanPlan
 import com.rabie.bmwobd.scan.ScanProgress
+import com.rabie.bmwobd.scan.ScanRunner
+import com.rabie.bmwobd.scan.ScanSaved
 import com.rabie.bmwobd.scan.ScanStore
-import com.rabie.bmwobd.scan.ScanWriter
 import com.rabie.bmwobd.trips.TripRecorder
 import com.rabie.bmwobd.trips.TripStore
 import com.rabie.bmwobd.vehicle.Vehicle
@@ -107,11 +107,8 @@ class ObdController(
     val scanState: StateFlow<ScanProgress> = _scan.asStateFlow()
 
     // El barrido en curso. Solo se toca desde la lectura.
-    private var scan: ScanRun? = null
-
-    private class ScanRun(val vehicleKey: String, val plan: ScanPlan, val writer: ScanWriter) {
-        var sinceSave = 0
-    }
+    private var scan: ScanRunner? = null
+    private var scanPerTurn = SCAN_PER_TURN
 
     private val _diagnostics = MutableStateFlow(DiagnosticsState())
     val diagnostics: StateFlow<DiagnosticsState> = _diagnostics.asStateFlow()
@@ -157,7 +154,10 @@ class ObdController(
                         liveSinceMillis = System.currentTimeMillis(),
                     )
                 }
-                if (canScan(vehicle) && scans.load(vehicle.key).active) openScan(vehicle.key)
+                if (canScan(vehicle) && scans.load(vehicle.key).active) {
+                    appendLog("## Escaneo: sigue por donde iba")
+                    openScan(vehicle.key)
+                }
                 poll(session, defs, started)
             } catch (e: CancellationException) {
                 throw e
@@ -214,7 +214,8 @@ class ObdController(
 
     /**
      * Arranca o para el barrido. Arrancado, sigue solo en las conexiones siguientes por donde iba
-     * hasta que se pare. La primera vez mira antes que centralitas contestan.
+     * hasta que se pare o termine. La primera vez, y solo con el coche parado, mira antes que
+     * centralitas contestan: esa prueba cambia la configuracion del adaptador y no se repite.
      */
     fun toggleScan() {
         val vehicle = _state.value.vehicle
@@ -222,19 +223,21 @@ class ObdController(
         tasks.trySend { session ->
             if (scan != null) {
                 closeScan(keepActive = false)
-            } else {
-                if (scans.load(vehicle.key).fresh) {
-                    logBuffer.pin()
-                    try {
-                        session.scanReach()
-                    } catch (e: IOException) {
-                        appendLog("!! Escaneo interrumpido: ${e.message}")
-                    } finally {
-                        logBuffer.unpin()
-                    }
-                }
-                openScan(vehicle.key)
+                return@trySend
             }
+            val saved = scans.load(vehicle.key)
+            val stopped = (_state.value.values[Pids.SPEED] ?: 0.0) < 1.0
+            if (!saved.reached && stopped) {
+                // Se da por hecha antes de empezar: si deja el adaptador mal, al reconectar no se repite.
+                scans.save(vehicle.key, saved.copy(reached = true))
+                logBuffer.pin()
+                try {
+                    session.scanReach()
+                } finally {
+                    logBuffer.unpin()
+                }
+            }
+            openScan(vehicle.key)
         }
     }
 
@@ -242,45 +245,39 @@ class ObdController(
     fun resetScan() {
         val vehicle = _state.value.vehicle
         if (!isLive() || scan != null) return
+        val reached = scans.load(vehicle.key).reached
         scans.reset(vehicle.key)
+        scans.save(vehicle.key, ScanSaved(reached = reached))
         _scan.value = ScanProgress()
     }
 
     private fun openScan(vehicleKey: String) {
-        val saved = scans.load(vehicleKey)
-        val run = ScanRun(vehicleKey, ScanPlan(saved.next, saved.found, saved.pass), scans.writer(vehicleKey))
-        scans.save(vehicleKey, run.plan, active = true)
+        val known = Pids.bmwDiesel.map { it.pid - Pids.BMW_BASE }
+        val run = ScanRunner(scans, vehicleKey, known, ::appendLog)
         scan = run
-        publishScan(run)
+        scanPerTurn = SCAN_PER_TURN
+        _scan.value = run.progress()
     }
 
     private fun closeScan(keepActive: Boolean) {
         val run = scan ?: return
         scan = null
-        run.writer.close()
-        scans.save(run.vehicleKey, run.plan, keepActive)
-        _scan.update { it.copy(active = false) }
-    }
-
-    private fun publishScan(run: ScanRun) {
-        _scan.value = ScanProgress(true, run.plan.pass, run.plan.done, run.plan.total, run.plan.answering)
+        run.close(keepActive)
+        _scan.value = run.progress().copy(active = false)
     }
 
     /** Unas pocas consultas del barrido, intercaladas con la lectura normal. */
     private suspend fun scanStep(session: ObdSession, values: Map<Int, Double>) {
         val run = scan ?: return
-        repeat(SCAN_PER_TURN) {
-            val query = run.plan.take() ?: return@repeat
-            val answer = session.ask(query, ScanPlan.answerPrefix(query)) ?: return@repeat
-            run.plan.answered()
-            withContext(Dispatchers.IO) { run.writer.append(run.plan.pass, query, answer, values) }
-        }
-        run.sinceSave += SCAN_PER_TURN
-        if (run.sinceSave >= SCAN_SAVE_EVERY) {
-            run.sinceSave = 0
-            withContext(Dispatchers.IO) { scans.save(run.vehicleKey, run.plan, active = true) }
-        }
-        publishScan(run)
+        val started = System.nanoTime()
+        val going = withContext(Dispatchers.IO) { run.step(scanPerTurn, values.toMap(), session::ask) }
+        // Si el adaptador tarda mucho en dar por callada una consulta, se pregunta de una en una
+        // para que la lectura normal no se quede sin sitio.
+        val slow = System.nanoTime() - started > SCAN_SLOW_TURN_NANOS
+        if (slow && scanPerTurn > 1) appendLog("## Escaneo: el adaptador va lento; se pregunta de una en una")
+        if (slow) scanPerTurn = 1
+        _scan.value = run.progress()
+        if (!going) closeScan(keepActive = false)
     }
 
     /**
@@ -468,7 +465,7 @@ class ObdController(
         const val IDLE_DELAY_MS = 200L
         const val SLOW_EVERY = 4
         const val SCAN_PER_TURN = 3
-        const val SCAN_SAVE_EVERY = 150
+        const val SCAN_SLOW_TURN_NANOS = 1_500_000_000L
         const val MANY_SLOW = 16
         const val BEEP_MS = 600
         const val SILENCE_LIMIT_NANOS = 10_000_000_000L
