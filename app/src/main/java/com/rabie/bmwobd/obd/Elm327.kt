@@ -6,8 +6,9 @@ class Elm327(
     private val log: (String) -> Unit,
 ) {
 
-    suspend fun send(command: String, timeoutMs: Long = DEFAULT_TIMEOUT_MS): String {
-        log(">> $command")
+    /** Con [quiet] no deja rastro en el registro: para barridos de miles de consultas. */
+    suspend fun send(command: String, timeoutMs: Long = DEFAULT_TIMEOUT_MS, quiet: Boolean = false): String {
+        if (!quiet) log(">> $command")
         transport.write("$command\r")
         val raw = transport.readUntilPrompt(timeoutMs)
         val clean = raw.replace('\r', '\n')
@@ -15,7 +16,7 @@ class Elm327(
             .map { it.trim() }
             .filter { it.isNotEmpty() }
             .joinToString("\n")
-        log("<< ${clean.replace("\n", " | ")}")
+        if (!quiet) log("<< ${clean.replace("\n", " | ")}")
         return clean
     }
 

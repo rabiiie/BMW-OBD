@@ -15,11 +15,8 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -30,7 +27,11 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.rabie.bmwobd.ProbeState
+import com.rabie.bmwobd.scan.ScanProgress
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /** El dialogo crudo con el adaptador y una consola para mandarle comandos a mano. */
 @Composable
@@ -38,21 +39,15 @@ fun LogScreen(
     lines: List<String>,
     canSend: Boolean,
     onSend: (String) -> Unit,
-    onProbe: () -> Unit,
-    probe: ProbeState,
+    scan: ScanProgress,
+    canScan: Boolean,
+    onToggleScan: () -> Unit,
+    onResetScan: () -> Unit,
+    scanFile: () -> File?,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
     var command by rememberSaveable { mutableStateOf("") }
-    // Al terminar un sondeo se abre solo el compartir, con el registro de ese momento.
-    var sharedProbes by rememberSaveable { mutableIntStateOf(probe.finished) }
-    val currentLines by rememberUpdatedState(lines)
-    LaunchedEffect(probe.finished) {
-        if (probe.finished > sharedProbes) {
-            sharedProbes = probe.finished
-            shareLog(context, currentLines)
-        }
-    }
     val send = {
         onSend(command)
         command = ""
@@ -64,14 +59,15 @@ fun LogScreen(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Label("Registro", Modifier.weight(1f), color = Bmw.Text)
-            OutlinedButton(onClick = onProbe, enabled = canSend && !probe.running, modifier = Modifier.padding(end = 8.dp)) {
-                Text(if (probe.running) "Sondeando…" else "Sondeo")
+            OutlinedButton(onClick = onToggleScan, enabled = canScan, modifier = Modifier.padding(end = 8.dp)) {
+                Text(if (scan.active) "Parar escaneo" else "Escaneo")
             }
             OutlinedButton(
                 onClick = { shareLog(context, lines) },
                 enabled = lines.isNotEmpty(),
             ) { Text("Compartir") }
         }
+        ScanRow(scan, canScan, onResetScan, scanFile)
 
         if (lines.isEmpty()) {
             Text(
@@ -101,6 +97,36 @@ fun LogScreen(
         }
     }
 }
+
+/**
+ * Por donde va el barrido de todo lo que contesta la centralita y el boton para sacar el fichero.
+ * La primera pasada pregunta por todo; las siguientes repiten lo que contesto.
+ */
+@Composable
+private fun ScanRow(scan: ScanProgress, canScan: Boolean, onReset: () -> Unit, scanFile: () -> File?) {
+    val context = LocalContext.current
+    val file = scanFile()
+    if (!scan.active && file == null) return
+    val status = when {
+        !scan.active -> "Escaneo parado. Hay resultados guardados."
+        scan.pass == 1 -> "Escaneo: ${scan.done} de ${scan.total} consultas · contestan ${scan.answering}"
+        else -> "Escaneo: pasada ${scan.pass}, ${scan.done} de ${scan.total} · contestan ${scan.answering}"
+    }
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(status, color = Bmw.TextDim, fontSize = 13.sp, modifier = Modifier.weight(1f))
+        if (!scan.active && canScan && file != null) {
+            OutlinedButton(onClick = onReset) { Text("Borrar") }
+        }
+        OutlinedButton(
+            onClick = { file?.let { shareFile(context, it, "text/csv", scanExportName()) } },
+            enabled = file != null,
+        ) { Text("Enviar") }
+    }
+}
+
+/** Nombre con el que sale el fichero del barrido: con la fecha y sin el bastidor. */
+private fun scanExportName(): String =
+    "escaneo_bmwobd_" + SimpleDateFormat("yyyyMMdd_HHmm", Locale.US).format(Date()) + ".csv"
 
 @Composable
 fun LogView(lines: List<String>, modifier: Modifier = Modifier) {

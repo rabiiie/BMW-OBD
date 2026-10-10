@@ -4,6 +4,7 @@ import android.app.Activity
 import android.app.Application
 import android.os.Bundle
 import androidx.compose.ui.graphics.Color
+import com.rabie.bmwobd.scan.ScanStore
 import com.rabie.bmwobd.settings.SettingsStore
 import com.rabie.bmwobd.trips.TripStore
 import com.rabie.bmwobd.ui.Bmw
@@ -33,7 +34,7 @@ class BmwObdApp : Application() {
         vehicles = VehicleStore(getSharedPreferences("vehicles", MODE_PRIVATE))
         settings = SettingsStore(getSharedPreferences("settings", MODE_PRIVATE))
         Bmw.Accent = Color(settings.state.value.accent.argb)
-        controller = ObdController(this, trips, vehicles, settings)
+        controller = ObdController(this, trips, vehicles, settings, ScanStore(File(filesDir, "scans")))
         bubble = Bubble(this, controller)
         registerActivityLifecycleCallbacks(VisibilityTracker())
     }

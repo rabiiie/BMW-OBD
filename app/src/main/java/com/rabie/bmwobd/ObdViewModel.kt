@@ -7,6 +7,7 @@ import android.bluetooth.BluetoothManager
 import androidx.lifecycle.AndroidViewModel
 import com.rabie.bmwobd.obd.BluetoothSppTransport
 import com.rabie.bmwobd.obd.SimulatedTransport
+import com.rabie.bmwobd.scan.ScanProgress
 import com.rabie.bmwobd.settings.AppSettings
 import com.rabie.bmwobd.trips.TripStore
 import com.rabie.bmwobd.vehicle.Vehicle
@@ -76,6 +77,16 @@ class ObdViewModel(app: Application) : AndroidViewModel(app) {
 
     fun probe() = controller.probe()
     val probeState: StateFlow<ProbeState> = controller.probeState
+
+    val scanState: StateFlow<ScanProgress> = controller.scanState
+
+    fun canScan(vehicle: Vehicle) = controller.canScan(vehicle)
+
+    fun toggleScan() = controller.toggleScan()
+
+    fun resetScan() = controller.resetScan()
+
+    fun scanFile() = controller.scanFile()
 
     fun readDiagnostics() = controller.readDiagnostics()
 

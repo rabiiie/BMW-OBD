@@ -6,4 +6,7 @@
     <files-path
         name="logs"
         path="logs/" />
+    <files-path
+        name="scans"
+        path="scans/" />
 </paths>

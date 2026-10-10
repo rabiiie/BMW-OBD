@@ -205,6 +205,40 @@ class ObdSession(
         log("## Sondeo: fin")
     }
 
+    /**
+     * Una consulta del barrido, sin rastro en el registro. Devuelve los bytes que siguen a
+     * [answerPrefix] en la respuesta, o null si la centralita calla o contesta otra cosa.
+     */
+    suspend fun ask(query: String, answerPrefix: String): IntArray? {
+        // Un silencio aqui no cuenta para dar el adaptador por perdido: son consultas a ciegas, y
+        // si de verdad se ha ido lo notara la lectura normal.
+        val response = try {
+            elm.send(query, SCAN_TIMEOUT_MS, quiet = true)
+        } catch (e: SocketTimeoutException) {
+            return null
+        }
+        return ObdParser.payloads(response, answerPrefix).firstOrNull()
+    }
+
+    /**
+     * Antes de un barrido nuevo: que centralitas contestan por la direccion normal, con las
+     * cabeceras a la vista, y un intento de hablar con otras mandando las tramas tal cual, sin la
+     * cifra de respuestas esperadas que el adaptador no entendio en el sondeo. Todo queda en el
+     * registro. Al acabar reinicia el adaptador.
+     */
+    suspend fun scanReach() {
+        log("## Escaneo: quién contesta por la dirección normal")
+        try {
+            for (command in listOf("ATH1", "0100", BMW_IDENT)) attempt(command)
+            log("## Escaneo: tramas crudas a motor, cuadro, llave y frenos")
+            for (command in RAW_SETUP) attempt(command)
+            for (target in RAW_TARGETS) attempt("%02X021A8000000000".format(target), RAW_TIMEOUT_MS)
+        } finally {
+            restore()
+        }
+        log("## Escaneo: empieza el barrido")
+    }
+
     private suspend fun attempt(command: String, timeoutMs: Long = READ_TIMEOUT_MS) {
         try {
             elm.send(command, timeoutMs)
@@ -332,6 +366,11 @@ class ObdSession(
         const val BMW_QUERY = "2C10"
         const val BMW_ANSWER = "6C10"
         const val BMW_IDENT = "1A80"
+
+        val RAW_SETUP = listOf("ATSP6", "ATCAF0", "ATSH6F1", "ATCF600", "ATCM700", "ATAT0", "ATSTFF")
+        val RAW_TARGETS = listOf(0x12, 0x60, 0x40, 0x29)
+        const val RAW_TIMEOUT_MS = 2_500L
+        const val SCAN_TIMEOUT_MS = 1_500L
 
         // Espera fija de 400 ms en vez de la adaptativa.
         val FIXED_WAIT = listOf("ATAT0", "ATST64")
