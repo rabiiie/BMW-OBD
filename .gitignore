@@ -9,3 +9,6 @@ captures/
 *.aab
 *.jks
 *.keystore
+
+# Listados sacados del coche y de la documentacion: solo en este equipo
+docs/
