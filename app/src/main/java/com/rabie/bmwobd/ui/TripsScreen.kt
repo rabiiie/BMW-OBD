@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.sp
 import com.rabie.bmwobd.advice.Advisor
 import com.rabie.bmwobd.health.Health
 import com.rabie.bmwobd.obd.Pids
+import com.rabie.bmwobd.report.ReportLine
 import com.rabie.bmwobd.report.ReportSection
 import com.rabie.bmwobd.report.TripReport
 import com.rabie.bmwobd.trips.TripData
@@ -186,6 +187,10 @@ private fun TripDetail(
             Label("Salud del coche en este trayecto", Modifier.padding(top = 6.dp))
             for (card in health) HealthCardView(card)
             Text("Son pistas sacadas de lo grabado, no un diagnóstico.", color = Bmw.TextDim, fontSize = 13.sp)
+            val car = remember(trip) { Health.carFacts(trip) }
+            if (car.isNotEmpty()) {
+                ReportCard(ReportSection("Ficha del coche", car.map { (label, value) -> ReportLine(label, value) }))
+            }
 
             Label("Gráfica", Modifier.padding(top = 6.dp))
             Row(

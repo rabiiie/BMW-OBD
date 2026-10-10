@@ -75,6 +75,50 @@ class HealthTest {
     }
 
     @Test
+    fun `con los datos fijos del coche salen su ficha, el aceite, las averias y el ritmo de regeneraciones`() {
+        // Lo que dio el 118d el 10 de octubre.
+        val fixed = mapOf(
+            Pids.bmw(Pids.BMW_ODOMETER_ADDRESS) to 378_420.0, Pids.bmw(0x0AF0) to 7_237.0,
+            Pids.bmw(Pids.BMW_TOTAL_FUEL_ADDRESS) to 18_970.0, Pids.bmw(Pids.BMW_TANK_ADDRESS) to 21.0,
+            Pids.bmw(Pids.BMW_FAULTS_ADDRESS) to 7.0, Pids.bmw(Pids.BMW_OIL_KM_ADDRESS) to 9_360.0,
+            Pids.bmw(Pids.BMW_OIL_LEVEL_ADDRESS) to 56.0, Pids.bmw(0x03F3) to 517.0, Pids.bmw(0x0407) to 373.0,
+            Pids.bmw(0x0BA5) to 287_450.0, Pids.bmw(0x03E9) to 21.1, Pids.bmw(0x042E) to -40.05,
+            Pids.bmw(0x03FD) to 376_222.1, Pids.bmw(0x03FE) to 376_087.7, Pids.bmw(0x03FF) to 375_998.3,
+            Pids.bmw(0x0400) to 375_793.8, Pids.bmw(0x0401) to 375_534.8,
+        )
+        val data = trip(120) { cruising + fixed }
+        val cards = Health.cards(data, emptyList())
+        for (card in cards) println("${card.system.title} [${card.level}] ${card.headline} >> " + (card.facts + listOfNotNull(card.advice)).joinToString(" >> "))
+        val car = Health.carFacts(data)
+        println(car.joinToString(" >> ") { "${it.first}: ${it.second}" })
+
+        val filter = cards.of(HealthSystem.FILTER)
+        assertEquals(HealthLevel.WATCH, filter.level)
+        assertEquals("Regenera mucho más seguido que su media.", filter.headline)
+        assertTrue(filter.facts.any { it.contains("cada 134, 89, 205, 259 km") && it.contains("517") })
+        assertTrue(filter.facts.any { it.contains("-40 °C") })
+        assertEquals(HealthLevel.OK, cards.of(HealthSystem.OIL).level)
+        assertTrue(cards.of(HealthSystem.OIL).facts.first().contains("9.360 km"))
+        assertEquals(HealthLevel.WATCH, cards.of(HealthSystem.FAULTS).level)
+        assertTrue(cards.of(HealthSystem.FAULTS).headline.contains("guarda 7"))
+        assertEquals("378.420 km", car.first { it.first == "Kilómetros" }.second)
+        assertEquals("5,0 L/100 (18.970 L)", car.first { it.first.startsWith("Consumo medio") }.second)
+    }
+
+    @Test
+    fun `un coche que no da esos datos no saca tarjetas vacias`() {
+        val cards = Health.cards(trip(60) { cruising }, emptyList())
+        assertTrue(cards.none { it.system == HealthSystem.OIL || it.system == HealthSystem.FAULTS })
+        assertTrue(Health.carFacts(trip(60) { cruising }).isEmpty())
+        // Con regeneraciones al ritmo de su media no hay aviso.
+        val steady = mapOf(
+            Pids.bmw(0x03F3) to 500.0, Pids.bmw(0x03FD) to 10_000.0, Pids.bmw(0x03FE) to 9_520.0,
+            Pids.bmw(0x03FF) to 9_010.0, Pids.bmw(0x0400) to 8_480.0, Pids.bmw(0x0401) to 8_000.0,
+        )
+        assertEquals(HealthLevel.OK, Health.cards(trip(60) { cruising + steady }, emptyList()).of(HealthSystem.FILTER).level)
+    }
+
+    @Test
     fun `turbo que no llega a lo pedido`() {
         val asking = cruising + (Pids.bmw(0x01F4) to 220.0) + (Pids.LOAD to 95.0)
         fun level(actual: Double) =

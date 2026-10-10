@@ -17,6 +17,8 @@ enum class HealthSystem(val title: String) {
     INJECTION("Inyección"),
     COOLING("Refrigeración"),
     ELECTRIC("Batería y carga"),
+    OIL("Aceite"),
+    FAULTS("Averías guardadas"),
 }
 
 /**
@@ -49,6 +51,16 @@ object Health {
     private const val FILTER_DISTANCE = 0x03EB
     private const val BOOST_ASKED = 0x01F4
     private const val RAIL_ASKED = 0x0641
+    private const val ENGINE_HOURS = 0x0AF0
+    private const val FILTER_REGENERATIONS = 0x0407
+    private const val FILTER_KM = 0x0BA5
+    private const val FILTER_ASH = 0x03E9
+    private const val FILTER_USUAL_INTERVAL = 0x03F3
+    private const val FILTER_TEMP_SENSOR = 0x042E
+    private const val SENSOR_OPEN_BELOW = -35.0
+    private const val RECENT_REGENERATIONS = 3
+    private const val SHORT_INTERVAL_SHARE = 0.5
+    private const val OIL_CHANGE_KM = 30_000.0
 
     private class Rows(val data: TripData) {
         fun at(id: Int, i: Int): Double? = data.series[id]?.get(i)?.takeIf { !it.isNaN() }
@@ -87,13 +99,73 @@ object Health {
         fun max(): Double? = items.maxOfOrNull { it.first }
     }
 
-    fun cards(data: TripData, findings: List<TripFinding>): List<HealthCard> = listOf(
+    fun cards(data: TripData, findings: List<TripFinding>): List<HealthCard> = listOfNotNull(
         filter(data),
         turbo(data),
         injection(data),
         cooling(data, findings),
         electric(data, findings),
+        oil(data),
+        faults(data),
     )
+
+    /** Los datos fijos del coche que la centralita da al conectar: etiqueta y valor ya escritos. */
+    fun carFacts(data: TripData): List<Pair<String, String>> {
+        val km = data.last(Pids.bmw(Pids.BMW_ODOMETER_ADDRESS))
+        val fuel = data.last(Pids.bmw(Pids.BMW_TOTAL_FUEL_ADDRESS))
+        return listOfNotNull(
+            km?.let { "Kilómetros" to thousands(it) + " km" },
+            data.last(Pids.bmw(ENGINE_HOURS))?.let { "Horas de motor" to thousands(it) + " h" },
+            if (km != null && fuel != null && km > 1000) {
+                "Consumo medio de toda su vida" to n(fuel / km * 100, 1) + " L/100 (" + thousands(fuel) + " L)"
+            } else {
+                null
+            },
+            data.last(Pids.bmw(Pids.BMW_TANK_ADDRESS))?.let { "Depósito al acabar" to n(it, 1) + " L" },
+            data.last(Pids.bmw(FILTER_REGENERATIONS))?.let { "Regeneraciones del filtro en su vida" to thousands(it) },
+            data.last(Pids.bmw(FILTER_KM))?.let { "Km con este filtro de partículas, según el coche" to thousands(it) + " km" },
+        )
+    }
+
+    private fun TripData.last(id: Int): Double? = series[id]?.lastOrNull { !it.isNaN() }
+
+    /** Los kilometros entre cada regeneracion y la anterior, de la mas reciente a la mas antigua. */
+    private fun regenerationIntervals(data: TripData): List<Double> {
+        val marks = Pids.BMW_REGENERATION_ADDRESSES.map { data.last(Pids.bmw(it)) }
+        return marks.zipWithNext().mapNotNull { (newer, older) ->
+            if (newer == null || older == null) null else (newer - older).takeIf { it > 0 }
+        }
+    }
+
+    private fun oil(data: TripData): HealthCard? {
+        val km = data.last(Pids.bmw(Pids.BMW_OIL_KM_ADDRESS))
+        val level = data.last(Pids.bmw(Pids.BMW_OIL_LEVEL_ADDRESS))
+        if (km == null && level == null) return null
+        val facts = listOfNotNull(
+            km?.let { "Lleva ${thousands(it)} km desde el cambio." },
+            level?.let { "Nivel que mide el coche: ${n(it)} mm." },
+            "Este motor no da temperatura de aceite: la que publica la centralita repite la del refrigerante.",
+        )
+        return if (km != null && km >= OIL_CHANGE_KM) {
+            HealthCard(
+                HealthSystem.OIL, HealthLevel.WATCH, "Toca cambiar el aceite.", facts,
+                "Con muchos kilómetros el aceite pierde protección, y en este motor el aceite gastado acorta la vida de la cadena.",
+            )
+        } else {
+            HealthCard(HealthSystem.OIL, HealthLevel.OK, "Sin indicios.", facts)
+        }
+    }
+
+    private fun faults(data: TripData): HealthCard? {
+        val count = data.last(Pids.bmw(Pids.BMW_FAULTS_ADDRESS)) ?: return null
+        if (count < 1) return HealthCard(HealthSystem.FAULTS, HealthLevel.OK, "La centralita del motor no guarda ninguna.", emptyList())
+        return HealthCard(
+            HealthSystem.FAULTS, HealthLevel.WATCH,
+            "La centralita del motor guarda ${n(count)} que la lectura de averías normal no enseña.",
+            listOf("Son averías de la memoria propia de BMW. Pueden ser antiguas y estar ya resueltas."),
+            "El escaneo las lee al llegar a esa consulta. Hasta entonces no se sabe cuáles son.",
+        )
+    }
 
     /** Dos o tres frases que cuentan el trayecto. */
     fun summary(data: TripData, stats: TripStats, cards: List<HealthCard>): List<String> {
@@ -190,6 +262,9 @@ object Health {
             distance = rows.at(Pids.bmw(FILTER_DISTANCE), i) ?: distance
         }
         val regen = regeneration(data)
+        val intervals = regenerationIntervals(data)
+        val usual = data.last(Pids.bmw(FILTER_USUAL_INTERVAL))
+        val sensor = data.last(Pids.bmw(FILTER_TEMP_SENSOR))
         val facts = listOfNotNull(
             if (measured != null && model != null) {
                 "Hollín al acabar: ${n(measured, 1)} g medidos por la presión y ${n(model, 1)} g calculados por el uso."
@@ -204,18 +279,36 @@ object Health {
                     null -> "Parece que regeneró en este trayecto, unos ${(it.seconds + 30) / 60} min."
                 }
             },
+            if (intervals.isEmpty()) {
+                null
+            } else {
+                "Las últimas regeneraciones llegaron cada " + intervals.joinToString(", ") { n(it) } +
+                    " km, de la más reciente a la más antigua" + (usual?.let { "; su media guardada es ${n(it)} km." } ?: ".")
+            },
+            data.last(Pids.bmw(FILTER_ASH))?.let { "Ceniza que calcula la centralita: ${n(it)} g." },
+            sensor?.takeIf { it <= SENSOR_OPEN_BELOW }?.let {
+                "El sensor de temperatura antes del filtro marca ${n(it)} °C: desconectado, roto, o esta versión no lo monta."
+            },
         )
         if (facts.isEmpty()) {
             return HealthCard(HealthSystem.FILTER, HealthLevel.UNKNOWN, "Este coche no da datos del filtro.", emptyList())
         }
         val medianGap = gap.median()?.takeIf { gap.seconds >= MIN_SOOT_SECONDS }
+        val recent = intervals.take(RECENT_REGENERATIONS).sorted().let { if (it.size < 2) null else it[it.size / 2] }
+        val ashAdvice = "Suele ser ceniza acumulada, que no se quema al regenerar y aparece con los kilómetros, o el sensor " +
+            "de presión del filtro o sus tubos. En el taller: que lean la masa de ceniza y los valores del sensor."
         return when {
+            recent != null && usual != null && usual > 0 && recent < usual * SHORT_INTERVAL_SHARE -> HealthCard(
+                HealthSystem.FILTER, HealthLevel.WATCH,
+                "Regenera mucho más seguido que su media.",
+                facts,
+                ashAdvice,
+            )
             medianGap != null && medianGap >= Limits.SOOT_GAP_WARN -> HealthCard(
                 HealthSystem.FILTER, HealthLevel.WATCH,
                 "Se llena más deprisa de lo que calcula la centralita.",
                 facts + "Durante el trayecto la presión veía ${n(medianGap)} g más de hollín que el cálculo.",
-                "Suele ser ceniza acumulada, que no se quema al regenerar y aparece con los kilómetros, o el sensor " +
-                    "de presión del filtro o sus tubos. En el taller: que lean la masa de ceniza y los valores del sensor.",
+                ashAdvice,
             )
             regen?.finished == false -> HealthCard(
                 HealthSystem.FILTER, HealthLevel.WATCH,
@@ -362,6 +455,8 @@ object Health {
         filter { it.advice.id == id }.maxOfOrNull { it.advice.severity }
 
     private fun n(value: Double, decimals: Int = 0) = String.format(Locale.US, "%.${decimals}f", value).replace('.', ',')
+
+    private fun thousands(value: Double) = String.format(Locale.US, "%,.0f", value).replace(',', '.')
 
     private fun signed(value: Double) = (if (value >= 0.5) "+" else "") + n(value)
 }
