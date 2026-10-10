@@ -108,10 +108,11 @@ private fun ScanRow(scan: ScanProgress, canScan: Boolean, onReset: () -> Unit, s
     val file = scanFile()
     if (!scan.active && file == null) return
     val status = when {
-        scan.finished -> "Escaneo terminado: contestan ${scan.answering} consultas."
+        scan.finished -> "Escaneo terminado: ${scan.answering} consultas con dato."
         !scan.active -> "Escaneo parado. Hay resultados guardados."
-        scan.pass == 1 -> "Escaneo: ${scan.done} de ${scan.total} consultas · contestan ${scan.answering}"
-        else -> "Escaneo: pasada ${scan.pass}, ${scan.done} de ${scan.total} · contestan ${scan.answering}"
+        scan.pass == 1 -> "Escaneo, búsqueda: ${scan.done} de ${scan.total} · con dato ${scan.answering}"
+        scan.pass == 2 -> "Escaneo, repaso: ${scan.done} de ${scan.total} · con dato ${scan.answering}"
+        else -> "Escaneo, repetición ${scan.pass - 2} de 15: ${scan.done} de ${scan.total}"
     }
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(status, color = Bmw.TextDim, fontSize = 13.sp, modifier = Modifier.weight(1f))

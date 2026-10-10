@@ -270,7 +270,9 @@ class ObdController(
     private suspend fun scanStep(session: ObdSession, values: Map<Int, Double>) {
         val run = scan ?: return
         val started = System.nanoTime()
-        val going = withContext(Dispatchers.IO) { run.step(scanPerTurn, values.toMap(), session::ask) }
+        // Pasada la busqueda las consultas son rapidas y sin confirmacion: caben mas por vuelta.
+        val count = if (run.progress().pass > 1 && scanPerTurn > 1) SCAN_PER_TURN_AFTER_SEARCH else scanPerTurn
+        val going = withContext(Dispatchers.IO) { run.step(count, values.toMap(), session::ask) }
         // Si el adaptador tarda mucho en dar por callada una consulta, se pregunta de una en una
         // para que la lectura normal no se quede sin sitio.
         val slow = System.nanoTime() - started > SCAN_SLOW_TURN_NANOS
@@ -465,6 +467,7 @@ class ObdController(
         const val IDLE_DELAY_MS = 200L
         const val SLOW_EVERY = 4
         const val SCAN_PER_TURN = 3
+        const val SCAN_PER_TURN_AFTER_SEARCH = 6
         const val SCAN_SLOW_TURN_NANOS = 1_500_000_000L
         const val MANY_SLOW = 16
         const val BEEP_MS = 600

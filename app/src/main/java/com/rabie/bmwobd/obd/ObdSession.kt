@@ -95,7 +95,8 @@ class ObdSession(
      */
     private fun dataOf(response: String, pid: Int): IntArray? =
         if (Pids.isBmw(pid)) {
-            ObdParser.payloads(response, BMW_ANSWER).firstOrNull { it.isNotEmpty() }
+            // Si el adaptador traia pendiente la respuesta de una consulta anterior, la de esta es la ultima.
+            ObdParser.payloads(response, BMW_ANSWER).lastOrNull { it.isNotEmpty() }
         } else {
             ObdParser.dataBytes(response, pid)
         }
@@ -210,14 +211,25 @@ class ObdSession(
      * [answerPrefix] en la respuesta, o null si la centralita calla o contesta otra cosa.
      */
     suspend fun ask(query: String, answerPrefix: String): IntArray? {
-        // Un silencio aqui no cuenta para dar el adaptador por perdido: son consultas a ciegas, y
-        // si de verdad se ha ido lo notara la lectura normal.
-        val response = try {
-            elm.send(query, SCAN_TIMEOUT_MS, quiet = true)
-        } catch (e: SocketTimeoutException) {
-            return null
-        }
-        return ObdParser.payloads(response, answerPrefix).firstOrNull()
+        // La centralita contesta a toda direccion de medida con una sola trama, asi que se puede
+        // pedir con lectura rapida: el adaptador vuelve en cuanto llega en vez de agotar su espera.
+        val quickly = quick && answerPrefix == BMW_ANSWER
+        val response = scanSend(query + if (quickly) QUICK_SUFFIX else "") ?: return null
+        val payload = ObdParser.payloads(response, answerPrefix).lastOrNull()
+        if (payload != null || !quickly || !ObdParser.isForeignAnswer(response)) return payload
+        // Ha llegado la respuesta de otra pregunta: sin lectura rapida el adaptador entrega lo pendiente.
+        val again = scanSend(query) ?: return null
+        return ObdParser.payloads(again, answerPrefix).lastOrNull()
+    }
+
+    /**
+     * Un silencio aqui no cuenta para dar el adaptador por perdido: son consultas a ciegas, y si
+     * de verdad se ha ido lo notara la lectura normal.
+     */
+    private suspend fun scanSend(command: String): String? = try {
+        elm.send(command, SCAN_TIMEOUT_MS, quiet = true)
+    } catch (e: SocketTimeoutException) {
+        null
     }
 
     /**

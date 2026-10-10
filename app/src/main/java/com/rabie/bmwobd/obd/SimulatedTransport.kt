@@ -101,8 +101,9 @@ class SimulatedTransport(
             bytes.size == 2 && bytes[0] == 0x09 && bytes[1] == 0x02 -> intArrayOf(0x49, 0x02, 0x01) + ascii(VIN, 17)
             bytes.size == 2 && bytes[0] == 0x09 && bytes[1] == 0x04 -> intArrayOf(0x49, 0x04, 0x01) + ascii(CALIBRATION, 16)
             bytes.size == 2 && bytes[0] == 0x1A && bytes[1] == 0x80 -> intArrayOf(0x5A, 0x80) + ascii(BMW_IDENT, 20)
+            // Como la centralita de verdad: a una direccion que no existe contesta, pero sin dato.
             bytes.size == 4 && bytes[0] == 0x2C && bytes[1] == 0x10 ->
-                bmw(bytes[2] * 256 + bytes[3], engine())?.let { intArrayOf(0x6C, 0x10) + it }
+                intArrayOf(0x6C, 0x10) + (bmw(bytes[2] * 256 + bytes[3], engine()) ?: IntArray(0))
             else -> null
         }
     }

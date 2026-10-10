@@ -15,35 +15,60 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import java.util.Date
 
-/** Las direcciones de medidas que conoce el coche simulado. */
+/** Las direcciones de medidas que dan dato en el coche simulado. */
 private val SIMULATED = listOf(
     0x01F4, 0x0385, 0x03EA, 0x03EB, 0x03ED, 0x03F3, 0x0424, 0x0432, 0x041B, 0x0500, 0x0547, 0x0641, 0x0BEB, 0x0D16, 0x16B2,
 )
 
 /**
- * Un adaptador con el defecto visto en el de verdad: de vez en cuando entrega otra vez la
- * respuesta anterior en lugar de la que toca.
+ * Un adaptador con el defecto visto en el de verdad. De vez en cuando, a una consulta pedida con
+ * lectura rapida le entrega la respuesta que tenia de antes, y la de verdad se queda pendiente:
+ * desde ahi cada consulta rapida recibe la respuesta de la anterior. Una consulta sin lectura
+ * rapida lo arregla, porque el adaptador entrega lo pendiente y despues la suya.
  */
-private class Stuttering(private val every: Int) : ObdTransport {
+private val FRAMES = Regex("[0-9A-F:\\s]+")
+
+private class Shifting(private val every: Int) : ObdTransport {
     private val car = SimulatedTransport(latencyMs = 0)
-    private var last = ""
-    private var count = 0
-    private var pending = ""
+    private var command = ""
+    private var previous = ""
+    private var held: String? = null
+    private var quickReads = 0
+    var shifts = 0
+        private set
 
     override suspend fun open() = car.open()
     override fun close() = Unit
 
     override suspend fun write(text: String) {
-        pending = text.trim()
+        command = text.trim()
         car.write(text)
     }
 
     override suspend fun readUntilPrompt(timeoutMs: Long): String {
         val real = car.readUntilPrompt(timeoutMs)
-        if (!pending.startsWith("2C10")) return real
-        val answer = if (++count % every == 0 && last.isNotEmpty()) last else real
-        if (!real.startsWith("NO DATA")) last = real
-        return answer
+        if (command.startsWith("AT")) return real
+        val quick = command.length % 2 == 1
+        val pending = held
+        val delivered = when {
+            !quick -> {
+                held = null
+                if (pending == null) real else pending.trimEnd('\r') + "\r" + real
+            }
+            pending != null -> {
+                held = real
+                pending
+            }
+            ++quickReads % every == 0 && previous.isNotEmpty() -> {
+                shifts++
+                held = real
+                previous
+            }
+            else -> real
+        }
+        // Solo se puede quedar atras una trama del coche, no un mensaje del propio adaptador.
+        if (FRAMES.matches(real.trim())) previous = real
+        return delivered
     }
 }
 
@@ -76,8 +101,17 @@ class ScanTest {
 
     private fun rows(store: ScanStore, key: String = "coche") = store.file(key).readLines().drop(1).map { it.split(',') }
 
+    private fun expected() = SIMULATED.sorted().map(ScanPlan::measure) + "1A80"
+
+    private suspend fun session(transport: ObdTransport = SimulatedTransport(latencyMs = 0)): ObdSession {
+        val session = ObdSession(transport) { log += it }
+        session.connect()
+        log.clear()
+        return session
+    }
+
     @Test
-    fun `la primera pasada pregunta por todas las direcciones y despues por los servicios`() {
+    fun `la busqueda pregunta por todas las direcciones y despues por los servicios`() {
         assertEquals("2C100000", ScanPlan.query(0))
         assertEquals("2C100547", ScanPlan.query(0x0547))
         assertEquals("2C101BFF", ScanPlan.query(ScanPlan.MEASURES - 1))
@@ -99,17 +133,36 @@ class ScanTest {
     }
 
     @Test
-    fun `tras la primera pasada repite solo lo que contesto`() {
-        val plan = ScanPlan(next = ScanPlan.SIZE - 3, found = listOf(0x0547, ScanPlan.MEASURES))
-        assertEquals("22F19D", plan.take())
-        plan.answered()
+    fun `tras la busqueda repasa lo que no dio dato y despues repite solo lo que si`() {
+        val plan = ScanPlan(next = ScanPlan.SIZE - 2, found = (0 until ScanPlan.MEASURES).filter { it !in listOf(5, 9) } )
         assertEquals("22F19E", plan.take())
         assertEquals("22F19F", plan.take())
-        assertEquals(listOf("2C100547", "1A80", "22F19D"), List(3) { plan.take() })
+        assertEquals(1, plan.pass)
+        // Repaso: solo las dos direcciones que no dieron dato.
+        assertEquals("2C100005", plan.take())
         assertEquals(2, plan.pass)
-        assertEquals("2C100547", plan.take())
+        assertEquals(2, plan.total)
+        plan.answered()
+        assertEquals("2C100009", plan.take())
+        // Repeticion: todo lo que dio dato, incluida la que salio en el repaso.
+        assertEquals("2C100000", plan.take())
         assertEquals(3, plan.pass)
-        assertEquals(3, plan.answering)
+        assertEquals(ScanPlan.MEASURES - 1, plan.total)
+        repeat(4) { plan.take() }
+        assertEquals("2C100005", plan.take())
+    }
+
+    @Test
+    fun `el repaso se retoma donde se quedo`() {
+        val found = (0 until ScanPlan.MEASURES).filter { it % 100 != 0 }
+        val plan = ScanPlan(next = ScanPlan.SIZE, found = found)
+        assertEquals("2C100000", plan.take())
+        assertEquals("2C100064", plan.take())
+        assertEquals(0x64, plan.asked)
+        val resumed = ScanPlan(ScanPlan.SIZE, found, pass = 2, resume = plan.asked)
+        assertEquals(2, resumed.done)
+        assertEquals("2C1000C8", resumed.take())
+        assertEquals(plan.total, resumed.total)
     }
 
     @Test
@@ -126,11 +179,42 @@ class ScanTest {
     }
 
     @Test
+    fun `una respuesta sin dato no cuenta como medida`() = runBlocking<Unit> {
+        // La centralita de verdad contesta a cualquier direccion; a las que no existen, sin dato.
+        val session = session()
+        assertEquals(0, session.ask("2C107777", "6C10")!!.size)
+        assertEquals(2, session.ask("2C100547", "6C10")!!.size)
+        val store = ScanStore(folder.root)
+        val runner = ScanRunner(store, "coche")
+        repeat(100) { runner.step(3, emptyMap(), session::ask) }
+        assertEquals(0, runner.progress().answering)
+        assertTrue(rows(store).isEmpty())
+    }
+
+    @Test
+    fun `las medidas se piden con lectura rapida y los servicios no`() = runBlocking<Unit> {
+        val sent = mutableListOf<String>()
+        val transport = object : ObdTransport {
+            val car = SimulatedTransport(latencyMs = 0)
+            override suspend fun open() = car.open()
+            override fun close() = Unit
+            override suspend fun write(text: String) {
+                sent += text.trim()
+                car.write(text)
+            }
+            override suspend fun readUntilPrompt(timeoutMs: Long) = car.readUntilPrompt(timeoutMs)
+        }
+        val session = session(transport)
+        sent.clear()
+        assertNotNull(session.ask("2C100547", "6C10"))
+        assertNotNull(session.ask("1A80", "5A80"))
+        assertEquals(listOf("2C1005471", "1A80"), sent)
+    }
+
+    @Test
     fun `un barrido entero contra el coche simulado encuentra justo lo que hay y lo repite`() = runBlocking<Unit> {
         val store = ScanStore(folder.root)
-        val session = ObdSession(SimulatedTransport(latencyMs = 0)) { log += it }
-        session.connect()
-        log.clear()
+        val session = session()
         val runner = ScanRunner(store, "coche", SIMULATED) { log += it }
         val values = mapOf(0x0C to 840.0, 0x05 to 90.0)
 
@@ -143,14 +227,14 @@ class ScanTest {
         assertTrue(turns > ScanPlan.SIZE / 3)
 
         val rows = rows(store)
-        val firstPass = rows.filter { it[1] == "1" }.map { it[2] }
-        assertEquals((SIMULATED.sorted().map(ScanPlan::measure) + "1A80"), firstPass)
-        // Cada consulta que contesto se repite en todas las pasadas siguientes.
-        assertEquals(ScanRunner.MAX_PASSES, rows.count { it[2] == "2C100547" })
+        assertEquals(expected(), rows.filter { it[1] == "1" }.map { it[2] })
+        assertTrue(rows.none { it[1] == "2" })
+        assertTrue(rows.none { it[3].isEmpty() })
+        // Una fila de la busqueda y una por cada repeticion.
+        assertEquals(1 + ScanRunner.MAX_PASSES - ScanPlan.REVIEW, rows.count { it[2] == "2C100547" })
         assertEquals("840.0", rows.first()[4])
-        assertTrue(log.any { it == "## Escaneo: de las ${SIMULATED.size} medidas ya conocidas han contestado ${SIMULATED.size}" })
+        assertTrue(log.any { it == "## Escaneo: de las ${SIMULATED.size} medidas ya conocidas han salido ${SIMULATED.size}" })
         assertEquals("## Escaneo: terminado", log.last())
-        // Nada del barrido ensucia el registro salvo sus avisos.
         assertTrue(log.all { it.startsWith("## Escaneo") })
 
         runner.close(keepActive = true)
@@ -164,33 +248,34 @@ class ScanTest {
     }
 
     @Test
-    fun `se corta a medias y sigue por donde iba sin repetir ni saltarse nada`() = runBlocking<Unit> {
+    fun `se corta a medias en cada fase y sigue por donde iba`() = runBlocking<Unit> {
         val store = ScanStore(folder.root)
-        val session = ObdSession(SimulatedTransport(latencyMs = 0)) { }
-        session.connect()
-
-        val first = ScanRunner(store, "coche")
-        repeat(500) { first.step(3, emptyMap(), session::ask) }
-        first.close(keepActive = true)
-        val saved = store.load("coche")
-        assertTrue(saved.active)
-        assertEquals(1500, saved.next)
-
-        val second = ScanRunner(store, "coche")
-        assertEquals(1500, second.progress().done)
-        while (second.progress().pass == 1) second.step(3, emptyMap(), session::ask)
-        second.close(keepActive = true)
-
-        val firstPass = rows(store).filter { it[1] == "1" }.map { it[2] }
-        assertEquals(SIMULATED.sorted().map(ScanPlan::measure) + "1A80", firstPass)
-        assertTrue(store.load("coche").active)
+        val session = session()
+        var runner = ScanRunner(store, "coche")
+        var reopened = 0
+        var turns = 0
+        // Se cierra y se vuelve a abrir cada 700 tandas, que cae en la busqueda, en el repaso y repitiendo.
+        while (runner.step(3, emptyMap(), session::ask)) {
+            if (++turns % 700 == 0) {
+                val before = runner.progress()
+                runner.close(keepActive = true)
+                assertTrue(store.load("coche").active)
+                runner = ScanRunner(store, "coche")
+                assertEquals(before.pass, runner.progress().pass)
+                if (before.pass <= ScanPlan.REVIEW) assertEquals(before.done, runner.progress().done)
+                reopened++
+            }
+        }
+        assertTrue(reopened >= 5)
+        val rows = rows(store)
+        assertEquals(expected(), rows.filter { it[1] == "1" }.map { it[2] })
+        assertEquals(expected().toSet(), rows.map { it[2] }.toSet())
     }
 
     @Test
     fun `si la app muere sin cerrar se pierden como mucho unas consultas, no el barrido`() = runBlocking<Unit> {
         val store = ScanStore(folder.root)
-        val session = ObdSession(SimulatedTransport(latencyMs = 0)) { }
-        session.connect()
+        val session = session()
         val runner = ScanRunner(store, "coche")
         repeat(120) { runner.step(3, emptyMap(), session::ask) }
 
@@ -200,49 +285,62 @@ class ScanTest {
     }
 
     @Test
-    fun `una respuesta repetida por el adaptador no se apunta a la direccion equivocada`() = runBlocking<Unit> {
-        val store = ScanStore(folder.root)
-        val session = ObdSession(Stuttering(every = 7)) { }
-        session.connect()
-        val runner = ScanRunner(store, "coche")
-        while (runner.progress().pass == 1 && runner.progress().done < ScanPlan.MEASURES) {
-            runner.step(3, emptyMap(), session::ask)
-        }
-        runner.close(keepActive = false)
+    fun `con un adaptador que desplaza respuestas no se inventa ninguna direccion ni se pierde ninguna`() = runBlocking<Unit> {
+        for (every in listOf(5, 11, 37)) {
+            val dir = folder.newFolder("cada$every")
+            val store = ScanStore(dir)
+            val transport = Shifting(every)
+            val session = session(transport)
+            val runner = ScanRunner(store, "coche")
+            // Como en la app: tras cada tanda del barrido va una lectura normal con lectura rapida.
+            while (!runner.repeating && runner.step(3, emptyMap(), session::ask)) {
+                assertNotNull(session.read(Pids.RPM, singleFrame = true))
+            }
+            runner.close(keepActive = false)
 
-        val found = rows(store).filter { it[1] == "1" && it[2].startsWith(ScanPlan.MEASURE) }.map { it[2] }.toSet()
-        val real = SIMULATED.map(ScanPlan::measure).toSet()
-        assertTrue("direcciones inventadas: ${found - real}", (found - real).isEmpty())
-        assertTrue("se han encontrado ${found.size} de ${real.size}", found.size >= real.size - 3)
+            assertTrue("el adaptador simulado no ha desplazado nada", transport.shifts > 50)
+            val found = rows(store).map { it[2] }.toSet()
+            assertEquals("cada $every consultas", expected().toSet(), found)
+        }
+    }
+
+    @Test
+    fun `tras un desfase del barrido una medida normal no se queda con la respuesta pendiente`() = runBlocking<Unit> {
+        val session = session(Shifting(every = 2))
+        val soot = Pids.bmwDiesel.first { it.id == Pids.BMW_SOOT_MEASURED }
+        repeat(50) {
+            session.ask("2C100547", "6C10")
+            session.ask("2C100500", "6C10")
+            val value = soot.decodeOrNull(session.read(soot.pid)!!)!!
+            assertEquals(14.2, value, 0.05)
+        }
     }
 
     @Test
     fun `la prueba de alcance deja el adaptador listo para seguir leyendo`() = runBlocking<Unit> {
-        val session = ObdSession(SimulatedTransport(latencyMs = 0)) { log += it }
-        session.connect()
+        val session = session()
         session.scanReach()
         assertEquals("## Escaneo: empieza el barrido", log.last())
         assertNotNull(session.read(Pids.RPM, singleFrame = true))
-        assertNotNull(session.ask("2C100547", "6C10"))
+        assertEquals(2, session.ask("2C100547", "6C10")!!.size)
     }
 
     @Test
     fun `si el adaptador no vuelve tras la prueba de alcance se corta la conexion en vez de leer a medias`() = runBlocking<Unit> {
-        val session = ObdSession(Stuck()) { log += it }
-        session.connect()
+        val session = session(Stuck())
         val failure = runCatching { session.scanReach() }.exceptionOrNull()
         assertTrue(failure is java.io.IOException)
         assertTrue(failure!!.message!!.contains("Vuelve a conectar"))
     }
 
     @Test
-    fun `sin nada que conteste termina solo`() = runBlocking<Unit> {
+    fun `sin nada que de dato termina solo`() = runBlocking<Unit> {
         val store = ScanStore(folder.root)
         val runner = ScanRunner(store, "coche") { log += it }
-        while (runner.step(50, emptyMap()) { _, _ -> null }) Unit
+        while (runner.step(50, emptyMap()) { _, _ -> IntArray(0) }) Unit
         assertTrue(runner.progress().finished)
-        assertEquals("## Escaneo: la centralita no ha contestado a nada", log.last())
-        assertNull(ScanPlan(next = ScanPlan.SIZE).take())
+        assertEquals("## Escaneo: la centralita no ha dado ningún dato", log.last())
+        assertNull(ScanPlan(ScanPlan.SIZE, emptyList(), pass = 3).take())
     }
 
     @Test
@@ -251,17 +349,51 @@ class ScanTest {
         assertFalse(store.load("coche").reached)
         store.save("coche", ScanSaved(reached = true))
         assertTrue(store.load("coche").reached)
-        assertNotNull(store.load("otro"))
         assertFalse(store.load("otro").reached)
     }
 
     @Test
     fun `un fichero de avance estropeado no rompe nada`() {
         val store = ScanStore(folder.root)
-        folder.root.resolve("estado_coche.txt").writeText("siguiente=999999\npasada=-4\ncontestan=12,zz,99999999\nbasura")
+        folder.root.resolve("estado_coche.txt").writeText("version=2\nsiguiente=999999\npasada=-4\ncontestan=12,zz,99999999\nbasura")
         val saved = store.load("coche")
         assertEquals(ScanPlan.SIZE, saved.next)
         assertEquals(1, saved.pass)
         assertEquals(listOf(12), saved.found)
+    }
+
+    @Test
+    fun `el primer barrido hecho en el coche se aprovecha y se limpia de respuestas sin dato`() = runBlocking<Unit> {
+        // El fichero real del 10 de octubre: 3.109 filas hasta la direccion 0C43, de las que 2.540
+        // eran respuestas sin dato que aquella version daba por buenas.
+        val store = ScanStore(folder.root)
+        val real = checkNotNull(javaClass.classLoader?.getResourceAsStream("escaneo_real_primera_version.csv")).bufferedReader().readText()
+        store.file("coche").writeText(real)
+        val oldFound = real.lines().drop(1).filter { it.isNotBlank() }.map { ScanPlan.FIRST_ADDRESS + it.split(',')[2].substring(4).toInt(16) }
+        folder.root.resolve("estado_coche.txt").writeText(
+            "activo=si\nsiguiente=3000\npasada=1\nalcance=si\ncontestan=" + oldFound.joinToString(","),
+        )
+
+        val saved = store.load("coche")
+        assertTrue(saved.active)
+        assertTrue(saved.reached)
+        assertEquals(3000, saved.next)
+        assertEquals(1, saved.pass)
+        assertEquals(569, saved.found.size)
+        assertTrue(0x0547 in saved.found && 0x0500 in saved.found && 0x03EA in saved.found)
+        assertFalse(0x0002 in saved.found)
+        val rows = rows(store)
+        assertEquals(569, rows.size)
+        assertTrue(rows.none { it[3].isEmpty() })
+        // La segunda vez ya no hay nada que convertir.
+        assertEquals(saved, store.load("coche"))
+
+        // Y el barrido sigue desde ahi sin tropezar.
+        val runner = ScanRunner(store, "coche")
+        assertEquals(569, runner.progress().answering)
+        assertEquals(3000, runner.progress().done)
+        val session = session()
+        repeat(50) { runner.step(3, emptyMap(), session::ask) }
+        assertEquals(3150, runner.progress().done)
     }
 }

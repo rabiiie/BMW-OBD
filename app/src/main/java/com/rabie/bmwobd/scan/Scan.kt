@@ -9,36 +9,54 @@ import java.util.Locale
 import java.util.TreeSet
 
 /**
- * El barrido de todo lo que la centralita del motor de BMW contesta por el adaptador. La primera
- * pasada pregunta por todas las direcciones de medidas y por las demas consultas de lectura
- * conocidas; las siguientes repiten una y otra vez solo las que contestaron, para ver como cambian
- * con el motor. Las consultas se numeran por su posicion en la primera pasada.
+ * El barrido de todo lo que la centralita del motor de BMW contesta por el adaptador. Tiene tres
+ * fases, que aqui se llaman pasadas:
+ *
+ * 1. Pregunta por todas las direcciones de medidas y por las demas consultas de lectura conocidas.
+ * 2. Repasa las direcciones de medidas que no dieron dato, por si alguna se perdio en un desfase.
+ * 3. Y siguientes: repite una y otra vez solo las que dieron dato, para ver como cambian.
+ *
+ * Las consultas se numeran por su posicion en la primera pasada. [resume] es la ultima consulta
+ * hecha en el repaso, para retomarlo sin empezar de nuevo.
  */
-class ScanPlan(next: Int = 0, found: Collection<Int> = emptyList(), pass: Int = 1) {
+class ScanPlan(next: Int = 0, found: Collection<Int> = emptyList(), pass: Int = 1, resume: Int = -1) {
 
     var next: Int = next
         private set
     var pass: Int = pass
         private set
+    var asked: Int = if (pass == REVIEW) resume else -1
+        private set
 
     private val found = TreeSet(found)
-    private var order: List<Int> = if (pass > 1) this.found.toList() else emptyList()
+    private var order: List<Int> = when {
+        pass == REVIEW -> missing().filter { it > resume }
+        pass > REVIEW -> this.found.toList()
+        else -> emptyList()
+    }
     private var cursor = 0
-    private var asked = -1
+    private val reviewed: Int = if (pass == REVIEW) missing().size - order.size else 0
 
     val answering: Int get() = found.size
-    val total: Int get() = if (pass == 1) SIZE else order.size
-    val done: Int get() = if (pass == 1) next else cursor
+    val total: Int get() = if (pass == 1) SIZE else order.size + reviewed
+    val done: Int get() = if (pass == 1) next else cursor + reviewed
     fun found(): List<Int> = found.toList()
 
-    /** La siguiente consulta, o null si la primera pasada acabo sin que contestara ninguna. */
+    private fun missing(): List<Int> = (0 until MEASURES).filter { it !in found }
+
+    /** La siguiente consulta, o null si ya no queda nada que preguntar. */
     fun take(): String? {
         if (pass == 1) {
             if (next < SIZE) {
                 asked = next++
                 return query(asked)
             }
-            pass = 2
+            pass = REVIEW
+            order = missing()
+            cursor = 0
+        }
+        if (pass == REVIEW && cursor >= order.size) {
+            pass = REVIEW + 1
             order = found.toList()
             cursor = 0
         }
@@ -51,7 +69,7 @@ class ScanPlan(next: Int = 0, found: Collection<Int> = emptyList(), pass: Int = 
         return query(asked)
     }
 
-    /** La ultima consulta entregada ha contestado. */
+    /** La ultima consulta entregada ha dado un dato. */
     fun answered() {
         if (asked >= 0) found += asked
     }
@@ -61,6 +79,9 @@ class ScanPlan(next: Int = 0, found: Collection<Int> = emptyList(), pass: Int = 
         const val LAST_ADDRESS = 0x1BFF
         const val MEASURES = LAST_ADDRESS - FIRST_ADDRESS + 1
         const val MEASURE = "2C10"
+
+        /** La pasada que repasa lo que no dio dato; a partir de la siguiente se repite lo encontrado. */
+        const val REVIEW = 2
 
         /**
          * Otras consultas de lectura del protocolo de la centralita: identificacion (1A), bloques
@@ -107,6 +128,7 @@ data class ScanSaved(
     val pass: Int = 1,
     val found: List<Int> = emptyList(),
     val reached: Boolean = false,
+    val resume: Int = -1,
 )
 
 data class ScanProgress(
@@ -128,14 +150,34 @@ class ScanStore(private val dir: File) {
     fun load(vehicleKey: String): ScanSaved {
         val lines = runCatching { stateFile(vehicleKey).readLines() }.getOrDefault(emptyList())
         val values = lines.mapNotNull { line -> line.split('=', limit = 2).takeIf { it.size == 2 }?.let { it[0] to it[1] } }.toMap()
-        return ScanSaved(
+        val saved = ScanSaved(
             active = values["activo"] == YES,
             next = values["siguiente"]?.toIntOrNull()?.coerceIn(0, ScanPlan.SIZE) ?: 0,
             pass = values["pasada"]?.toIntOrNull()?.coerceAtLeast(1) ?: 1,
             found = values["contestan"]?.split(',')?.mapNotNull { it.toIntOrNull() }
                 ?.filter { it in 0 until ScanPlan.SIZE }.orEmpty(),
             reached = values["alcance"] == YES,
+            resume = values["repaso"]?.toIntOrNull() ?: -1,
         )
+        if (values["version"] == VERSION || lines.isEmpty()) return saved
+        return upgrade(vehicleKey, saved)
+    }
+
+    /**
+     * El primer barrido daba por buena una respuesta sin dato, y la centralita contesta asi a
+     * cualquier direccion que no existe. Lo que vale de aquel avance son las consultas cuya fila
+     * del resultado lleva dato; el punto por donde iba se conserva, y el fichero se limpia.
+     */
+    private fun upgrade(vehicleKey: String, old: ScanSaved): ScanSaved {
+        val index = (0 until ScanPlan.SIZE).associateBy { ScanPlan.query(it) }
+        val file = file(vehicleKey)
+        val rows = runCatching { file.readLines() }.getOrDefault(emptyList())
+        val kept = rows.filterIndexed { i, row -> i == 0 || row.split(',').getOrNull(ANSWER_COLUMN).orEmpty().isNotEmpty() }
+        val found = kept.drop(1).mapNotNull { index[it.split(',').getOrNull(QUERY_COLUMN)] }.distinct().sorted()
+        if (rows.isNotEmpty()) file.writeText(kept.joinToString("\n") + "\n")
+        val saved = old.copy(pass = 1, found = found, resume = -1)
+        save(vehicleKey, saved)
+        return saved
     }
 
     fun save(vehicleKey: String, saved: ScanSaved) {
@@ -149,6 +191,8 @@ class ScanStore(private val dir: File) {
                 "siguiente=${saved.next}",
                 "pasada=${saved.pass}",
                 "alcance=" + if (saved.reached) YES else NO,
+                "repaso=${saved.resume}",
+                "version=$VERSION",
                 "contestan=" + saved.found.joinToString(","),
             ).joinToString("\n"),
         )
@@ -172,6 +216,9 @@ class ScanStore(private val dir: File) {
     private companion object {
         const val YES = "si"
         const val NO = "no"
+        const val VERSION = "2"
+        const val QUERY_COLUMN = 2
+        const val ANSWER_COLUMN = 3
     }
 }
 
@@ -184,7 +231,6 @@ class ScanWriter(file: File) {
     private val isNew = !file.exists() || file.length() == 0L
     private val writer = BufferedWriter(FileWriter(file, true))
     private val clock = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
-    private var rows = 0
 
     init {
         if (isNew) {
@@ -203,7 +249,11 @@ class ScanWriter(file: File) {
         }
         writer.write(line.toString())
         writer.newLine()
-        if (++rows % FLUSH_EVERY == 0) writer.flush()
+    }
+
+    /** Lleva al disco lo escrito, para que el fichero se pueda enviar con el barrido en marcha. */
+    fun flush() {
+        runCatching { writer.flush() }
     }
 
     fun close() {
@@ -211,8 +261,6 @@ class ScanWriter(file: File) {
     }
 
     companion object {
-        private const val FLUSH_EVERY = 20
-
         // Medidas del OBD estandar que acompañan a cada respuesta.
         val CONTEXT = listOf(
             0x0C to "rpm", 0x0D to "velocidad", 0x04 to "carga", 0x05 to "refrigerante", 0x49 to "pedal",
@@ -224,11 +272,13 @@ class ScanWriter(file: File) {
 
 /**
  * Un barrido en marcha: reparte las consultas en tandas cortas para intercalarlas con la lectura
- * normal, apunta lo que contesta y guarda el avance para seguir en la conexion siguiente.
+ * normal, apunta lo que da dato y guarda el avance para seguir en la conexion siguiente.
  *
- * En la primera pasada una respuesta solo cuenta si la misma consulta contesta dos veces seguidas
- * con el mismo tamaño: la respuesta a una medida no dice de que direccion es, y asi una respuesta
- * rezagada de la consulta anterior no se apunta a la direccion equivocada.
+ * La centralita contesta a cualquier direccion de medida, exista o no: a las que no existen, con
+ * una respuesta sin dato. Solo cuenta la que trae dato. Y como la respuesta no dice de que
+ * direccion es, al buscar solo se apunta si la misma consulta da dos veces seguidas un dato del
+ * mismo tamaño: asi una respuesta rezagada de la consulta anterior no acaba en la direccion
+ * equivocada. Una direccion con dato que se pierda por ese mismo motivo la recoge el repaso.
  */
 class ScanRunner(
     private val store: ScanStore,
@@ -237,10 +287,10 @@ class ScanRunner(
     private val log: (String) -> Unit = {},
 ) {
     private val saved = store.load(vehicleKey)
-    private val plan = ScanPlan(saved.next, saved.found, saved.pass)
+    private val plan = ScanPlan(saved.next, saved.found, saved.pass, saved.resume)
     private val writer = store.writer(vehicleKey)
     private var sinceSave = 0
-    private var checked = saved.pass > 1
+    private var checked = saved.pass > ScanPlan.REVIEW
 
     var finished = saved.pass > MAX_PASSES
         private set
@@ -251,6 +301,9 @@ class ScanRunner(
 
     fun progress() = ScanProgress(!finished, plan.pass, plan.done, plan.total, plan.answering, finished)
 
+    /** Si ya solo repite lo encontrado: entonces cada consulta contesta y se pueden hacer mas por tanda. */
+    val repeating: Boolean get() = plan.pass > ScanPlan.REVIEW
+
     /**
      * Hace hasta [count] consultas con [ask], que devuelve los bytes de la respuesta o null.
      * [values] son las lecturas normales de este momento. Devuelve false cuando ya no queda nada
@@ -260,41 +313,41 @@ class ScanRunner(
         if (finished) return false
         repeat(count) {
             val query = plan.take()
-            if (plan.pass > 1 && !checked) selfCheck()
+            if (repeating && !checked) selfCheck()
             if (query == null || plan.pass > MAX_PASSES) {
                 finished = true
-                log(
-                    if (plan.answering == 0) "## Escaneo: la centralita no ha contestado a nada" else "## Escaneo: terminado",
-                )
+                writer.flush()
+                log(if (plan.answering == 0) "## Escaneo: la centralita no ha dado ningún dato" else "## Escaneo: terminado")
                 persist(active = false)
                 return false
             }
             val prefix = ScanPlan.answerPrefix(query)
-            val answer = ask(query, prefix) ?: return@repeat
-            if (plan.pass == 1) {
+            val answer = ask(query, prefix)?.takeIf { it.isNotEmpty() } ?: return@repeat
+            if (!repeating) {
                 val again = ask(query, prefix)
                 if (again == null || again.size != answer.size) return@repeat
             }
             plan.answered()
             writer.append(plan.pass, query, answer, values)
         }
+        writer.flush()
         sinceSave += count
         if (sinceSave >= SAVE_EVERY) persist(active = true)
         return true
     }
 
     /**
-     * Al acabar la primera pasada, las medidas que la app ya leia tienen que estar entre las que
-     * han contestado. Si falta alguna, el barrido se ha dejado direcciones y hay que saberlo.
+     * Al acabar de buscar, las medidas que la app ya leia tienen que estar entre las encontradas.
+     * Si falta alguna, el barrido se ha dejado direcciones y hay que saberlo.
      */
     private fun selfCheck() {
         checked = true
         val found = plan.found().toSet()
         val missing = knownAddresses.filter { (it - ScanPlan.FIRST_ADDRESS) !in found }
-        log("## Escaneo: primera pasada completa, contestan ${plan.answering} consultas")
+        log("## Escaneo: búsqueda completa, dan dato ${plan.answering} consultas")
         if (knownAddresses.isNotEmpty()) {
             log(
-                "## Escaneo: de las ${knownAddresses.size} medidas ya conocidas han contestado ${knownAddresses.size - missing.size}" +
+                "## Escaneo: de las ${knownAddresses.size} medidas ya conocidas han salido ${knownAddresses.size - missing.size}" +
                     if (missing.isEmpty()) "" else "; faltan " + missing.joinToString(" ") { "%04X".format(it) },
             )
         }
@@ -308,13 +361,13 @@ class ScanRunner(
 
     private fun persist(active: Boolean) {
         sinceSave = 0
-        store.save(vehicleKey, ScanSaved(active, plan.next, plan.pass, plan.found(), saved.reached))
+        store.save(vehicleKey, ScanSaved(active, plan.next, plan.pass, plan.found(), saved.reached, plan.asked))
     }
 
     companion object {
         const val SAVE_EVERY = 150
 
-        // Con estas repeticiones de cada consulta hay de sobra para ver como se mueve cada una.
-        const val MAX_PASSES = 40
+        // Busqueda, repaso y quince repeticiones de cada consulta con dato.
+        const val MAX_PASSES = ScanPlan.REVIEW + 15
     }
 }
