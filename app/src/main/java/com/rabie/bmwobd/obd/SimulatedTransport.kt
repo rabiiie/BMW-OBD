@@ -103,7 +103,7 @@ class SimulatedTransport(
             bytes.size == 2 && bytes[0] == 0x1A && bytes[1] == 0x80 -> intArrayOf(0x5A, 0x80) + ascii(BMW_IDENT, 20)
             // Como la centralita de verdad: a una direccion que no existe contesta, pero sin dato.
             bytes.size == 4 && bytes[0] == 0x2C && bytes[1] == 0x10 ->
-                intArrayOf(0x6C, 0x10) + (bmw(bytes[2] * 256 + bytes[3], engine()) ?: IntArray(0))
+                intArrayOf(0x6C, 0x10) + (SimulatedDde.value(bytes[2] * 256 + bytes[3], engine()) ?: IntArray(0))
             else -> null
         }
     }
@@ -184,28 +184,6 @@ class SimulatedTransport(
         const val CALIBRATION = "SIM-N47D20C-01"
         const val BMW_IDENT = "7812345 DDE70 SIM"
 
-        /** Las medidas propias de la centralita, con la escala de la tabla de la DDE 7 del N47. */
-        fun bmw(address: Int, s: EngineState): IntArray? = when (address) {
-            0x0547 -> word((s.coolant + 100) / 0.01)
-            0x0500 -> word((injectedMg(s) + 100) / 0.003052)
-            0x0641 -> word((s.railBar + 8) / 0.045777)
-            0x0385 -> word((34.0 + 50) / 0.01)
-            0x01F4 -> word((s.mapKpa + 3) / 0.0091554)
-            0x0BEB -> word((90 - s.load * 0.25) / 0.001526)
-            0x041B -> word((150 + s.load * 4.2 + 50) / 0.031281)
-            0x03EA -> word(14.2 / 0.015259)
-            0x03ED -> word(13.6 / 0.01)
-            0x03EB -> long(183_400.0)
-            0x03F3 -> word(420.0)
-            0x0424 -> word((8 + s.load * 0.6 + 1000) / 0.045777)
-            0x0432 -> word((s.baroKpa * 10 + 8 + s.load * 0.6) / 0.1)
-            0x0D16 -> word(31.0 / 0.01)
-            0x16B2 -> long(214_530.0)
-            else -> null
-        }
-
-        /** La cantidad por embolada que da el consumo del motor simulado en un cuatro cilindros. */
-        fun injectedMg(s: EngineState) = s.fuelRate * 835.0 * 1000.0 / (s.rpm * 2 * 60)
         const val FREEZE_SECOND = 68.0
 
         // Diesel con las tres comprobaciones continuas; catalizador, turbo, filtro y EGR disponibles;
@@ -312,5 +290,72 @@ class SimulatedTransport(
         fun hex(data: IntArray) = data.joinToString("") { "%02X".format(it) }
 
         fun isHex(text: String) = text.isNotEmpty() && text.all { it in '0'..'9' || it in 'A'..'F' }
+    }
+}
+
+/**
+ * Las medidas propias de la centralita del motor simulado, con la escala de la tabla de la DDE 7
+ * del N47. A una direccion que no esta aqui contesta sin dato, como la de verdad.
+ */
+object SimulatedDde {
+
+    private const val TOTAL_KM = 214_530.0
+
+    private val measures: Map<Int, (EngineState) -> IntArray> = (
+        listOf(
+        measure(0x0547) { s -> word((s.coolant + 100) / 0.01) },
+        measure(0x0500) { s -> word((injectedMg(s) + 100) / 0.003052) },
+        measure(0x0641) { s -> word((s.railBar + 8) / 0.045777) },
+        measure(0x01F4) { s -> word((s.mapKpa + 3) / 0.0091554) },
+        measure(0x0BEB) { s -> word((90 - s.load * 0.25) / 0.001526) },
+        measure(0x076F) { s -> word((s.intakeTemp + 100) / 0.01) },
+        measure(0x0BB4) { s -> word(s.egr / 0.001526) },
+        measure(0x0A29) { s -> word((1.2 + (100 - s.load) * 0.03) / 0.001) },
+        measure(0x0385) { _ -> word((34.0 + 50) / 0.01) },
+        measure(0x0384) { _ -> word(31.0 / 0.001907) },
+        measure(0x03EA) { _ -> word(14.2 / 0.015259) },
+        measure(0x03ED) { _ -> word(13.6 / 0.01) },
+        measure(0x03EB) { _ -> long(183_400.0) },
+        measure(0x03E8) { _ -> word(9.4 / 0.01) },
+        measure(0x0424) { s -> word((8 + s.load * 0.6 + 1000) / 0.045777) },
+        measure(0x01B2) { _ -> word((4.0 + 200) / 0.08) },
+        measure(0x09C4) { s -> word((if (s.coolant > 95) 60.0 else 0.0) / 0.001526) },
+        measure(0x0839) { _ -> byte(0.0) },
+        measure(0x07C6) { _ -> byte(1.0) },
+        measure(0x05DD) { _ -> long(TOTAL_KM) },
+        measure(0x0AF0) { _ -> long(4_200.0 * 3600) },
+        measure(0x0939) { _ -> word(11_600.0) },
+        measure(0x04A7) { _ -> byte(2.0) },
+        measure(0x044C) { _ -> word(1_240.0) },
+        measure(0x044D) { _ -> byte(58.0 / 0.292969) },
+        measure(0x03F3) { _ -> word(420.0) },
+        measure(0x0407) { _ -> word(505.0) },
+        measure(0x0BA5) { _ -> long(TOTAL_KM / 10) },
+        measure(0x03E9) { _ -> word(18.0 / 0.015259) },
+        measure(0x042E) { s -> word((150 + s.load * 4.2 - 20 + 50) / 0.031281) },
+        ) + listOf(183.4, 610.0, 1_020.0, 1_455.0, 1_840.0).mapIndexed { index, back ->
+            measure(Pids.BMW_REGENERATION_ADDRESSES[index]) { _ -> long((TOTAL_KM - back) * 1000) }
+        }
+        ).toMap()
+
+    private fun measure(address: Int, value: (EngineState) -> IntArray): Pair<Int, (EngineState) -> IntArray> = address to value
+
+    val ADDRESSES: List<Int> = measures.keys.sorted()
+
+    fun value(address: Int, state: EngineState): IntArray? = measures[address]?.invoke(state)
+
+    /** La cantidad por embolada que da el consumo del motor simulado en un cuatro cilindros. */
+    fun injectedMg(s: EngineState) = s.fuelRate * 835.0 * 1000.0 / (s.rpm * 2 * 60)
+
+    fun byte(value: Double) = intArrayOf(value.roundToInt().coerceIn(0, 255))
+
+    fun word(value: Double): IntArray {
+        val w = value.roundToInt().coerceIn(0, 0xFFFF)
+        return intArrayOf(w shr 8, w and 0xFF)
+    }
+
+    fun long(value: Double): IntArray {
+        val v = value.toLong()
+        return intArrayOf((v shr 24).toInt() and 0xFF, (v shr 16).toInt() and 0xFF, (v shr 8).toInt() and 0xFF, v.toInt() and 0xFF)
     }
 }

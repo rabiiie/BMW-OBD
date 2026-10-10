@@ -68,6 +68,16 @@ object Pids {
     val BMW_SOOT_MEASURED = bmw(0x03EA)
     val BMW_SOOT_MODEL = bmw(0x03ED)
 
+    const val BMW_TANK_ADDRESS = 0x0384
+    const val BMW_ODOMETER_ADDRESS = 0x05DD
+    const val BMW_TOTAL_FUEL_ADDRESS = 0x0939
+    const val BMW_FAULTS_ADDRESS = 0x04A7
+    const val BMW_OIL_KM_ADDRESS = 0x044C
+    const val BMW_OIL_LEVEL_ADDRESS = 0x044D
+
+    /** Lo que marcaba la distancia total en cada una de las cinco ultimas regeneraciones, de la mas reciente a la mas antigua. */
+    val BMW_REGENERATION_ADDRESSES = listOf(0x03FD, 0x03FE, 0x03FF, 0x0400, 0x0401)
+
     /** La tension que mide el propio adaptador con ATRV: no es un PID y no depende del coche. */
     const val ADAPTER_PID = -1
     const val ADAPTER_VOLTAGE = 0x10000
@@ -237,31 +247,53 @@ object Pids {
     /**
      * Medidas de la DDE 7 del motor N47, con la direccion y la formula de la tabla MESSWERTETAB de
      * su descripcion (d70n47b0). El valor llega con el byte alto primero. Cada una se pide en su
-     * propia consulta: con dos direcciones la centralita solo contesta bien a la primera. Vistas
-     * en el coche con valores coherentes, salvo las dos ultimas lentas, que estan por comprobar.
-     * Este motor no da una temperatura de aceite propia: las direcciones de aceite repiten el
-     * refrigerante.
+     * propia consulta: con dos direcciones la centralita solo contesta bien a la primera. Todas
+     * han dado en el coche un valor coherente con su formula. Este motor no da una temperatura de
+     * aceite propia (las direcciones de aceite repiten el refrigerante) ni tiene sensor de presion
+     * diferencial: la del filtro sale del sensor de presion absoluta que lleva delante.
      */
     val bmwDiesel: List<PidDef> = listOf(
         bmwDef(0x0500, "Cantidad inyectada", "mg/emb", 1, PidGroup.FUEL, Tier.MEDIUM) { it * 0.003052 - 100.0 },
         bmwDef(0x01F4, "Presión turbo pedida", "kPa", 0, PidGroup.AIR, Tier.MEDIUM) { it * 0.0091554 },
         bmwDef(0x0641, "Presión raíl pedida", "bar", 0, PidGroup.FUEL, Tier.MEDIUM) { it * 0.045777 },
+
         bmwDef(0x0BEB, "Actuador del turbo", "%", 0, PidGroup.AIR) { it * 0.001526 },
+        bmwDef(0x076F, "Aire tras el intercooler", "°C", 0, PidGroup.AIR) { it * 0.01 - 100.0 },
+        bmwDef(0x0BB4, "EGR: posición de la válvula", "%", 0, PidGroup.AIR) { it * 0.001526 },
+        bmwDef(0x0A29, "Lambda real", "λ", 2, PidGroup.FUEL) { it * 0.001 },
         bmwDef(0x0385, "Temp. gasóleo", "°C", 0, PidGroup.FUEL) { it * 0.01 - 50.0 },
-        bmwDef(0x0D16, "Depósito", "L", 0, PidGroup.FUEL) { it * 0.01 },
+        bmwDef(BMW_TANK_ADDRESS, "Depósito", "L", 1, PidGroup.FUEL) { it * 0.001907 },
         bmwDef(0x03EA, "Filtro: hollín medido", "g", 1, PidGroup.EXHAUST) { it * 0.015259 },
         bmwDef(0x03ED, "Filtro: hollín calculado", "g", 1, PidGroup.EXHAUST) { it * 0.01 },
         bmwDef(0x03EB, "Filtro: desde la última regeneración", "km", 1, PidGroup.EXHAUST, size = 4) { it / 1000.0 },
+        bmwDef(0x03E8, "Filtro: gasóleo desde la última regeneración", "L", 1, PidGroup.EXHAUST) { it * 0.01 },
         bmwDef(0x0424, "Filtro: presión diferencial", "hPa", 0, PidGroup.EXHAUST) { it * 0.045777 - 1000.0 },
-        bmwDef(0x041B, "Escape antes del filtro", "°C", 0, PidGroup.EXHAUST) { it * 0.031281 - 50.0 },
-        bmwDef(0x0432, "Filtro: presión de entrada", "hPa", 0, PidGroup.EXHAUST) { it * 0.1 },
+        bmwDef(0x01B2, "Corriente de batería", "A", 1, PidGroup.ELECTRIC) { it * 0.08 - 200.0 },
+        bmwDef(0x09C4, "Ventilador", "%", 0, PidGroup.ENGINE) { it * 0.001526 },
+        bmwDef(0x0839, "Control de crucero (1 = puesto)", "", 0, PidGroup.ENGINE, size = 1) { it.toDouble() },
+        bmwDef(0x07C6, "Aire acondicionado (1 = puesto)", "", 0, PidGroup.ENGINE, size = 1) { it.toDouble() },
+
+        // Lo que no cambia durante un trayecto se lee una vez al conectar.
+        bmwDef(BMW_ODOMETER_ADDRESS, "Cuentakilómetros", "km", 0, PidGroup.COUNTERS, Tier.ONCE, size = 4) { it.toDouble() },
+        bmwDef(0x0AF0, "Horas de motor", "h", 0, PidGroup.COUNTERS, Tier.ONCE, size = 4) { it / 3600.0 },
+        bmwDef(BMW_TOTAL_FUEL_ADDRESS, "Gasóleo inyectado en total", "L", 0, PidGroup.COUNTERS, Tier.ONCE) { it.toDouble() },
+        bmwDef(BMW_FAULTS_ADDRESS, "Averías guardadas en la centralita", "", 0, PidGroup.COUNTERS, Tier.ONCE, size = 1) {
+            it.toDouble()
+        },
+        bmwDef(BMW_OIL_KM_ADDRESS, "Aceite: km desde el cambio", "km", 0, PidGroup.ENGINE, Tier.ONCE) { it * 10.0 },
+        bmwDef(BMW_OIL_LEVEL_ADDRESS, "Aceite: nivel", "mm", 0, PidGroup.ENGINE, Tier.ONCE, size = 1) { it * 0.292969 },
         bmwDef(0x03F3, "Filtro: intervalo medio entre regeneraciones", "km", 0, PidGroup.EXHAUST, Tier.ONCE) {
             it.toDouble()
         },
-        bmwDef(0x16B2, "Km guardados en la centralita", "km", 0, PidGroup.COUNTERS, Tier.ONCE, size = 4) {
-            it.toDouble()
-        },
-    )
+        bmwDef(0x0407, "Filtro: regeneraciones hechas", "", 0, PidGroup.EXHAUST, Tier.ONCE) { it.toDouble() },
+        bmwDef(0x0BA5, "Filtro: km desde su cambio", "km", 0, PidGroup.EXHAUST, Tier.ONCE, size = 4) { it * 10.0 },
+        bmwDef(0x03E9, "Filtro: ceniza calculada", "g", 0, PidGroup.EXHAUST, Tier.ONCE) { it * 0.015259 },
+        bmwDef(0x042E, "Escape antes del filtro (sensor)", "°C", 0, PidGroup.EXHAUST, Tier.ONCE) { it * 0.031281 - 50.0 },
+    ) + BMW_REGENERATION_ADDRESSES.mapIndexed { index, address ->
+        bmwDef(address, "Filtro: km en la regeneración ${index + 1} hacia atrás", "km", 0, PidGroup.EXHAUST, Tier.ONCE, size = 4) {
+            it / 1000.0
+        }
+    }
 
     /** Si a un coche se le pueden pedir las medidas de [bmwDiesel]. */
     fun hasBmwMeasures(make: String?, diesel: Boolean) = diesel && make != null && make.startsWith("BMW")

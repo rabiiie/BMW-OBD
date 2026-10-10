@@ -276,9 +276,8 @@ class ScanWriter(file: File) {
  *
  * La centralita contesta a cualquier direccion de medida, exista o no: a las que no existen, con
  * una respuesta sin dato. Solo cuenta la que trae dato. Y como la respuesta no dice de que
- * direccion es, al buscar solo se apunta si la misma consulta da dos veces seguidas un dato del
- * mismo tamaño: asi una respuesta rezagada de la consulta anterior no acaba en la direccion
- * equivocada. Una direccion con dato que se pierda por ese mismo motivo la recoge el repaso.
+ * direccion es y el adaptador a veces entrega una con retraso, al buscar cada medida se pregunta
+ * dos veces y vale la segunda. Lo que aun asi se pierda lo recoge el repaso.
  */
 class ScanRunner(
     private val store: ScanStore,
@@ -322,11 +321,12 @@ class ScanRunner(
                 return false
             }
             val prefix = ScanPlan.answerPrefix(query)
-            val answer = ask(query, prefix)?.takeIf { it.isNotEmpty() } ?: return@repeat
-            if (!repeating) {
-                val again = ask(query, prefix)
-                if (again == null || again.size != answer.size) return@repeat
-            }
+            val first = ask(query, prefix)
+            // Buscando, cada medida se pregunta dos veces y vale la segunda respuesta: si el
+            // adaptador viene con una respuesta de retraso, la primera es de la consulta anterior
+            // y la segunda es la de esta. Sin retraso las dos son la de esta.
+            val answer = (if (!repeating && query.startsWith(ScanPlan.MEASURE)) ask(query, prefix) else first)
+                ?.takeIf { it.isNotEmpty() } ?: return@repeat
             plan.answered()
             writer.append(plan.pass, query, answer, values)
         }

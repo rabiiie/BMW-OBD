@@ -16,9 +16,7 @@ import org.junit.rules.TemporaryFolder
 import java.util.Date
 
 /** Las direcciones de medidas que dan dato en el coche simulado. */
-private val SIMULATED = listOf(
-    0x01F4, 0x0385, 0x03EA, 0x03EB, 0x03ED, 0x03F3, 0x0424, 0x0432, 0x041B, 0x0500, 0x0547, 0x0641, 0x0BEB, 0x0D16, 0x16B2,
-)
+private val SIMULATED = com.rabie.bmwobd.obd.SimulatedDde.ADDRESSES
 
 /**
  * Un adaptador con el defecto visto en el de verdad. De vez en cuando, a una consulta pedida con
@@ -286,7 +284,7 @@ class ScanTest {
 
     @Test
     fun `con un adaptador que desplaza respuestas no se inventa ninguna direccion ni se pierde ninguna`() = runBlocking<Unit> {
-        for (every in listOf(5, 11, 37)) {
+        for (every in listOf(3, 5, 11, 37)) {
             val dir = folder.newFolder("cada$every")
             val store = ScanStore(dir)
             val transport = Shifting(every)
