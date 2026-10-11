@@ -211,15 +211,12 @@ class ObdSession(
      * [answerPrefix] en la respuesta, o null si la centralita calla o contesta otra cosa.
      */
     suspend fun ask(query: String, answerPrefix: String): IntArray? {
-        // La centralita contesta a toda direccion de medida con una sola trama, asi que se puede
-        // pedir con lectura rapida: el adaptador vuelve en cuanto llega en vez de agotar su espera.
-        val quickly = quick && answerPrefix == BMW_ANSWER
-        val response = scanSend(query + if (quickly) QUICK_SUFFIX else "") ?: return null
-        val payload = ObdParser.payloads(response, answerPrefix).lastOrNull()
-        if (payload != null || !quickly || !ObdParser.isForeignAnswer(response)) return payload
-        // Ha llegado la respuesta de otra pregunta: sin lectura rapida el adaptador entrega lo pendiente.
-        val again = scanSend(query) ?: return null
-        return ObdParser.payloads(again, answerPrefix).lastOrNull()
+        // Nunca con lectura rapida. Con la cifra de respuestas esperadas detras de una consulta de
+        // cuatro bytes, este adaptador manda la direccion sin su ultimo byte y la centralita contesta
+        // por otra medida: visto en el coche, todo un bloque de 256 direcciones daba el mismo valor.
+        // Si traia pendiente la respuesta de una consulta anterior, la de esta es la ultima.
+        val response = scanSend(query) ?: return null
+        return ObdParser.payloads(response, answerPrefix).lastOrNull()
     }
 
     /**

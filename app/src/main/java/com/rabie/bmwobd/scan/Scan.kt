@@ -9,15 +9,15 @@ import java.util.Locale
 import java.util.TreeSet
 
 /**
- * El barrido de todo lo que la centralita del motor de BMW contesta por el adaptador. Tiene tres
+ * El barrido de todo lo que la centralita del motor de BMW contesta por el adaptador. Tiene dos
  * fases, que aqui se llaman pasadas:
  *
- * 1. Pregunta por todas las direcciones de medidas y por las demas consultas de lectura conocidas.
- * 2. Repasa las direcciones de medidas que no dieron dato, por si alguna se perdio en un desfase.
+ * 1. Busqueda: pregunta por todas las direcciones de medidas y por las demas consultas de lectura.
  * 3. Y siguientes: repite una y otra vez solo las que dieron dato, para ver como cambian.
  *
- * Las consultas se numeran por su posicion en la primera pasada. [resume] es la ultima consulta
- * hecha en el repaso, para retomarlo sin empezar de nuevo.
+ * La pasada 2 era un repaso que ya no se hace: sin lectura rapida no hay respuestas con retraso
+ * que recoger. El numero se conserva para que un avance guardado en ella siga teniendo sentido.
+ * Las consultas se numeran por su posicion en la busqueda.
  */
 class ScanPlan(next: Int = 0, found: Collection<Int> = emptyList(), pass: Int = 1, resume: Int = -1) {
 
@@ -30,19 +30,15 @@ class ScanPlan(next: Int = 0, found: Collection<Int> = emptyList(), pass: Int = 
 
     private val found = TreeSet(found)
     private var order: List<Int> = when {
-        pass == REVIEW -> missing().filter { it > resume }
+        pass == REVIEW -> emptyList()
         pass > REVIEW -> this.found.toList()
         else -> emptyList()
     }
     private var cursor = 0
-    private val reviewed: Int = if (pass == REVIEW) missing().size - order.size else 0
-
     val answering: Int get() = found.size
-    val total: Int get() = if (pass == 1) SIZE else order.size + reviewed
-    val done: Int get() = if (pass == 1) next else cursor + reviewed
+    val total: Int get() = if (pass == 1) SIZE else order.size
+    val done: Int get() = if (pass == 1) next else cursor
     fun found(): List<Int> = found.toList()
-
-    private fun missing(): List<Int> = (0 until MEASURES).filter { it !in found }
 
     /** La siguiente consulta, o null si ya no queda nada que preguntar. */
     fun take(): String? {
@@ -52,10 +48,10 @@ class ScanPlan(next: Int = 0, found: Collection<Int> = emptyList(), pass: Int = 
                 return query(asked)
             }
             pass = REVIEW
-            order = missing()
+            order = emptyList()
             cursor = 0
         }
-        if (pass == REVIEW && cursor >= order.size) {
+        if (pass == REVIEW) {
             pass = REVIEW + 1
             order = found.toList()
             cursor = 0
@@ -80,7 +76,7 @@ class ScanPlan(next: Int = 0, found: Collection<Int> = emptyList(), pass: Int = 
         const val MEASURES = LAST_ADDRESS - FIRST_ADDRESS + 1
         const val MEASURE = "2C10"
 
-        /** La pasada que repasa lo que no dio dato; a partir de la siguiente se repite lo encontrado. */
+        /** La pasada que fue de repaso; a partir de la siguiente se repite lo encontrado. */
         const val REVIEW = 2
 
         /**
@@ -159,23 +155,19 @@ class ScanStore(private val dir: File) {
             reached = values["alcance"] == YES,
             resume = values["repaso"]?.toIntOrNull() ?: -1,
         )
-        if (values["version"] == VERSION || lines.isEmpty()) return saved
-        return upgrade(vehicleKey, saved)
+        if (values["version"] == VERSION) return saved
+        return start(vehicleKey, saved.active, saved.reached)
     }
 
     /**
-     * El primer barrido daba por buena una respuesta sin dato, y la centralita contesta asi a
-     * cualquier direccion que no existe. Lo que vale de aquel avance son las consultas cuya fila
-     * del resultado lleva dato; el punto por donde iba se conserva, y el fichero se limpia.
+     * El punto de partida de un barrido: lo que ya se sabe de [ScanSeed] y la busqueda a
+     * continuacion. Tambien sustituye a un avance de una version anterior, que no vale: una daba
+     * por buenas las respuestas sin dato y otra pedia las medidas con lectura rapida, con la que
+     * este adaptador le manda a la centralita la direccion cortada. Su fichero se borra.
      */
-    private fun upgrade(vehicleKey: String, old: ScanSaved): ScanSaved {
-        val index = (0 until ScanPlan.SIZE).associateBy { ScanPlan.query(it) }
-        val file = file(vehicleKey)
-        val rows = runCatching { file.readLines() }.getOrDefault(emptyList())
-        val kept = rows.filterIndexed { i, row -> i == 0 || row.split(',').getOrNull(ANSWER_COLUMN).orEmpty().isNotEmpty() }
-        val found = kept.drop(1).mapNotNull { index[it.split(',').getOrNull(QUERY_COLUMN)] }.distinct().sorted()
-        if (rows.isNotEmpty()) file.writeText(kept.joinToString("\n") + "\n")
-        val saved = old.copy(pass = 1, found = found, resume = -1)
+    private fun start(vehicleKey: String, active: Boolean, reached: Boolean): ScanSaved {
+        file(vehicleKey).delete()
+        val saved = ScanSaved(active, ScanSeed.NEXT, 1, ScanSeed.FOUND, reached)
         save(vehicleKey, saved)
         return saved
     }
@@ -202,10 +194,9 @@ class ScanStore(private val dir: File) {
         }
     }
 
-    /** Borra el resultado y el punto de avance, para empezar el barrido de cero. */
+    /** Borra el resultado y vuelve al punto de partida. La prueba de alcance no se repite. */
     fun reset(vehicleKey: String) {
-        file(vehicleKey).delete()
-        stateFile(vehicleKey).delete()
+        start(vehicleKey, active = false, reached = load(vehicleKey).reached)
     }
 
     fun writer(vehicleKey: String): ScanWriter {
@@ -216,9 +207,7 @@ class ScanStore(private val dir: File) {
     private companion object {
         const val YES = "si"
         const val NO = "no"
-        const val VERSION = "2"
-        const val QUERY_COLUMN = 2
-        const val ANSWER_COLUMN = 3
+        const val VERSION = "3"
     }
 }
 
@@ -240,9 +229,10 @@ class ScanWriter(file: File) {
     }
 
     fun append(pass: Int, query: String, answer: IntArray, values: Map<Int, Double>, now: Date = Date()) {
+        // Dos consultas de identificacion llevan el bastidor: su respuesta no sale del movil.
+        val shown = if (query in WITH_VIN) HIDDEN else answer.joinToString("") { "%02X".format(it) }
         val line = StringBuilder()
-            .append(clock.format(now)).append(',').append(pass).append(',').append(query).append(',')
-            .append(answer.joinToString("") { "%02X".format(it) })
+            .append(clock.format(now)).append(',').append(pass).append(',').append(query).append(',').append(shown)
         for ((id, _) in CONTEXT) {
             line.append(',')
             values[id]?.let { line.append(String.format(Locale.US, "%.1f", it)) }
@@ -261,6 +251,9 @@ class ScanWriter(file: File) {
     }
 
     companion object {
+        val WITH_VIN = setOf("1A86", "1A90")
+        const val HIDDEN = "oculto"
+
         // Medidas del OBD estandar que acompañan a cada respuesta.
         val CONTEXT = listOf(
             0x0C to "rpm", 0x0D to "velocidad", 0x04 to "carga", 0x05 to "refrigerante", 0x49 to "pedal",
@@ -275,9 +268,9 @@ class ScanWriter(file: File) {
  * normal, apunta lo que da dato y guarda el avance para seguir en la conexion siguiente.
  *
  * La centralita contesta a cualquier direccion de medida, exista o no: a las que no existen, con
- * una respuesta sin dato. Solo cuenta la que trae dato. Y como la respuesta no dice de que
- * direccion es y el adaptador a veces entrega una con retraso, al buscar cada medida se pregunta
- * dos veces y vale la segunda. Lo que aun asi se pierda lo recoge el repaso.
+ * una respuesta sin dato. Solo cuenta la que trae dato. Las consultas van siempre sin lectura
+ * rapida: con ella este adaptador corta la direccion y la centralita contesta por otra. Sin ella
+ * el adaptador espera y entrega todo lo que tenga, asi que tampoco hay respuestas con retraso.
  */
 class ScanRunner(
     private val store: ScanStore,
@@ -321,12 +314,7 @@ class ScanRunner(
                 return false
             }
             val prefix = ScanPlan.answerPrefix(query)
-            val first = ask(query, prefix)
-            // Buscando, cada medida se pregunta dos veces y vale la segunda respuesta: si el
-            // adaptador viene con una respuesta de retraso, la primera es de la consulta anterior
-            // y la segunda es la de esta. Sin retraso las dos son la de esta.
-            val answer = (if (!repeating && query.startsWith(ScanPlan.MEASURE)) ask(query, prefix) else first)
-                ?.takeIf { it.isNotEmpty() } ?: return@repeat
+            val answer = ask(query, prefix)?.takeIf { it.isNotEmpty() } ?: return@repeat
             plan.answered()
             writer.append(plan.pass, query, answer, values)
         }
@@ -367,7 +355,8 @@ class ScanRunner(
     companion object {
         const val SAVE_EVERY = 150
 
-        // Busqueda, repaso y quince repeticiones de cada consulta con dato.
-        const val MAX_PASSES = ScanPlan.REVIEW + 15
+        /** Cuantas veces se repite cada consulta con dato una vez acabada la busqueda. */
+        const val REPEATS = 6
+        const val MAX_PASSES = ScanPlan.REVIEW + REPEATS
     }
 }
