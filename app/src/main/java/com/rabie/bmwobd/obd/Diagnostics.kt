@@ -15,6 +15,8 @@ data class DiagnosticsReport(
     val vin: String? = null,
     val calibration: String? = null,
     val readiness: Readiness? = null,
+    /** Las averias de la memoria propia de BMW; null si no se han pedido o el coche no las da. */
+    val bmwFaults: List<BmwFault>? = null,
 )
 
 object Dtcs {

@@ -273,7 +273,8 @@ class ObdSession(
         }
     }
 
-    suspend fun diagnostics(): DiagnosticsReport {
+    /** Con [bmw] se piden tambien las averias de la memoria propia de la centralita de BMW. */
+    suspend fun diagnostics(bmw: Boolean = false): DiagnosticsReport {
         val status = ObdParser.payloads(elm.send("0101", READ_TIMEOUT_MS), "4101").firstOrNull { it.isNotEmpty() }
         val stored = dtcs("03", "43")
         val freezeDtc = if (stored.isNullOrEmpty()) null else freezeDtc()
@@ -288,8 +289,12 @@ class ObdSession(
             vin = text("0902", "4902"),
             calibration = text("0904", "4904"),
             readiness = status?.let(Readiness::parse),
+            bmwFaults = if (bmw) bmwFaults() else null,
         )
     }
+
+    private suspend fun bmwFaults(): List<BmwFault>? =
+        ObdParser.payloads(elm.send(BmwFault.QUERY, READ_TIMEOUT_MS), BmwFault.ANSWER).lastOrNull()?.let(BmwFault::parse)
 
     /**
      * Las pruebas internas del coche con sus limites (modo 06). Primero se pregunta que monitores

@@ -32,6 +32,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rabie.bmwobd.DiagnosticsState
+import com.rabie.bmwobd.obd.BmwFault
 import com.rabie.bmwobd.obd.DiagnosticsReport
 import com.rabie.bmwobd.obd.Dtcs
 import com.rabie.bmwobd.obd.Mode06
@@ -89,8 +90,9 @@ fun DiagnosticsScreen(
         val report = state.report
         if (report == null) {
             Text(
-                "Solo salen las averías que la centralita del motor publica por el OBD estándar, que son " +
-                    "las relacionadas con emisiones. Las propias de BMW no se ven con este adaptador.",
+                "Salen las averías que la centralita del motor publica por el OBD estándar, que son las " +
+                    "relacionadas con emisiones, y en un BMW diésel también las de su memoria propia. " +
+                    "Las de otras centralitas (frenos, airbag, cuadro) no se ven con este adaptador.",
                 color = Bmw.TextDim,
                 fontSize = 14.sp,
             )
@@ -142,6 +144,7 @@ private fun Report(report: DiagnosticsReport, vehicleTerms: String) {
     if (listOfNotNull(report.stored, report.pending, report.permanent).any { it.isNotEmpty() }) {
         Text("Toca un código para buscarlo en internet con los datos de este coche.", color = Bmw.TextDim, fontSize = 12.sp)
     }
+    report.bmwFaults?.let { BmwFaultsCard(it, vehicleTerms) }
 
     if (report.freezeDtc != null) {
         Card {
@@ -163,6 +166,45 @@ private fun Report(report: DiagnosticsReport, vehicleTerms: String) {
             report.vin?.let { Text("Bastidor  $it", color = Bmw.Text, fontFamily = FontFamily.Monospace, fontSize = 14.sp) }
             report.calibration?.let {
                 Text("Software  $it", color = Bmw.Text, fontFamily = FontFamily.Monospace, fontSize = 14.sp)
+            }
+        }
+    }
+}
+
+/**
+ * Las averias de la memoria propia de la centralita de BMW, que el OBD estandar no enseña. Leerlas
+ * no las borra; el boton de borrar solo borra las del OBD estandar.
+ */
+@Composable
+private fun BmwFaultsCard(faults: List<BmwFault>, vehicleTerms: String) {
+    val context = LocalContext.current
+    Card {
+        Label("En la memoria propia de BMW")
+        if (faults.isEmpty()) {
+            Text("Ninguna.", color = Bmw.Text)
+            return@Card
+        }
+        Text(
+            "No salen por el OBD estándar ni encienden por fuerza el testigo. Toca una para buscarla.",
+            color = Bmw.TextDim,
+            fontSize = 13.sp,
+        )
+        for (fault in faults.sortedByDescending { it.active }) {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .clickable { searchWeb(context, "BMW avería ${fault.label} $vehicleTerms") }
+                    .padding(vertical = 6.dp),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(fault.label, color = if (fault.active) Bmw.MRed else Bmw.Accent, fontFamily = FontFamily.Monospace, fontSize = 18.sp)
+                    Text(fault.text ?: "Sin descripción en la app", color = Bmw.Text, fontSize = 15.sp, modifier = Modifier.weight(1f))
+                }
+                Text(
+                    if (fault.active) "Presente ahora" else "Guardada de antes; ahora no está presente",
+                    color = Bmw.TextDim,
+                    fontSize = 13.sp,
+                )
             }
         }
     }

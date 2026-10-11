@@ -319,7 +319,7 @@ class ObdController(
                     session.clearDtcs() -> "Averías borradas."
                     else -> "El coche no ha aceptado el borrado. Prueba con el contacto puesto y el motor parado."
                 }
-                val report = session.diagnostics()
+                val report = session.diagnostics(bmw = canScan(_state.value.vehicle))
                 _diagnostics.update {
                     it.copy(busy = false, report = report, readAtMillis = System.currentTimeMillis(), message = message)
                 }

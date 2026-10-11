@@ -106,6 +106,9 @@ class ScanTest {
     /** Lo que da dato en el coche simulado, como consultas. */
     private val simulated = SimulatedDde.ADDRESSES.map(ScanPlan::measure)
 
+    /** Las otras consultas a las que contesta: la identificacion y las averias propias. */
+    private val services = listOf("1A80", "1802FFFF")
+
     private fun rows(store: ScanStore, key: String = "coche") =
         store.file(key).takeIf { it.exists() }?.readLines().orEmpty().drop(1).map { it.split(',') }
 
@@ -246,11 +249,11 @@ class ScanTest {
         assertTrue("el adaptador simulado no ha desplazado nada", adapter.shifts > 50)
         val progress = runner.progress()
         assertTrue(progress.finished)
-        assertEquals(simulated.size + 1, progress.answering)
+        assertEquals(simulated.size + services.size, progress.answering)
         assertTrue(turns > ScanPlan.SIZE / 3)
 
         val rows = rows(store)
-        assertEquals(simulated + "1A80", rows.filter { it[1] == "1" }.map { it[2] })
+        assertEquals(simulated + services, rows.filter { it[1] == "1" }.map { it[2] })
         assertTrue(rows.none { it[1] == "2" })
         assertTrue(rows.none { it[3].isEmpty() })
         // Una fila de la busqueda y una por cada repeticion, siempre con su propio valor.
@@ -338,8 +341,8 @@ class ScanTest {
         }
         assertTrue(reopened >= 3)
         val rows = rows(store)
-        assertEquals(simulated + "1A80", rows.filter { it[1] == "1" }.map { it[2] })
-        assertEquals((simulated + "1A80").toSet(), rows.map { it[2] }.toSet())
+        assertEquals(simulated + services, rows.filter { it[1] == "1" }.map { it[2] })
+        assertEquals((simulated + services).toSet(), rows.map { it[2] }.toSet())
     }
 
     @Test

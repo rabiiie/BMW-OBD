@@ -100,6 +100,9 @@ class SimulatedTransport(
             bytes.size == 2 && bytes[0] == 0x06 -> monitor(bytes[1])?.let { intArrayOf(0x46) + it }
             bytes.size == 2 && bytes[0] == 0x09 && bytes[1] == 0x02 -> intArrayOf(0x49, 0x02, 0x01) + ascii(VIN, 17)
             bytes.size == 2 && bytes[0] == 0x09 && bytes[1] == 0x04 -> intArrayOf(0x49, 0x04, 0x01) + ascii(CALIBRATION, 16)
+            // Las dos averias de la memoria propia de la centralita: una presente y otra solo guardada.
+            bytes.size == 4 && bytes[0] == 0x18 && bytes[1] == 0x02 ->
+                intArrayOf(0x58, 0x02, 0x49, 0x8E, 0x61, 0x4A, 0x6E, 0x21)
             bytes.size == 2 && bytes[0] == 0x1A && bytes[1] == 0x80 -> intArrayOf(0x5A, 0x80) + ascii(BMW_IDENT, 20)
             // Como la centralita de verdad: a una direccion que no existe contesta, pero sin dato.
             bytes.size == 4 && bytes[0] == 0x2C && bytes[1] == 0x10 ->

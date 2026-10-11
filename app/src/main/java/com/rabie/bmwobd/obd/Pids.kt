@@ -248,9 +248,10 @@ object Pids {
      * Medidas de la DDE 7 del motor N47, con la direccion y la formula de la tabla MESSWERTETAB de
      * su descripcion (d70n47b0). El valor llega con el byte alto primero. Cada una se pide en su
      * propia consulta: con dos direcciones la centralita solo contesta bien a la primera. Todas
-     * han dado en el coche un valor coherente con su formula. Este motor no da una temperatura de
-     * aceite propia (las direcciones de aceite repiten el refrigerante) ni tiene sensor de presion
-     * diferencial: la del filtro sale del sensor de presion absoluta que lleva delante.
+     * han dado en el coche un valor coherente con su formula. Las direcciones de temperatura de
+     * aceite repetian la del refrigerante en el coche donde se probo, que tenia guardada una averia
+     * del sensor de aceite: no se leen. Tampoco hay sensor de presion diferencial: la del filtro
+     * sale del sensor de presion absoluta que lleva delante.
      */
     val bmwDiesel: List<PidDef> = listOf(
         bmwDef(0x0500, "Cantidad inyectada", "mg/emb", 1, PidGroup.FUEL, Tier.MEDIUM) { it * 0.003052 - 100.0 },

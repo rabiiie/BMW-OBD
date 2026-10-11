@@ -144,7 +144,7 @@ object Health {
         val facts = listOfNotNull(
             km?.let { "Lleva ${thousands(it)} km desde el cambio." },
             level?.let { "Nivel que mide el coche: ${n(it)} mm." },
-            "Este motor no da temperatura de aceite: la que publica la centralita repite la del refrigerante.",
+            "La temperatura de aceite que publica la centralita repite la del refrigerante: no vale como medida.",
         )
         return if (km != null && km >= OIL_CHANGE_KM) {
             HealthCard(
@@ -163,7 +163,7 @@ object Health {
             HealthSystem.FAULTS, HealthLevel.WATCH,
             "La centralita del motor guarda ${n(count)} que la lectura de averías normal no enseña.",
             listOf("Son averías de la memoria propia de BMW. Pueden ser antiguas y estar ya resueltas."),
-            "El escaneo las lee al llegar a esa consulta. Hasta entonces no se sabe cuáles son.",
+            "Con el coche conectado, en Averías, «Leer averías» enseña cuáles son y si están presentes ahora.",
         )
     }
 
