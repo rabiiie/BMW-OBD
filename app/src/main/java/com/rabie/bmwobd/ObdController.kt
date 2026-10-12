@@ -68,6 +68,8 @@ data class LiveState(
     val case: Case = Case.NORMAL,
     /** Consumo medio de lo que va de trayecto, en L/100; null hasta llevar unos kilometros. */
     val averageL100: Double? = null,
+    /** Kilometros de este trayecto, sumados de la velocidad. */
+    val tripKm: Double = 0.0,
     /** La marcha de ahora, deducida de velocidad y revoluciones; 0 parado, null si no se sabe. */
     val gear: Int? = null,
     /** Recomendacion de cambio calculada por la app: [ShiftHint.UP], [ShiftHint.DOWN] o ninguna. */
@@ -483,7 +485,7 @@ class ObdController(
             val alerts = advice.filter { it.severity == Severity.ALERT }.map { it.id }.toSet()
             if ((alerts - soundedAlerts).isNotEmpty()) beep()
             soundedAlerts = alerts
-            _state.update { it.copy(values = snapshot, cyclesPerSecond = rate, advice = advice, averageL100 = average, gear = gear, shift = shift) }
+            _state.update { it.copy(values = snapshot, cyclesPerSecond = rate, advice = advice, averageL100 = average, tripKm = km, gear = gear, shift = shift) }
             if (answered) withContext(Dispatchers.IO) { recorder.append(snapshot) }
         }
     }

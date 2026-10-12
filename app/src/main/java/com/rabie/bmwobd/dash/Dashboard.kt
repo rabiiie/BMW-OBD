@@ -6,6 +6,9 @@ import com.rabie.bmwobd.cases.Case
 import com.rabie.bmwobd.obd.Pids
 import java.util.Locale
 
+/** Un dato de una tarjeta del centro: el numero y, debajo, lo minimo para saber que es. */
+data class DashCell(val value: String, val tag: String)
+
 /** Un dato del panel apaisado, ya escrito. */
 data class DashTile(val title: String, val value: String, val unit: String)
 
@@ -44,10 +47,19 @@ object Dashboard {
 
     val GEAR = Pids.bmw(0x0EA6)
 
+    /** Estado del control de crucero (2 = llevando el coche, 1 = en espera) y la velocidad fijada. */
+    val CRUISE_STATE = Pids.bmw(0x0DE3)
+    val CRUISE_SPEED = Pids.bmw(0x0DE2)
+    const val CRUISE_DRIVING = 2
+    const val CRUISE_WAITING = 1
+
+    /** Lo que el panel tiene siempre a la vista, este el grupo que este. */
+    val alwaysWatched: List<Int> = listOf(GEAR, CRUISE_STATE, CRUISE_SPEED)
+
     /** Las medidas del panel que solo existen en los casos: se leen siempre, por el turno lento. */
     val background: List<Int> =
         listOf(BEFORE_CATALYST, TURBO_SPEED, TORQUE, BATTERY_VOLTS, ALTERNATOR_TEMP, AIR_PER_CYLINDER, EGR_RATE, GEAR) +
-            Pids.BMW_CYLINDER_CORRECTIONS
+            listOf(CRUISE_STATE, CRUISE_SPEED) + Pids.BMW_CYLINDER_CORRECTIONS
 
     /**
      * Las medidas de [group] que cambian deprisa y no se leen ya en cada vuelta: mientras el
@@ -109,6 +121,43 @@ object Dashboard {
             tile("Intercooler", values[AFTER_INTERCOOLER], 0, "°C"),
         )
     }
+
+    /**
+     * Las tarjetas del centro del panel, que se pasan deslizando: el trayecto, las temperaturas y
+     * el motor. Cuatro datos cada una, sin mas texto que la unidad.
+     */
+    fun cards(values: Map<Int, Double>, tripKm: Double, elapsedMs: Long, average: Double?, diesel: Boolean): List<List<DashCell>> {
+        val per100 = Pids.litersPer100Km(values, diesel)
+        val perHour = Pids.fuelRate(values, diesel)
+        val minutes = elapsedMs / 60_000
+        val now = when {
+            per100 != null -> DashCell(CALCULATED + n(per100, 1), "L/100")
+            perHour != null -> DashCell(CALCULATED + n(perHour, 1), "L/h")
+            else -> DashCell(MISSING, "L/100")
+        }
+        return listOf(
+            listOf(
+                DashCell(n(tripKm, 1), "km"),
+                DashCell("%d:%02d".format(minutes / 60, minutes % 60), "h:min"),
+                DashCell(average?.let { CALCULATED + n(it, 1) } ?: MISSING, "Ø L/100"),
+                now,
+            ),
+            listOf(
+                cell(values[Pids.COOLANT], 0, "°C agua"),
+                cell(values[BEFORE_CATALYST] ?: Moment.EXHAUST_TEMPS.mapNotNull { values[it] }.maxOrNull(), 0, "°C escape"),
+                cell(values[AFTER_INTERCOOLER] ?: values[Moment.INTAKE_TEMP], 0, "°C aire"),
+                cell(values[ALTERNATOR_TEMP], 0, "°C alternador"),
+            ),
+            listOf(
+                cell(values[TORQUE], 0, "Nm"),
+                DashCell(horsepower(values)?.let { CALCULATED + n(it) } ?: MISSING, "CV"),
+                cell(Pids.boostBar(values), 2, "bar turbo"),
+                cell(RAIL.firstNotNullOfOrNull { values[it] }, 0, "bar raíl"),
+            ),
+        )
+    }
+
+    private fun cell(value: Double?, decimals: Int, tag: String) = DashCell(value?.let { n(it, decimals) } ?: MISSING, tag)
 
     /** El grupo al que toca un aviso: es el que se queda fijo mientras dura. */
     fun group(advice: Advice): DashGroup? = when (advice.id) {

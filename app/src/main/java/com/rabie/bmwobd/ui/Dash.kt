@@ -1,6 +1,23 @@
 package com.rabie.bmwobd.ui
 
 import android.os.SystemClock
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.rememberTextMeasurer
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import kotlin.math.cos
+import kotlin.math.sin
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -55,10 +72,22 @@ import kotlinx.coroutines.delay
 
 private const val ROTATE_MS = 8_000L
 private const val TOUCH_HOLD_MS = 20_000L
-private const val CLUSTER_MAX_SHARE = 0.56f
+private const val CENTER_SHARE = 0.27f
+private const val ARC_HALF_ANGLE = 48f
+private const val TANK_LITERS = 53.0
+private const val FUEL_LEVEL = 0x2F
+private const val OUTSIDE_TEMP = 0x46
+private val CENTER_MIN = 180.dp
+private val CENTER_MAX = 260.dp
+private val ARC_WIDTH = 118.dp
+private val ARC_STROKE = 5.dp
+private val ARC_PAD = 14.dp
+private val ARC_INSET = 4.dp
+private val ARC_LABEL_GAP = 6.dp
+private val ARC_CONTENT_SHIFT = 26.dp
+private val SWIPE_DISTANCE = 28.dp
 private val STRIP_HEIGHT = 38.dp
 private val INFO_HEIGHT = 24.dp
-private val FULL_CLUSTER = 560.dp
 
 /** El grupo que sigue a [index] sin repetir el de la otra columna ni el que esta fijo. */
 private fun nextGroup(index: Int, other: Int, pinned: Int?): Int {
@@ -72,9 +101,10 @@ private fun nextGroup(index: Int, other: Int, pinned: Int?): Int {
 }
 
 /**
- * El panel apaisado: arriba una franja con lo mas importante, en el centro el cuadro, y a los
- * lados dos grupos de datos que van rotando. Tocar una columna pasa al grupo siguiente. Con un
- * aviso, la columna izquierda se queda fija en el grupo al que toca.
+ * El panel apaisado: arriba una franja con lo mas importante; en medio, la velocidad y las
+ * revoluciones en dos arcos finos con unas tarjetas entre ellos; a los lados, dos grupos de datos
+ * que van rotando. Tocar una columna pasa al grupo siguiente. Con un aviso, la columna izquierda
+ * se queda fija en el grupo al que toca.
  */
 @Composable
 internal fun DashPanel(state: LiveState, onMenu: () -> Unit, onWatch: (List<Int>) -> Unit, maxWidth: Dp, maxHeight: Dp) {
@@ -102,16 +132,15 @@ internal fun DashPanel(state: LiveState, onMenu: () -> Unit, onWatch: (List<Int>
     val alertColor = top?.let { severityColor(it.severity) } ?: Bmw.Accent
 
     // Lo que esta en pantalla se lee mas seguido; al salir del panel, deja de pedirse asi. La
-    // marcha va siempre: de sus lecturas se aprende la relacion de cada una.
+    // marcha y el control de crucero van siempre.
     LaunchedEffect(leftGroup, rightGroup) {
-        onWatch(listOf(Dashboard.GEAR) + Dashboard.watched(leftGroup) + Dashboard.watched(rightGroup))
+        onWatch(Dashboard.alwaysWatched + Dashboard.watched(leftGroup) + Dashboard.watched(rightGroup))
     }
     DisposableEffect(Unit) { onDispose { onWatch(emptyList()) } }
 
-    val clusterWidth = minOf((maxHeight - STRIP_HEIGHT - INFO_HEIGHT - 20.dp) * CLUSTER_ASPECT, maxWidth * CLUSTER_MAX_SHARE)
-    val scale = clusterWidth / FULL_CLUSTER
     val rpm = values[Pids.RPM]
     val speed = values[Pids.SPEED]
+    val centerWidth = (maxWidth * CENTER_SHARE).coerceIn(CENTER_MIN, CENTER_MAX)
 
     Column(
         Modifier.fillMaxSize().background(Bmw.Background).padding(horizontal = 10.dp, vertical = 6.dp),
@@ -131,45 +160,51 @@ internal fun DashPanel(state: LiveState, onMenu: () -> Unit, onWatch: (List<Int>
                     }
                 },
             )
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                MCluster(
-                    speedFraction = ((speed ?: 0.0) / SPEED_MAX).toFloat(),
-                    rpmFraction = ((rpm ?: 0.0) / vehicle.rpmMax).toFloat(),
-                    speedLabels = SPEED_LABELS,
-                    rpmLabels = vehicle.rpmLabels,
-                    rpmRedFrom = vehicle.rpmRedFrom,
-                    modifier = Modifier.width(clusterWidth).aspectRatio(CLUSTER_ASPECT),
-                    left = {
-                        Text(speed?.let { formatValue(it, 0) } ?: "—", color = Bmw.Text, fontSize = (72 * scale).sp, fontWeight = FontWeight.Light)
-                        Label("km/h")
-                    },
-                    center = {
-                        // Sin marcha conocida el hueco se queda, para que el consumo no salte de sitio.
-                        val gear = state.gear
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(
-                                when {
-                                    gear == null -> " "
-                                    gear < 1 -> "N"
-                                    else -> Dashboard.CALCULATED + "${gear}ª"
-                                },
-                                color = Bmw.Text,
-                                fontSize = (22 * scale).sp,
-                            )
-                            // La recomendacion de cambio, tambien calculada: flecha arriba para subir, abajo para bajar.
-                            when (state.shift) {
-                                ShiftHint.UP -> Text("▲", color = Bmw.Accent, fontSize = (22 * scale).sp)
-                                ShiftHint.DOWN -> Text("▼", color = Bmw.Amber, fontSize = (22 * scale).sp)
-                            }
-                        }
-                        CenterReadout(state, (28 * scale).sp)
-                    },
-                    right = {
-                        Text(rpm?.let { formatValue(it, 0) } ?: "—", color = Bmw.Text, fontSize = (54 * scale).sp, fontWeight = FontWeight.Light)
-                        Label("rpm")
-                    },
-                )
-                Info(state, Modifier.height(INFO_HEIGHT))
+            SideArc(
+                fraction = ((speed ?: 0.0) / SPEED_MAX).toFloat(),
+                mirrored = false,
+                redFrom = 1f,
+                labels = listOf("0", "120", "240"),
+                modifier = Modifier.width(ARC_WIDTH).fillMaxHeight(),
+            ) {
+                Text(speed?.let { formatValue(it, 0) } ?: "—", color = Bmw.Text, fontSize = 44.sp, fontWeight = FontWeight.Light, maxLines = 1)
+                Label("km/h")
+                Cruise(values)
+            }
+            Column(
+                Modifier.width(centerWidth).fillMaxHeight(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterVertically),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    // Sin marcha conocida el hueco se queda, para que la tarjeta no salte de sitio.
+                    val gear = state.gear
+                    Text(
+                        when {
+                            gear == null -> " "
+                            gear < 1 -> "N"
+                            else -> Dashboard.CALCULATED + "${gear}ª"
+                        },
+                        color = Bmw.Text,
+                        fontSize = 22.sp,
+                    )
+                    // La recomendacion de cambio, tambien calculada: flecha arriba para subir, abajo para bajar.
+                    when (state.shift) {
+                        ShiftHint.UP -> Text("▲", color = Bmw.Accent, fontSize = 22.sp)
+                        ShiftHint.DOWN -> Text("▼", color = Bmw.Amber, fontSize = 22.sp)
+                    }
+                }
+                CenterCards(state)
+            }
+            SideArc(
+                fraction = ((rpm ?: 0.0) / vehicle.rpmMax).toFloat(),
+                mirrored = true,
+                redFrom = vehicle.rpmRedFrom,
+                labels = listOf("0", formatValue(vehicle.rpmMax / 2000, 0), formatValue(vehicle.rpmMax / 1000, 0)),
+                modifier = Modifier.width(ARC_WIDTH).fillMaxHeight(),
+            ) {
+                Text(rpm?.let { formatValue(it, 0) } ?: "—", color = Bmw.Text, fontSize = 34.sp, fontWeight = FontWeight.Light, maxLines = 1)
+                Label("rpm")
             }
             GroupColumn(
                 group = rightGroup,
@@ -181,6 +216,137 @@ internal fun DashPanel(state: LiveState, onMenu: () -> Unit, onWatch: (List<Int>
                     rightHold = SystemClock.elapsedRealtime() + TOUCH_HOLD_MS
                 },
             )
+        }
+        Bottom(state, Modifier.height(INFO_HEIGHT))
+    }
+}
+
+/**
+ * Un reloj reducido a un arco fino en un lado, con su cifra dentro. El de la izquierda se abre
+ * hacia la derecha y el de la derecha al reves; los dos se llenan de abajo arriba.
+ */
+@Composable
+private fun SideArc(
+    fraction: Float,
+    mirrored: Boolean,
+    redFrom: Float,
+    labels: List<String>,
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    val shown by animateFloatAsState(fraction.coerceIn(0f, 1f), tween(350, easing = LinearEasing), label = "arco")
+    val measurer = rememberTextMeasurer()
+    val track = Bmw.Line
+    val fill = Bmw.Accent
+    val red = Bmw.MRed
+    val labelStyle = TextStyle(color = Bmw.TextDim, fontSize = 11.sp)
+    Box(modifier, contentAlignment = Alignment.Center) {
+        Canvas(Modifier.fillMaxSize()) {
+            val stroke = ARC_STROKE.toPx()
+            val pad = ARC_PAD.toPx()
+            val half = ARC_HALF_ANGLE
+            val radius = (size.height - 2 * pad) / (2 * sin(Math.toRadians(half.toDouble())).toFloat())
+            val edge = stroke / 2 + ARC_INSET.toPx()
+            val cx = if (mirrored) size.width - edge - radius else edge + radius
+            val box = Size(radius * 2, radius * 2)
+            val corner = Offset(cx - radius, size.height / 2 - radius)
+            // Los angulos van en el sentido de las agujas desde las tres: abajo es 90.
+            val start = if (mirrored) half else 180f - half
+            val turn = if (mirrored) -1f else 1f
+            val whole = 2 * half
+            val line = Stroke(stroke, cap = StrokeCap.Round)
+            drawArc(track, start, turn * whole, useCenter = false, topLeft = corner, size = box, style = line)
+            if (redFrom < 1f) {
+                drawArc(red, start + turn * whole * redFrom, turn * whole * (1 - redFrom), useCenter = false, topLeft = corner, size = box, style = line)
+            }
+            if (shown > 0.005f) drawArc(fill, start, turn * whole * shown, useCenter = false, topLeft = corner, size = box, style = line)
+
+            // Tres rotulos: abajo, en medio y arriba, por dentro del arco.
+            labels.forEachIndexed { index, text ->
+                val angle = Math.toRadians((start + turn * whole * index / (labels.size - 1)).toDouble())
+                val inner = radius - stroke - ARC_LABEL_GAP.toPx()
+                val layout = measurer.measure(text, labelStyle)
+                val x = cx + inner * cos(angle).toFloat() - if (mirrored) layout.size.width.toFloat() else 0f
+                val y = size.height / 2 + inner * sin(angle).toFloat() - layout.size.height / 2f
+                drawText(layout, topLeft = Offset(x, y.coerceIn(0f, size.height - layout.size.height)))
+            }
+        }
+        Column(
+            Modifier.padding(start = if (mirrored) 0.dp else ARC_CONTENT_SHIFT, end = if (mirrored) ARC_CONTENT_SHIFT else 0.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            content = content,
+        )
+    }
+}
+
+/** El control de crucero junto a la velocidad: un reloj pequeño y la velocidad fijada. Apagado no sale. */
+@Composable
+private fun Cruise(values: Map<Int, Double>) {
+    val state = values[Dashboard.CRUISE_STATE]?.toInt() ?: return
+    if (state != Dashboard.CRUISE_DRIVING && state != Dashboard.CRUISE_WAITING) return
+    val color = if (state == Dashboard.CRUISE_DRIVING) Bmw.MBlueLight else Bmw.TextDim
+    Row(Modifier.padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        Canvas(Modifier.size(14.dp)) {
+            val line = Stroke(1.5.dp.toPx(), cap = StrokeCap.Round)
+            drawArc(color, 150f, 240f, useCenter = false, style = line)
+            drawLine(color, center, Offset(center.x + size.width * 0.28f, center.y - size.height * 0.28f), line.width, StrokeCap.Round)
+        }
+        values[Dashboard.CRUISE_SPEED]?.takeIf { it > 0 }?.let { Text(formatValue(it, 0), color = color, fontSize = 14.sp) }
+    }
+}
+
+/**
+ * Las tarjetas del centro: trayecto, temperaturas y motor. Se pasan deslizando a un lado o a
+ * otro, o tocando; no rotan solas. Cuatro numeros con su unidad debajo.
+ */
+@Composable
+private fun CenterCards(state: LiveState) {
+    val now by produceState(System.currentTimeMillis()) {
+        while (true) {
+            value = System.currentTimeMillis()
+            delay(1000)
+        }
+    }
+    val cards = Dashboard.cards(
+        state.values, state.tripKm, (now - state.liveSinceMillis).coerceAtLeast(0), state.averageL100, state.vehicle.diesel,
+    )
+    var page by rememberSaveable { mutableIntStateOf(0) }
+    var dragged by remember { mutableFloatStateOf(0f) }
+    val threshold = with(LocalDensity.current) { SWIPE_DISTANCE.toPx() }
+    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(14.dp))
+                .background(Bmw.Surface)
+                .pointerInput(cards.size) {
+                    detectHorizontalDragGestures(
+                        onDragStart = { dragged = 0f },
+                        onDragEnd = {
+                            if (dragged <= -threshold) page = (page + 1) % cards.size
+                            if (dragged >= threshold) page = (page + cards.size - 1) % cards.size
+                        },
+                    ) { _, amount -> dragged += amount }
+                }
+                .clickable { page = (page + 1) % cards.size }
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            for (pair in cards[page % cards.size].chunked(2)) {
+                Row(Modifier.fillMaxWidth()) {
+                    for (cell in pair) {
+                        Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(cell.value, color = Bmw.Text, fontSize = 24.sp, fontWeight = FontWeight.Light, maxLines = 1)
+                            Text(cell.tag, color = Bmw.TextDim, fontSize = 11.sp, maxLines = 1)
+                        }
+                    }
+                }
+            }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            for (index in cards.indices) {
+                Box(Modifier.size(6.dp).clip(CircleShape).background(if (index == page % cards.size) Bmw.Accent else Bmw.Line))
+            }
         }
     }
 }
@@ -222,19 +388,43 @@ private fun Strip(state: LiveState, onMenu: () -> Unit) {
     }
 }
 
-/** Bajo el cuadro: el agua, el deposito y los kilometros que quedan, que son una cuenta. */
+/** La linea de abajo: el deposito con lo que queda, que es una cuenta, la hora y la temperatura de fuera. */
 @Composable
-private fun Info(state: LiveState, modifier: Modifier = Modifier) {
+private fun Bottom(state: LiveState, modifier: Modifier = Modifier) {
     val values = state.values
-    val parts = listOfNotNull(
-        values[Pids.COOLANT]?.let { "Agua " + formatValue(it, 0) + " °C" },
-        values[Pids.bmw(Pids.BMW_TANK_ADDRESS)]?.let { "Depósito " + formatValue(it, 0) + " L" },
-        Dashboard.rangeKm(values, state.averageL100)?.let { "≈ " + formatValue(it, 0) + " km" },
-    )
-    Box(modifier, contentAlignment = Alignment.Center) {
-        Text(parts.joinToString("  ·  "), color = Bmw.TextDim, fontSize = 13.sp, maxLines = 1)
+    val tank = values[Pids.bmw(Pids.BMW_TANK_ADDRESS)]
+    val clock by produceState(clockText()) {
+        while (true) {
+            value = clockText()
+            delay(10_000)
+        }
+    }
+    Row(modifier.fillMaxWidth().padding(horizontal = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        if (tank != null) {
+            Box(Modifier.weight(1f).height(4.dp).clip(RoundedCornerShape(2.dp)).background(Bmw.Line)) {
+                // La barra sale del nivel en tanto por ciento que da el coche; sin el, de los litros
+                // sobre la capacidad del deposito del Serie 1, que es aproximada.
+                val level = values[FUEL_LEVEL]?.let { it / 100.0 } ?: (tank / TANK_LITERS)
+                Box(Modifier.fillMaxWidth(level.toFloat().coerceIn(0f, 1f)).fillMaxHeight().background(Bmw.Text))
+            }
+            Text(formatValue(tank, 0) + " L", color = Bmw.Text, fontSize = 13.sp, maxLines = 1)
+            Dashboard.rangeKm(values, state.averageL100)?.let {
+                Text(Dashboard.CALCULATED + formatValue(it, 0) + " km", color = Bmw.TextDim, fontSize = 13.sp, maxLines = 1)
+            }
+        } else {
+            Spacer(Modifier.weight(1f))
+        }
+        MStripe()
+        Text(
+            listOfNotNull(clock, values[OUTSIDE_TEMP]?.let { formatValue(it, 0) + " °C" }).joinToString("  ·  "),
+            color = Bmw.TextDim,
+            fontSize = 13.sp,
+            maxLines = 1,
+        )
     }
 }
+
+private fun clockText(): String = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
 
 @Composable
 private fun GroupColumn(group: DashGroup, tiles: List<DashTile>, pinnedColor: Color?, modifier: Modifier, onClick: () -> Unit) {

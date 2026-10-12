@@ -85,6 +85,29 @@ class DashboardTest {
     }
 
     @Test
+    fun `las tarjetas del centro son cuatro numeros con su unidad`() {
+        val values = mapOf(
+            Pids.RPM to 1949.0, Pids.SPEED to 113.0, Pids.BMW_INJECTION to 21.0, Pids.COOLANT to 91.0,
+            Pids.bmw(0x041E) to 440.4, Pids.bmw(0x076F) to 32.6, Pids.bmw(0x0E43) to 56.0, Pids.bmw(0x07D1) to 210.9,
+            Pids.MAP to 167.0, Pids.BAROMETRIC to 93.0, 0x23 to 720.0,
+        )
+        val (trip, temperatures, engine) = Dashboard.cards(values, tripKm = 42.63, elapsedMs = 48 * 60_000L + 12_000, average = 5.42, diesel = true)
+        assertEquals(listOf(DashCell("42,6", "km"), DashCell("0:48", "h:min"), DashCell("≈ 5,4", "Ø L/100"), DashCell("≈ 5,2", "L/100")), trip)
+        assertEquals(
+            listOf(DashCell("91", "°C agua"), DashCell("440", "°C escape"), DashCell("33", "°C aire"), DashCell("56", "°C alternador")),
+            temperatures,
+        )
+        assertEquals(listOf(DashCell("211", "Nm"), DashCell("≈ 59", "CV"), DashCell("0,74", "bar turbo"), DashCell("720", "bar raíl")), engine)
+
+        // Parado el consumo sale por hora; sin datos, rayas; y pasada la hora, el tiempo con horas.
+        val stopped = Dashboard.cards(values + (Pids.SPEED to 0.0) + (Pids.RPM to 800.0), 0.0, 75 * 60_000L, null, true)
+        assertEquals(listOf(DashCell("0,0", "km"), DashCell("1:15", "h:min"), DashCell("—", "Ø L/100"), DashCell("≈ 2,4", "L/h")), stopped[0])
+        val empty = Dashboard.cards(emptyMap(), 0.0, 0L, null, true)
+        assertEquals(3, empty.size)
+        assertTrue(empty.drop(1).flatten().all { it.value == Dashboard.MISSING })
+    }
+
+    @Test
     fun `la presion del turbo sale de un mismo mensaje cuando el coche lo da`() {
         val own = mapOf(Pids.bmw(0x01F4) to 169.0, Pids.MAP to 150.0)
         assertEquals("169 / 150", Dashboard.tiles(DashGroup.TURBO, own).first().value)
