@@ -200,6 +200,7 @@ private fun BmwFaultsCard(faults: List<BmwFault>, vehicleTerms: String) {
                     Text(fault.label, color = if (fault.active) Bmw.MRed else Bmw.Accent, fontFamily = FontFamily.Monospace, fontSize = 18.sp)
                     Text(fault.text ?: "Sin descripción en la app", color = Bmw.Text, fontSize = 15.sp, modifier = Modifier.weight(1f))
                 }
+                fault.kind?.let { Text(it, color = Bmw.Text, fontSize = 14.sp) }
                 Text(
                     if (fault.active) "Presente ahora" else "Guardada de antes; ahora no está presente",
                     color = Bmw.TextDim,

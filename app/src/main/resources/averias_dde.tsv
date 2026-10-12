@@ -1,0 +1,719 @@
+2E3B	Protección contra manipulación del inmovilizador	Fallo en los datos o en la respuesta del inmovilizador
+2E3C	Protección contra manipulación del inmovilizador	Fallo en los datos o en la respuesta del inmovilizador
+2E3D	Enlace entre inmovilizador y centralita	Fallo en el enlace con el CAS (llave y arranque)
+2E3F	Enlace entre inmovilizador y centralita	Fallo en el enlace con el CAS (llave y arranque)
+2E40	Enlace entre inmovilizador y centralita	Fallo en el enlace con el CAS (llave y arranque)
+2E41	Enlace entre inmovilizador y centralita	Fallo en los datos o en la respuesta del inmovilizador
+2E42	Centralita del motor, fallo interno (EWS-Daten)	Fallo en los datos o en la respuesta del inmovilizador
+2E43	Centralita del motor, fallo interno (EWS-Daten)	Fallo en los datos o en la respuesta del inmovilizador
+2E44	Centralita del motor, fallo interno (EWS-Daten)	Fallo en los datos o en la respuesta del inmovilizador
+2E45	Centralita del motor, fallo interno (EWS-Daten)	Fallo en los datos o en la respuesta del inmovilizador
+2E46	Mensaje entre inmovilizador y centralita defectuoso	Error de recepción en el bus CAN
+2E47	Mensaje entre inmovilizador y centralita defectuoso	Fallo en los datos o en la respuesta del inmovilizador
+3E90	Sensor del cigüeñal, señal	Sin señal
+3E91	Sensor del cigüeñal, señal	Señal incorrecta
+3EAA	Coherencia de la presión del raíl, regulación combinada de presión y caudal	Mando de la válvula de presión no coherente
+3EBA	Coherencia de la presión del raíl, regulación combinada de presión y caudal	Presión por debajo del mínimo
+3EC0	Sensor del árbol de levas, señal	Sin señal
+3EC1	Sensor del árbol de levas, señal	Señal incorrecta
+3ECA	Coherencia de la presión del raíl, regulación combinada de presión y caudal	Presión máxima superada
+3EE0	Sensor de temperatura del refrigerante, señal	Circuito abierto o cortocircuito a positivo
+3EE1	Sensor de temperatura del refrigerante, señal	Cortocircuito a masa
+3EE2	Sensor de temperatura del refrigerante, señal	Valor recibido por CAN no coherente
+3EED	Gestión de energía: consumo en reposo	Consumo en reposo por encima de lo permitido
+3EF0	Sensor de temperatura del refrigerante, coherencia	La temperatura no sube
+3EFB	Nivel de aceite	Nivel de aceite demasiado bajo
+3EFC	Sensor térmico de nivel de aceite	Circuito abierto o cortocircuito a positivo o a masa (frecuencia de la señal demasiado baja)
+3EFD	Sensor térmico de nivel de aceite	Señal defectuosa
+3F00	Sensor de presión del turbo, señal	Cortocircuito a positivo
+3F01	Sensor de presión del turbo, señal	Circuito abierto o cortocircuito a masa
+3F03	Sensor de presión del turbo, señal	No cuadra con el sensor de presión ambiente al ralentí
+3F10	Pedal del acelerador, sensor 1, señal	Cortocircuito a positivo
+3F11	Pedal del acelerador, sensor 1, señal	Circuito abierto o cortocircuito a masa
+3F20	Pedal del acelerador, sensor 2, señal	Cortocircuito a positivo
+3F21	Pedal del acelerador, sensor 2, señal	Circuito abierto o cortocircuito a masa
+3F25	Vigilancia del manguito del turbo	Manguito del turbo suelto
+3F30	Sensor de presión del raíl, señal	Circuito abierto o cortocircuito a positivo
+3F31	Sensor de presión del raíl, señal	Cortocircuito a masa
+3F35	Vigilancia del manguito del turbo al ralentí	Manguito del turbo suelto
+3F40	Sensor de presión del raíl, prueba de desviación	Desviación de cero por encima del máximo
+3F41	Sensor de presión del raíl, prueba de desviación	Desviación de cero por debajo del mínimo
+3F50	Señal de velocidad	Señal de velocidad demasiado alta
+3F53	Señal de velocidad	No cuadra con la cantidad inyectada y las revoluciones
+3F62	Señal de velocidad por CAN	Señal defectuosa
+3F90	Sensor de presión de aceite, señal	Cortocircuito a positivo
+3F91	Sensor de presión de aceite, señal	Cortocircuito a masa
+3FC0	Caudalímetro	Desviación de la señal demasiado alta al ralentí
+3FD0	Caudalímetro	Desviación de la señal demasiado alta a plena carga
+3FE0	Caudalímetro	Deriva del cero del caudalímetro, por arriba
+3FE1	Caudalímetro	Deriva del cero del caudalímetro, por abajo
+3FF0	Caudalímetro	El aire calculado es demasiado mayor que el medido
+3FF1	Caudalímetro	El aire calculado es demasiado menor que el medido
+4000	Sensor de temperatura del combustible, señal	Circuito abierto o cortocircuito a positivo
+4001	Sensor de temperatura del combustible, señal	Cortocircuito a masa
+4010	Sensor de contrapresión antes del filtro de partículas, señal	Cortocircuito a positivo
+4011	Sensor de contrapresión antes del filtro de partículas, señal	Circuito abierto o cortocircuito a masa
+4020	Sensor de temperatura de escape antes del filtro de partículas, señal	Circuito abierto o cortocircuito a positivo
+4021	Sensor de temperatura de escape antes del filtro de partículas, señal	Cortocircuito a masa
+4030	Sensor de temperatura de escape antes del catalizador, señal	Circuito abierto o cortocircuito a positivo
+4031	Sensor de temperatura de escape antes del catalizador, señal	Cortocircuito a masa
+4060	Sensor de presión ambiente (dentro de la centralita), señal	Cortocircuito a positivo
+4061	Sensor de presión ambiente (dentro de la centralita), señal	Circuito abierto o cortocircuito a masa
+4073	Interruptor del embrague, señal	No cuadra con el cambio de marcha
+4083	Interruptor de la luz de freno, señales	Señales de freno no coherentes circulando
+4093	Información: caso de seguridad	Acelerador y freno pisados a la vez
+40A4	Posición del actuador de EGR, deriva a largo plazo	Posición demasiado desviada respecto a cuando era nuevo
+40B4	Posición del actuador de EGR, deriva a corto plazo	Posición demasiado desviada respecto al trayecto anterior
+40D4	Actuador de EGR, regulación de posición	Válvula demasiado cerrada
+40E0	Alternador	Sin comunicación por la línea BSD
+40E9	Actuador de EGR, regulación de posición	Válvula demasiado abierta
+4120	Relé principal de la centralita del motor	El relé corta demasiado tarde
+4121	Relé principal de la centralita del motor	El relé corta demasiado pronto o la tensión es baja
+412E	Mensaje de otra centralita (STAT_ZV_KLAPPEN, 0x2FC)	Señales del mensaje no válidas
+412F	Mensaje de otra centralita (STAT_ZV_KLAPPEN, 0x2FC)	No llega el mensaje de CAS
+4134	Sensor de punto muerto, señal	Ciclo de trabajo demasiado alto
+4139	Sensor de punto muerto, señal	Ciclo de trabajo demasiado bajo
+413E	Sensor de punto muerto, señal	Periodo demasiado largo
+413F	Sensor de punto muerto, señal	Periodo demasiado corto
+4165	Sistema del filtro de partículas	Resistencia al paso demasiado alta (filtro obstruido)
+4166	Sistema del filtro de partículas	Resistencia al paso demasiado baja (filtro roto o no montado)
+416F	Posición de punto muerto, ajuste	Posición sin aprender con la máquina de diagnóstico
+4175	Sensor de temperatura de escape antes del filtro de partículas, señal	Señal demasiado alta
+4176	Sensor de temperatura de escape antes del filtro de partículas, señal	Señal demasiado baja
+4180	Actuador del turbo, mando	Cortocircuito a positivo
+4185	Sensor de temperatura de escape antes del catalizador, señal	Señal demasiado alta
+4186	Sensor de temperatura de escape antes del catalizador, señal	Señal demasiado baja
+4191	Actuador del turbo, mando	Cortocircuito a masa
+419A	Sensor de presión ambiente (dentro de la centralita)	Presión ambiente demasiado alta (no cuadra con la del filtro y la del turbo)
+419B	Sensor de presión ambiente (dentro de la centralita)	Presión ambiente demasiado baja (no cuadra con la del filtro y la del turbo)
+41A2	Actuador del turbo, mando	Circuito abierto (cable o pieza cortados)
+41A3	Actuador del turbo, mando	Etapa de potencia demasiado caliente
+41AA	Sensor de presión del turbo	Presión del turbo demasiado alta (no cuadra con la del filtro y la ambiente)
+41AB	Sensor de presión del turbo	Presión del turbo demasiado baja (no cuadra con la del filtro y la ambiente)
+41B0	Actuador de EGR, mando	Cortocircuito a positivo
+41BA	Sensor de contrapresión de escape	Presión antes del filtro demasiado alta (no cuadra con la del turbo y la ambiente)
+41BB	Sensor de contrapresión de escape	Presión antes del filtro demasiado baja (no cuadra con la del turbo y la ambiente)
+41CD	Coherencia entre los sensores de presión	La presión antes del filtro, la del turbo y la ambiente no cuadran entre sí
+41D1	Actuador de EGR, mando	Cortocircuito a masa
+41D7	Sonda lambda, señal de tensión de Nernst	Circuito abierto (cable o pieza cortados)
+41E2	Actuador de EGR, mando	Circuito abierto (cable o pieza cortados)
+41E3	Actuador de EGR, mando	Etapa de potencia demasiado caliente
+41E7	Sonda lambda, señal de corriente de bombeo	Circuito abierto (cable o pieza cortados)
+41ED	Centralita del motor, fallo interno (Zyklische Authentisierung)	Comprobación de los datos incorrecta
+41F0	Electroventilador, mando	Cortocircuito a positivo
+41F1	Electroventilador, mando	Cortocircuito a masa
+41F2	Electroventilador, mando	Circuito abierto (cable o pieza cortados)
+41F3	Electroventilador, mando	Etapa de potencia demasiado caliente
+41F7	Sonda lambda, señal de masa virtual	Circuito abierto (cable o pieza cortados)
+41FD	Centralita del motor, fallo interno (Zyklische Authentisierung)	Comprobación de la versión del programa incorrecta
+4205	Sonda lambda, mando de la calefacción	Cortocircuito a positivo
+4206	Sonda lambda, mando de la calefacción	Cortocircuito a masa
+4207	Sonda lambda, mando de la calefacción	Circuito abierto (cable o pieza cortados)
+4208	Sonda lambda, mando de la calefacción	Etapa de potencia demasiado caliente
+4217	Sonda lambda	Oxígeno no creíble (la calefacción de la sonda altera la señal)
+4225	Sonda lambda	Tensión de la señal demasiado alta o corriente de ajuste cortada
+4226	Sonda lambda	Tensión de la señal demasiado baja
+4235	Centralita del motor, fallo interno (LSU Kalibrierung)	Cero de la lectura de la sonda lambda demasiado alto
+4236	Centralita del motor, fallo interno (LSU Kalibrierung)	Cero de la lectura de la sonda lambda demasiado bajo
+4245	Centralita del motor, fallo interno (LSU Referenzwiderstand)	Resistencia de referencia demasiado alta (temperatura de la sonda lambda)
+4246	Centralita del motor, fallo interno (LSU Referenzwiderstand)	Resistencia de referencia demasiado baja (temperatura de la sonda lambda)
+4258	Centralita del motor, fallo interno (LSU SPI)	Fallo interno de medida o comunicación de la centralita
+425D	Pedal del acelerador, coherencia	Los sensores 1 y 2 no cuadran entre sí
+4267	Sonda lambda, detección de derivación	Corriente de bombeo demasiado baja con la sonda fría
+4275	Sonda lambda, calefacción	Temperatura demasiado alta
+4276	Sonda lambda, calefacción	Temperatura demasiado baja
+428B	Regulación de la presión del turbo, etapa de baja, desviación de la regulación	Presión del turbo demasiado alta
+4293	Centralita del motor, fallo interno (Recovery locked)	La centralita se ha reiniciado sola
+429A	Regulación de la presión del turbo, etapa de baja, desviación de la regulación	Presión del turbo demasiado baja
+42B5	Vigilancia de revoluciones	Demasiada diferencia entre la posición del cigüeñal y la del árbol de levas
+42E2	Cambio de la regulación del raíl a presión (PCV)	El diagnóstico ha pasado la regulación del raíl a presión (PCV)
+42F2	Cambio de la regulación del raíl a caudal (MeUn)	El diagnóstico ha pasado la regulación del raíl a caudal (MeUn)
+4300	Válvula reguladora de caudal, mando	Circuito abierto (cable o pieza cortados)
+430E	Mensaje de otra centralita (FAHRZEUGTYP, 0x388)	Señales del mensaje no válidas
+4310	Válvula reguladora de caudal, mando	Cortocircuito a positivo
+4320	Válvula reguladora de caudal, mando	Cortocircuito a masa
+4324	Trampillas de aire de refrigeración	Fallo eléctrico de la trampilla activa de aire de refrigeración
+4329	Trampillas de aire de refrigeración	Fallo mecánico de la trampilla activa de aire de refrigeración
+432F	Trampillas de aire de refrigeración	El sistema no contesta
+4330	Válvula reguladora de presión del raíl, mando	Circuito abierto (cable o pieza cortados)
+4334	Trampillas de aire de refrigeración	Fallo de la trampilla pasiva de aire de refrigeración
+4340	Válvula reguladora de presión del raíl, mando	Cortocircuito a positivo
+4344	Trampillas de aire de refrigeración, mando	Cortocircuito a positivo
+4349	Trampillas de aire de refrigeración, mando	Cortocircuito a masa
+434E	Trampillas de aire de refrigeración, mando	Circuito abierto (cable o pieza cortados)
+434F	Trampillas de aire de refrigeración, mando	Etapa de potencia demasiado caliente
+4350	Válvula reguladora de presión del raíl, mando	Cortocircuito a masa
+4360	Regulación de corriente de la válvula reguladora de presión del raíl	Sin uso
+4361	Regulación de corriente de la válvula reguladora de presión del raíl	Sin uso
+437D	Vigilancia de par DCC	Petición de par no permitida con el freno pisado
+4390	Sensor de temperatura del aire del turbo, señal	Circuito abierto o cortocircuito a positivo
+4391	Sensor de temperatura del aire del turbo, señal	Cortocircuito a masa
+439F	Sensor de punto muerto, coherencia	Sensor de punto muerto averiado
+43A0	Relé de bloqueo de arranque, mando	Cortocircuito a positivo
+43A1	Relé de bloqueo de arranque, mando	Cortocircuito a masa
+43A2	Relé de bloqueo de arranque, mando	Circuito abierto (cable o pieza cortados)
+43A3	Relé de bloqueo de arranque, mando	Etapa de potencia demasiado caliente
+43C0	Actuador de la mariposa, mando	Cortocircuito a positivo
+43D1	Actuador de la mariposa, mando	Cortocircuito a masa
+43E2	Actuador de la mariposa, mando	Circuito abierto (cable o pieza cortados)
+43E3	Actuador de la mariposa, mando	Etapa de potencia demasiado caliente
+43EA	Adaptación del valor medio de cantidad	Corrección del error de cantidad por encima del rango permitido
+43EB	Adaptación del valor medio de cantidad	Corrección del error de cantidad por debajo del rango permitido
+43F0	Calefactor eléctrico auxiliar, mando	Cortocircuito a positivo
+43F1	Calefactor eléctrico auxiliar, mando	Cortocircuito a masa
+43F2	Calefactor eléctrico auxiliar, mando	Circuito abierto (cable o pieza cortados)
+43F3	Calefactor eléctrico auxiliar, mando	Etapa de potencia demasiado caliente
+43FD	Sonda lambda	La señal de la sonda evoluciona de forma no creíble
+4403	Centralita del motor, fallo interno (Recovery suppressed)	La centralita se ha reiniciado sola
+440A	Sonda lambda	Oxígeno demasiado alto para ser creíble (a plena carga)
+440B	Sonda lambda	Oxígeno demasiado bajo para ser creíble (a plena carga)
+441C	Inyector del cilindro 1, mando	Lado negativo cortado
+442C	Inyector del cilindro 2, mando	Lado negativo cortado
+443C	Inyector del cilindro 3, mando	Lado negativo cortado
+4445	Mensaje de otra centralita (DREHMOMENT_ANF_AFS, 0xB9)	Mensaje con error de comprobación
+4446	Mensaje de otra centralita (DREHMOMENT_ANF_AFS, 0xB9)	El mensaje de la otra centralita no se actualiza
+4447	Mensaje de otra centralita (DREHMOMENT_ANF_AFS, 0xB9)	Señales del mensaje no válidas
+4448	Mensaje de otra centralita (DREHMOMENT_ANF_AFS, 0xB9)	No llega el mensaje de AFS
+444C	Inyector del cilindro 4, mando	Lado negativo cortado
+4457	Mensaje de otra centralita (LENKRADWINKEL, 0xC4)	Señales del mensaje no válidas
+4458	Mensaje de otra centralita (LENKRADWINKEL, 0xC4)	No llega el mensaje de DSC
+445C	Inyector del cilindro 5, mando	Lado negativo cortado
+446C	Inyector del cilindro 6, mando	Lado negativo cortado
+4473	Centralita del motor, fallo interno (Recovery visible)	La centralita se ha reiniciado sola
+4477	Sensor inteligente de batería	Sin comunicación por la línea BSD
+447A	Sonda lambda	Oxígeno demasiado alto para ser creíble (en retención)
+447B	Sonda lambda	Oxígeno demasiado bajo para ser creíble (en retención)
+448A	Sonda lambda	Oxígeno demasiado alto para ser creíble (a media carga)
+448B	Sonda lambda	Oxígeno demasiado bajo para ser creíble (a media carga)
+449A	Actuador del turbo, línea de estado	Circuito abierto o cortocircuito a positivo
+449B	Actuador del turbo, línea de estado	Cortocircuito a masa o señal defectuosa
+44A5	Adaptación de cantidad mínima, inyector del cilindro 1	Corrección del tiempo de inyección por encima de lo permitido
+44A6	Adaptación de cantidad mínima, inyector del cilindro 1	Corrección del tiempo de inyección por debajo de lo permitido
+44B5	Adaptación de cantidad mínima, inyector del cilindro 2	Corrección del tiempo de inyección por encima de lo permitido
+44B6	Adaptación de cantidad mínima, inyector del cilindro 2	Corrección del tiempo de inyección por debajo de lo permitido
+44C0	Número de inyecciones pedidas limitado	Por el balance de carga del condensador de refuerzo
+44C1	Número de inyecciones pedidas limitado	Por el balance de caudal de la bomba de alta
+44C2	Número de inyecciones pedidas limitado	Por el programa de la centralita
+44C3	Número de inyecciones pedidas limitado	Por tiempo de funcionamiento
+44C5	Adaptación de cantidad mínima, inyector del cilindro 3	Corrección del tiempo de inyección por encima de lo permitido
+44C6	Adaptación de cantidad mínima, inyector del cilindro 3	Corrección del tiempo de inyección por debajo de lo permitido
+44CC	Actuador del turbo	Actuador del turbo con avería eléctrica o mecánica, o demasiado caliente
+44CF	Sistema del filtro de partículas	Salto de contrapresión de escape no creíble
+44D5	Adaptación de cantidad mínima, inyector del cilindro 4	Corrección del tiempo de inyección por encima de lo permitido
+44D6	Adaptación de cantidad mínima, inyector del cilindro 4	Corrección del tiempo de inyección por debajo de lo permitido
+44DC	Actuador del turbo	Sensor de posición del actuador del turbo averiado
+44E5	Adaptación de cantidad mínima, inyector del cilindro 5	Corrección del tiempo de inyección por encima de lo permitido
+44E6	Adaptación de cantidad mínima, inyector del cilindro 5	Corrección del tiempo de inyección por debajo de lo permitido
+44EC	Actuador del turbo, mando	Señal de mando del actuador del turbo no coherente
+44F5	Adaptación de cantidad mínima, inyector del cilindro 6	Corrección del tiempo de inyección por encima de lo permitido
+44F6	Adaptación de cantidad mínima, inyector del cilindro 6	Corrección del tiempo de inyección por debajo de lo permitido
+44FC	Actuador del turbo	Temperatura excesiva en el actuador del turbo
+4501	Regulación de EGR, desviación de la regulación	Caudal de aire demasiado alto
+4507	Regulación de EGR, desviación de la regulación	Caudal de aire demasiado bajo
+4521	Regulación de la presión del turbo, desviación de la regulación	Presión del turbo demasiado alta
+452A	Información: sistema del filtro de partículas	Al filtro de partículas le quedan pocos kilómetros
+4530	Regulación de la presión del turbo, desviación de la regulación	Presión del turbo demasiado baja
+4560	Coherencia de la presión del raíl, regulando por caudal	Presión del raíl demasiado baja
+4570	Coherencia de la presión del raíl, regulando por caudal	Presión del raíl demasiado baja y mando demasiado alto
+4577	Mensaje de otra centralita (CTR_CRASH_SWO_EKP, 0x135)	Señales del mensaje no válidas
+4578	Mensaje de otra centralita (CTR_CRASH_SWO_EKP, 0x135)	No llega el mensaje de SGM_SIM
+457A	Temperatura de escape antes del catalizador, coherencia	Temperatura permitida superada
+457D	Temperatura de escape antes del catalizador, coherencia	Temperatura alta, no creíble
+4580	Coherencia de la presión del raíl, regulando por caudal	Presión del raíl demasiado alta con la válvula de caudal al máximo
+4587	Filtro de combustible	Filtro obstruido
+458A	Temperatura de escape antes del catalizador durante la regeneración, coherencia	Temperatura permitida superada
+4590	Coherencia de la presión del raíl, regulando por caudal	Presión por debajo del mínimo
+459A	Temperatura de escape antes del filtro de partículas, coherencia	Temperatura permitida superada
+459D	Temperatura de escape antes del filtro de partículas, coherencia	Temperatura alta, no creíble
+45A0	Coherencia de la presión del raíl, regulando por caudal	Presión máxima superada
+45A1	Mando de los calentadores, modo de fábrica activo	Calentadores desactivados
+45AA	Temperatura de escape antes del filtro de partículas durante la regeneración, coherencia	Temperatura permitida superada
+4600	Coherencia de la presión del raíl, regulando por presión	Presión del raíl demasiado baja
+4610	Coherencia de la presión del raíl, regulando por presión	Presión del raíl demasiado baja y válvula de presión demasiado mandada
+4618	Sensor de presión ambiente (dentro de la centralita)	La presión ambiente no cuadra con la de antes del filtro
+4620	Coherencia de la presión del raíl, regulando por presión	Presión del raíl demasiado alta con la válvula de presión al mínimo
+4628	Sistema del filtro de partículas	Tubo o sensor de contrapresión del filtro congelado
+4630	Coherencia de la presión del raíl, regulando por presión	Presión por debajo del mínimo
+4638	Mensaje de otra centralita (DIENSTE-Verbraucherstatus, 0x580-0x5FF)	No llega el mensaje de unterschiedlichen Sende-Steuergeräten (AHM , CCC_GW , DWA , IHKA , LM , M_ASK, ...)
+4640	Coherencia de la presión del raíl, regulando por presión	Presión máxima superada
+4654	Centralita del motor, fallo interno (MoCSOPPSIniTimeOut)	Fallo interno de hardware de la centralita del motor
+4656	Centralita del motor, fallo interno (LSU SPI)	Fallo interno de medida o comunicación de la centralita
+4659	Centralita del motor, fallo interno (MoCSOPOSTimeOut)	Fallo interno de hardware de la centralita del motor
+465E	Centralita del motor, fallo interno (MoCSOPErrSPI)	Fallo interno de hardware de la centralita del motor
+465F	Centralita del motor, fallo interno (MoCSOPErrRespTime)	Fallo interno de hardware de la centralita del motor
+4660	Tensión de alimentación	Tensión de alimentación de la centralita por encima del máximo
+4661	Tensión de alimentación	Tensión de alimentación de la centralita por debajo del mínimo
+4664	Centralita del motor, fallo interno (MoCSOPErrMMRespByte)	Fallo interno de hardware de la centralita del motor
+4665	Sistema del filtro de partículas	El filtro todavía se puede regenerar
+4666	Sistema del filtro de partículas	El filtro ya no se puede regenerar
+4667	Sistema del filtro de partículas	Regeneraciones demasiado frecuentes
+4669	Centralita del motor, fallo interno (IVHFreeInjPlcErr)	Conflicto al programar las inyecciones
+4670	Tensión de alimentación 1	Cortocircuito a positivo o a masa
+4677	Actuador de la mariposa	Avería mecánica (se desvía cerca de la posición cerrada)
+467E	xDFC_RailLeakTst	La presión cae a un ritmo fuera de rango
+4680	Tensión de alimentación 2	Cortocircuito a positivo o a masa
+4684	Actuador de las mariposas de turbulencia, regulación de posición	Mariposas de turbulencia demasiado abiertas, cerca de la posición cerrada
+4687	Actuador de la mariposa	Avería eléctrica o mecánica (sensor de posición, desviación o exceso de corriente del motor)
+4689	Actuador de las mariposas de turbulencia, regulación de posición	Mariposas de turbulencia demasiado cerradas, cerca de la posición cerrada
+468E	Inyector del cilindro 1, mando	El tiempo de inyección se ha alargado desde fuera
+468F	Inyector del cilindro 5, mando	El tiempo de inyección se ha alargado desde fuera
+4690	Tensión de alimentación 3	Cortocircuito a positivo o a masa
+4694	Inyector del cilindro 3, mando	El tiempo de inyección se ha alargado desde fuera
+4697	Actuador de la mariposa	Señal de mando no coherente, tensión de alimentación no válida o temperatura excesiva
+4699	Inyector del cilindro 6, mando	El tiempo de inyección se ha alargado desde fuera
+469E	Inyector del cilindro 2, mando	El tiempo de inyección se ha alargado desde fuera
+469F	Inyector del cilindro 4, mando	El tiempo de inyección se ha alargado desde fuera
+46C0	Centralita del motor, fallo interno (MoCComErrCnt)	Fallo interno de hardware de la centralita del motor
+46C1	Centralita del motor, fallo interno (MoCComSPI)	Fallo interno de hardware de la centralita del motor
+46C2	Centralita del motor, fallo interno (CJ945)	Fallo interno de medida o comunicación de la centralita
+46D5	Válvula de derivación del compresor, mando	Cortocircuito a positivo
+46D6	Válvula de derivación del compresor, mando	Cortocircuito a masa
+46D7	Válvula de derivación del compresor, mando	Circuito abierto (cable o pieza cortados)
+46D8	Válvula de derivación del compresor, mando	Etapa de potencia demasiado caliente
+46E5	Válvula de descarga del turbo, mando	Cortocircuito a positivo
+46EA	Modo de diagnóstico: prueba de alta presión	Vigilancia de la presión del raíl desactivada
+46F6	Válvula de descarga del turbo, mando	Cortocircuito a masa
+4707	Válvula de descarga del turbo, mando	Circuito abierto (cable o pieza cortados)
+4708	Válvula de descarga del turbo, mando	Etapa de potencia demasiado caliente
+4711	Centralita del motor, fallo interno (MoCSOPMM)	Fallo interno de hardware de la centralita del motor
+4712	Centralita del motor, fallo interno (MoCSOPUpLi)	Fallo interno de hardware de la centralita del motor
+4713	Centralita del motor, fallo interno (MoCSOPLoLi)	Fallo interno de hardware de la centralita del motor
+4716	Avería de prueba 1	Sin uso
+4730	Válvula reguladora de caudal, regulación de corriente	Señal de la válvula de caudal por encima de su rango
+4731	Válvula reguladora de caudal, regulación de corriente	Señal de la válvula de caudal por debajo de su rango
+4740	Centralita del motor, fallo interno (MoFOvR)	La vigilancia interna del par de la centralita ha visto una incoherencia
+4780	Centralita del motor, fallo interno (MoCADCTst)	Fallo interno de hardware de la centralita del motor
+480A	Sistema del filtro de partículas	Filtro de partículas muy cargado (contrapresión de escape alta)
+481A	Sistema del filtro de partículas	Filtro de partículas muy cargado (contrapresión de escape por encima del máximo)
+4820	Salida de potencia del climatizador, mando	Cortocircuito a positivo
+4821	Salida de potencia del climatizador, mando	Cortocircuito a masa
+4822	Salida de potencia del climatizador, mando	Circuito abierto (cable o pieza cortados)
+4823	Salida de potencia del climatizador, mando	Etapa de potencia demasiado caliente
+4824	Mensaje de otra centralita (ANF_RADMOM_PT, 0xBF)	Mensaje con error de comprobación
+4829	Mensaje de otra centralita (ANF_RADMOM_PT, 0xBF)	El mensaje de la otra centralita no se actualiza
+482A	Modo de ahorro de energía activo	El coche está en modo de transporte
+482B	Modo de ahorro de energía activo	El coche está en modo de fábrica
+482C	Modo de ahorro de energía activo	El coche está en modo de taller
+482E	Mensaje de otra centralita (ANF_RADMOM_PT, 0xBF)	Señales del mensaje no válidas
+482F	Mensaje de otra centralita (ANF_RADMOM_PT, 0xBF)	No llega el mensaje de LDM/EHB3
+4830	Sensor de temperatura del aire de admisión	Temperatura demasiado alta (ciclo de trabajo demasiado alto)
+4831	Sensor de temperatura del aire de admisión	Temperatura demasiado baja (ciclo de trabajo demasiado bajo)
+483D	Actuador de la mariposa	Avería eléctrica o mecánica
+4854	Magnitudes de proceso del motor	Desviación demasiado alta
+485A	Válvula de derivación del enfriador de EGR, mando	Cortocircuito a positivo
+485B	Válvula de derivación del enfriador de EGR, mando	Cortocircuito a masa
+485C	Válvula de derivación del enfriador de EGR, mando	Circuito abierto (cable o pieza cortados)
+485D	Válvula de derivación del enfriador de EGR, mando	Etapa de potencia demasiado caliente
+4870	Fallos de combustión en varios cilindros	Demasiados fallos de combustión detectados
+4875	Enfriamiento de EGR, coherencia	Temperatura medida tras el enfriador demasiado alta
+4878	Sistema de aire, coherencia entre el caudal de aire y el de EGR	El aire medido es demasiado alto frente al calculado y la presión del turbo se desvía mucho
+487E	Válvula de EGR, coherencia	Fallo de la memoria interna de la centralita
+487F	Centralita del motor, fallo interno (MoFMode2PoI2)	La vigilancia interna del par de la centralita ha visto una incoherencia
+4880	Fallos de combustión en el cilindro 1	Demasiados fallos de combustión detectados
+4884	Centralita del motor, fallo interno (MoFMode2PoI1)	La vigilancia interna del par de la centralita ha visto una incoherencia
+4889	Centralita del motor, fallo interno (MoFMode1PoI2)	La vigilancia interna del par de la centralita ha visto una incoherencia
+488E	Centralita del motor, fallo interno (MoFMode1PoI1)	La vigilancia interna del par de la centralita ha visto una incoherencia
+488F	Información: centralita del motor	Fallo en los datos o en la respuesta del inmovilizador
+4890	Fallos de combustión en el cilindro 2	Demasiados fallos de combustión detectados
+4894	Señal de revoluciones TD, mando	Cortocircuito a positivo
+4899	Señal de revoluciones TD, mando	Cortocircuito a masa
+489E	Señal de revoluciones TD, mando	Circuito abierto (cable o pieza cortados)
+48A5	Mensaje de otra centralita (VEH_MOD, 0x315)	Mensaje con error de comprobación
+48A6	Mensaje de otra centralita (VEH_MOD, 0x315)	El mensaje de la otra centralita no se actualiza
+48A7	Mensaje de otra centralita (VEH_MOD, 0x315)	Señales del mensaje no válidas
+48A8	Mensaje de otra centralita (VEH_MOD, 0x315)	No llega el mensaje de SZM Schaltzentrum Mittelkonsole
+48A9	Sensor de presión del raíl, coherencia	La presión del raíl cambia demasiado deprisa
+48B4	Sensor de vacío del servofreno, coherencia	El vacío baja demasiado poco al frenar
+48F2	Centralita del motor, fallo interno (Antriebsstrang CAN Bus)	Fallo interno de medida o comunicación de la centralita
+48FE	Sensor de temperatura del aire de admisión, coherencia	Demasiada diferencia entre el valor al arrancar y la temperatura de referencia
+4905	Modo de regulación de la presión del raíl, coherencia	Cambio no deseado de la regulación combinada a regulación por caudal
+4909	Reiniciar la compensación de deriva de cantidad	Compensación de deriva de cantidad sin reiniciar tras cambiar un inyector
+4910	Bus CAN B	La centralita se ha desconectado del bus
+4914	Centralita del motor, fallo interno (MoFDCS)	La vigilancia interna del par de la centralita ha visto una incoherencia
+4919	Centralita del motor, fallo interno (ADC)	Fallo interno de medida o comunicación de la centralita
+491E	Centralita del motor, fallo interno (ADC)	Fallo interno de medida o comunicación de la centralita
+4930	Fallos de combustión en el cilindro 3	Demasiados fallos de combustión detectados
+4932	Sistema de aire, coherencia entre el caudal de aire y el de EGR	El aire medido es demasiado alto frente al calculado
+4933	Sistema de aire, coherencia entre el caudal de aire y el de EGR	El aire medido es demasiado bajo frente al calculado
+4938	Centralita del motor, fallo interno (EEP EnvRamMedium)	Fallo de la memoria interna de la centralita
+493A	Centralita del motor, fallo interno (EEP EnvRamClear)	Fallo de la memoria interna de la centralita
+493B	Mensaje de otra centralita (Powermanagement Standverbraucher, 0x580-0x5FF ID2=8)	No llega el mensaje de diversen Sende-Steuergeräten (FRMFA, ZGW, AHM,  ...)
+493F	Sensor de presión de baja de combustible, señal	Cortocircuito a masa
+4940	Fallos de combustión en el cilindro 4	Demasiados fallos de combustión detectados
+4941	Centralita del motor, fallo interno (MoCSOPErrNoChk)	Fallo interno de hardware de la centralita del motor
+4944	Sensor de presión de baja de combustible, señal	Circuito abierto o cortocircuito a positivo
+4945	Mensaje de otra centralita (DIENSTE Anforderung MSA Funktion, 0x580-0x5FF ID2=19)	No llega el mensaje de diversen Sende-Steuergeräten (DSC, CAS, EGS, SEC1, IHKA, ...)
+4946	Mensaje de otra centralita (DIENSTE Anforderung Stufe Elektrolüfter, 0x580-0x5FF ID2=21)	No llega el mensaje de diversen Sende-Steuergeräten (EPS, ICM, ...)
+4949	Mando de los calentadores, respuesta de diagnóstico	El motor o el tipo de calentador no corresponde al mando de calentadores
+494A	Mando de los calentadores, respuesta de diagnóstico	Falta el positivo de batería en el mando de calentadores
+4950	Fallos de combustión en el cilindro 5	Demasiados fallos de combustión detectados
+4960	Fallos de combustión en el cilindro 6	Demasiados fallos de combustión detectados
+4964	Alimentación conmutable del caudalímetro, mando	Cortocircuito a positivo
+4969	Alimentación conmutable del caudalímetro, mando	Cortocircuito a masa
+496E	Alimentación conmutable del caudalímetro, mando	Circuito abierto (cable o pieza cortados)
+496F	Alimentación conmutable del caudalímetro, mando	Etapa de potencia demasiado caliente
+4979	Línea de habilitación hacia el CAS, mando	Etapa de potencia demasiado caliente
+497C	Sensor de presión de escape antes de la turbina, coherencia	La presión antes de la turbina no cuadra con la del turbo tras apagar
+497D	Sensor de presión de escape antes de la turbina, coherencia	La presión antes de la turbina no cuadra con la ambiente tras apagar
+497E	Mensaje de otra centralita (STAT_GANG_RUECKWAERTS, 0x3B0)	Señales del mensaje no válidas
+497F	Mensaje de otra centralita (STAT_GANG_RUECKWAERTS, 0x3B0)	No llega el mensaje de Fussraummodul Fahrer FRMFA
+498E	Sensor de nivel de aceite	Sin comunicación
+4990	Sensor de presión de escape antes de la turbina, coherencia	La presión de escape antes de la turbina evoluciona de forma no coherente
+4991	Mensaje de otra centralita (STAT_KOMBI, 0x1B4)	El mensaje de la otra centralita no se actualiza
+4992	Mensaje de otra centralita (STAT_KOMBI, 0x1B4)	Señales del mensaje no válidas
+4993	Mensaje de otra centralita (STAT_KOMBI, 0x1B4)	No llega el mensaje de Kombi
+4999	Centralita del motor, fallo interno (TLE6232)	Fallo interno de medida o comunicación de la centralita
+49A2	Mensaje de otra centralita (A_TEMP_RELATIVZEIT, 0x310)	Señales del mensaje no válidas
+49A3	Mensaje de otra centralita (A_TEMP_RELATIVZEIT, 0x310)	No llega el mensaje de Kombi
+49A5	Bus LIN, comunicación	No llegan mensajes del mando de calentadores
+49A6	Bus LIN, comunicación	La centralita se ha desconectado del bus
+49AF	Sensor térmico de nivel de aceite	Señal defectuosa
+49B7	Mensaje de otra centralita (STAT_EKP, 0x335)	Señales del mensaje no válidas
+49B8	Mensaje de otra centralita (STAT_EKP, 0x335)	No llega el mensaje de EKP
+49BE	Mariposas de turbulencia, coherencia	Fallo de la memoria interna de la centralita
+49C9	Centralita del motor, fallo interno (MoCROMErrXPg)	Fallo interno de hardware de la centralita del motor
+49D4	Válvula reguladora de presión del raíl, mando	Aumento de corriente por arranque retrasado activo
+49D9	Contrapresión de escape tras la turbina, coherencia	Contrapresión de escape no coherente
+49E4	Sonda lambda, señal de corriente de bombeo, tensión de Nernst o masa virtual	Cortocircuito a positivo
+49E7	Actuador de la mariposa	Avería eléctrica (memoria EEPROM)
+49EF	Sonda lambda, señal de corriente de bombeo, tensión de Nernst o masa virtual	Cortocircuito a masa
+49F2	Mensaje de otra centralita (GESCHWINDIGKEIT_RAD, 0xCE)	Señales del mensaje no válidas
+49F3	Mensaje de otra centralita (GESCHWINDIGKEIT_RAD, 0xCE)	No llega el mensaje de DSC
+49F4	Tiempo de motor parado, coherencia	Cálculo del tiempo de motor parado no coherente
+49F9	Centralita del motor, fallo interno (MonUMinSupply1)	Tensión interna de la centralita demasiado baja
+49FE	Centralita del motor, fallo interno (MonUMaxSupply1)	Tensión interna de la centralita demasiado alta
+49FF	Mando de los calentadores, respuesta de diagnóstico	Demasiada diferencia entre la tensión del mando de calentadores y la de la centralita
+4A02	Línea de despertar (BN 12h) o borne 15 (BN 11h)	Fallo interno de medida o comunicación de la centralita
+4A03	Línea de despertar (BN 12h) o borne 15 (BN 11h)	Contacto (borne 15) en cortocircuito a masa
+4A04	Mando de los calentadores, respuesta de diagnóstico	Temperatura interna demasiado alta
+4A07	Alternador	Sin comunicación por la línea BSD
+4A08	Alternador	Comunicación por la línea BSD incoherente
+4A09	Mando de los calentadores, respuesta de diagnóstico	Sin comunicación
+4A0E	Mando de los calentadores, respuesta de diagnóstico	Fallo interno de hardware
+4A0F	Mando de los calentadores, respuesta de diagnóstico	Diferencia de masa entre el mando de calentadores y los calentadores
+4A10	Línea de datos BSD	Cortocircuito
+4A15	Alternador	Sobrecalentamiento
+4A17	Alternador	Fallo eléctrico
+4A18	Alternador	Fallo mecánico
+4A25	Sensor inteligente de batería	Comunicación del protocolo BSD ampliado alterada
+4A27	Sensor inteligente de batería	Sin comunicación por la línea BSD
+4A28	Sensor inteligente de batería	Número de versión incorrecto
+4A34	Calentador del cilindro 4, mando	Resistencia del calentador fuera de especificación
+4A35	Sensor inteligente de batería	Medida interna de temperatura averiada
+4A37	Sensor inteligente de batería	Medida interna de tensión averiada
+4A38	Sensor inteligente de batería	Medida interna de corriente averiada
+4A39	Calentador del cilindro 4, mando	Cortocircuito
+4A3E	Calentador del cilindro 4, mando	Circuito abierto (cable o pieza cortados)
+4A3F	Mando de los calentadores	Etapa de potencia del cilindro 4 del mando de calentadores averiada
+4A44	Calentador del cilindro 3, mando	Resistencia del calentador fuera de especificación
+4A45	Sensor inteligente de batería	Línea de despertar del contacto en cortocircuito a masa
+4A47	Sensor inteligente de batería	Fallo del sistema
+4A48	Sensor inteligente de batería	Línea de despertar del contacto no coherente
+4A49	Calentador del cilindro 3, mando	Cortocircuito
+4A4E	Calentador del cilindro 3, mando	Circuito abierto (cable o pieza cortados)
+4A4F	Mando de los calentadores	Etapa de potencia del cilindro 3 del mando de calentadores averiada
+4A54	Calentador del cilindro 2, mando	Resistencia del calentador fuera de especificación
+4A56	Gestión de energía: batería	Batería descargada a fondo
+4A58	Gestión de energía: batería	Gestión de energía averiada
+4A59	Calentador del cilindro 2, mando	Cortocircuito
+4A5E	Calentador del cilindro 2, mando	Circuito abierto (cable o pieza cortados)
+4A5F	Mando de los calentadores	Etapa de potencia del cilindro 2 del mando de calentadores averiada
+4A64	Calentador del cilindro 1, mando	Resistencia del calentador fuera de especificación
+4A65	Gestión de energía: red de a bordo	Sobretensión
+4A66	Gestión de energía: red de a bordo	Tensión baja
+4A67	Gestión de energía: red de a bordo	Funcionando sin batería
+4A68	Gestión de energía: red de a bordo	Consumo en reposo
+4A69	Calentador del cilindro 1, mando	Cortocircuito
+4A6E	Calentador del cilindro 1, mando	Circuito abierto (cable o pieza cortados)
+4A6F	Mando de los calentadores	Etapa de potencia del cilindro 1 del mando de calentadores averiada
+4A70	Mapas PhyMod_trq2qBasX_MAP mal aplicados	Valores de los mapas no coherentes
+4A74	Mensaje de otra centralita (Status_GSG_LIN, 0x18, LIN)	No llega el mensaje de Glühsteuergerät GSG
+4A79	Mensaje de otra centralita (Fehler_Status_GSG_LIN, 0x17, LIN)	No llega el mensaje de Glühsteuergerät GSG
+4A7D	Vigilancia de par DCC	Petición de par no coherente
+4A7E	Mando de los calentadores, respuesta de diagnóstico	Fallo de comunicación
+4A7F	Mando de los calentadores, respuesta de diagnóstico	Fallo interno de la memoria EEPROM
+4A89	Mensaje de otra centralita (GETRIEBEDATEN, 0xBA)	El mensaje de la otra centralita no se actualiza
+4A8A	Avería de prueba	Por encima del máximo
+4A8B	Avería de prueba	Por debajo del mínimo
+4A8C	Avería de prueba	Señal
+4A8D	Avería de prueba	No coherente
+4A9C	Alternador	Comunicación por la línea BSD alterada (registro incorrecto)
+4AA7	Mensaje de otra centralita (STAT_ANHAENGER, 0x2E4)	Señales del mensaje no válidas
+4AA8	Mensaje de otra centralita (STAT_ANHAENGER, 0x2E4)	No llega el mensaje de Anhängermodul AHM
+4AB2	Calefactor eléctrico auxiliar	Temperatura excesiva en el calefactor auxiliar
+4AB7	Mensaje de otra centralita (UHRZEIT_DATUM, 0x2F8)	Señales del mensaje no válidas
+4AB8	Mensaje de otra centralita (UHRZEIT_DATUM, 0x2F8)	No llega el mensaje de Kombi
+4ABC	Sensor de estado del aceite	Comunicación por la línea BSD alterada (registro incorrecto)
+4AC2	Calefactor eléctrico auxiliar 2	Fallo del calefactor auxiliar 2
+4AD2	Calefactor eléctrico auxiliar 3	Fallo del calefactor auxiliar 3
+4AD4	Centralita del motor, fallo interno (MoCSOPHwNoRdy)	Fallo interno de hardware de la centralita del motor
+4AD5	Adaptación de cantidad mínima, inyector del cilindro 1	Corrección filtrada del tiempo de inyección por encima de lo permitido
+4AD6	Adaptación de cantidad mínima, inyector del cilindro 1	Corrección filtrada del tiempo de inyección por debajo de lo permitido
+4AD9	Vigilancia interna de la centralita, presión del raíl	La señal de presión del raíl no es coherente
+4ADD	Modo de diagnóstico: prueba de aceleración	Detección de fallos de combustión desactivada
+4ADE	Mariposas de turbulencia, coherencia	Muelle roto
+4ADF	Nivel del depósito	Nivel del depósito muy bajo
+4AE0	Calefacción del respiradero (países fríos) o ventilador de la caja electrónica (países cálidos), mando	Cortocircuito a positivo
+4AE1	Calefacción del respiradero (países fríos) o ventilador de la caja electrónica (países cálidos), mando	Cortocircuito a masa
+4AE2	Calefacción del respiradero (países fríos) o ventilador de la caja electrónica (países cálidos), mando	Circuito abierto (cable o pieza cortados)
+4AE3	Calefacción del respiradero (países fríos) o ventilador de la caja electrónica (países cálidos), mando	Etapa de potencia demasiado caliente
+4AE4	Actuador de las mariposas de turbulencia, mando	Tensión de alimentación demasiado baja
+4AE5	Adaptación de cantidad mínima, inyector del cilindro 2	Corrección filtrada del tiempo de inyección por encima de lo permitido
+4AE6	Adaptación de cantidad mínima, inyector del cilindro 2	Corrección filtrada del tiempo de inyección por debajo de lo permitido
+4AE9	Centralita del motor, fallo interno (EEP)	Fallo de la memoria interna de la centralita
+4AEE	Centralita del motor, fallo interno (EEP)	Fallo de la memoria interna de la centralita
+4AEF	Mensaje de otra centralita (GETRIEBEDATEN, 0xBA)	Mensaje con error de comprobación
+4AF0	Sensor de temperatura de la centralita, señal	Cortocircuito a positivo
+4AF1	Sensor de temperatura de la centralita, señal	Circuito abierto o cortocircuito a masa
+4AF4	Actuador de las mariposas de turbulencia, salida 1 (DC-), mando	Cortocircuito a masa
+4AF5	Adaptación de cantidad mínima, inyector del cilindro 3	Corrección filtrada del tiempo de inyección por encima de lo permitido
+4AF6	Adaptación de cantidad mínima, inyector del cilindro 3	Corrección filtrada del tiempo de inyección por debajo de lo permitido
+4AF9	Actuador de las mariposas de turbulencia, salida 2 (DC-), mando	Cortocircuito a masa
+4AFA	Sensor de vacío del servofreno, señal	Cortocircuito a positivo
+4AFB	Sensor de vacío del servofreno, señal	Circuito abierto o cortocircuito a masa
+4AFE	Actuador de las mariposas de turbulencia, mando	Sobrecarga
+4AFF	Actuador de las mariposas de turbulencia, mando	Corriente máxima para esa temperatura superada
+4B00	Temperatura de la centralita	Temperatura demasiado alta
+4B04	Actuador de las mariposas de turbulencia, mando	Corriente máxima superada
+4B05	Adaptación de cantidad mínima, inyector del cilindro 4	Corrección filtrada del tiempo de inyección por encima de lo permitido
+4B06	Adaptación de cantidad mínima, inyector del cilindro 4	Corrección filtrada del tiempo de inyección por debajo de lo permitido
+4B09	Actuador de las mariposas de turbulencia, mando	Etapa de potencia demasiado caliente
+4B0E	Actuador de las mariposas de turbulencia, salida 1 (DC+), mando	Cortocircuito a positivo
+4B0F	Actuador de las mariposas de turbulencia, salida 2 (DC+), mando	Cortocircuito a positivo
+4B10	Regulador de suavidad de marcha	Cantidad de corrección demasiado alta
+4B11	Regulador de suavidad de marcha	Cantidad de corrección demasiado baja
+4B14	Actuador de las mariposas de turbulencia, mando	Circuito abierto (cable o pieza cortados)
+4B15	Adaptación de cantidad mínima, inyector del cilindro 5	Corrección filtrada del tiempo de inyección por encima de lo permitido
+4B16	Adaptación de cantidad mínima, inyector del cilindro 5	Corrección filtrada del tiempo de inyección por debajo de lo permitido
+4B19	Actuador de EGR, mando	Sobrecarga
+4B1A	Calefacción del filtro de combustible, mando	Cortocircuito a positivo
+4B1B	Calefacción del filtro de combustible, mando	Cortocircuito a masa
+4B1C	Calefacción del filtro de combustible, mando	Circuito abierto (cable o pieza cortados)
+4B1D	Calefacción del filtro de combustible, mando	Etapa de potencia demasiado caliente
+4B1E	Actuador de EGR, mando	Corriente máxima para esa temperatura superada
+4B1F	Actuador de EGR, mando	Tensión de alimentación demasiado baja
+4B22	Electroventilador	Bloqueado mecánicamente
+4B24	Actuador de EGR, salida 1 (DC+), mando	Cortocircuito a positivo
+4B25	Adaptación de cantidad mínima, inyector del cilindro 6	Corrección filtrada del tiempo de inyección por encima de lo permitido
+4B26	Adaptación de cantidad mínima, inyector del cilindro 6	Corrección filtrada del tiempo de inyección por debajo de lo permitido
+4B29	Actuador de EGR, salida 2 (DC-), mando	Cortocircuito a positivo
+4B2C	Mensaje de otra centralita (BEDIENUNG_MSA, 0x195)	Señales del mensaje no válidas
+4B2D	Mensaje de otra centralita (BEDIENUNG_MSA, 0x195)	No llega el mensaje de IHKA
+4B2E	Actuador de EGR, salida 1 (DC+), mando	Cortocircuito a masa
+4B2F	Actuador de EGR, salida 2 (DC-), mando	Cortocircuito a masa
+4B32	Electroventilador	Electroventilador, ventana 2
+4B35	Sensor de estado del aceite	Medida de temperatura alterada
+4B36	Sensor de estado del aceite	Medida de nivel alterada o sensor fuera del aceite
+4B37	Sensor de estado del aceite	Sin comunicación por la línea BSD
+4B38	Sensor de estado del aceite	Medida de calidad del aceite alterada o sensor fuera del aceite
+4B39	Actuador de EGR, mando	Circuito abierto (cable o pieza cortados)
+4B3E	Actuador de EGR, mando	Corriente máxima superada
+4B3F	Actuador de EGR, mando	Etapa de potencia demasiado caliente
+4B42	Electroventilador	Electroventilador, ventana 3
+4B4A	Mensaje de otra centralita (DREHMOMENT_ANF_STE, 0xB1)	Mensaje con error de comprobación
+4B4B	Mensaje de otra centralita (DREHMOMENT_ANF_STE, 0xB1)	El mensaje de la otra centralita no se actualiza
+4B4C	Mensaje de otra centralita (DREHMOMENT_ANF_STE, 0xB1)	Señales del mensaje no válidas
+4B4D	Mensaje de otra centralita (DREHMOMENT_ANF_STE, 0xB1)	No llega el mensaje de EHB3
+4B50	Centralita del motor, fallo interno (Mengenabgleich)	Suma de comprobación incorrecta
+4B60	Centralita del motor, fallo interno (Mengendriftkompensation)	Suma de comprobación incorrecta
+4B64	Aceite del motor, cantidad de aceite crítica	Demasiado gasóleo en el aceite por regeneraciones frecuentes
+4B69	Aceite del motor, cantidad de aceite crítica	Por debajo del mínimo
+4B6E	Aceite del motor, estado	Viscosidad o cantidad de aceite críticas por gasóleo en el aceite
+4B74	Aceite del motor, viscosidad del aceite crítica	Demasiada proporción de gasóleo en el aceite por regeneraciones frecuentes
+4B79	Aceite del motor, viscosidad del aceite crítica	Demasiada proporción de gasóleo en el aceite por regeneraciones frecuentes, con el aceite al mínimo
+4B7E	Sensor de presión de escape antes de la turbina, señal	Cortocircuito a positivo
+4B7F	Sensor de presión de escape antes de la turbina, señal	Circuito abierto o cortocircuito a masa
+4B81	Regulación de la tasa de EGR, desviación de la regulación	Tasa de EGR demasiado alta
+4B82	Regulación de la tasa de EGR, desviación de la regulación	Tasa de EGR demasiado baja
+4B8C	Regulación de EGR, función	La regulación de EGR tarda demasiado en activarse
+4B90	Vigilancia de la presión del raíl al arrancar	Presión del raíl demasiado baja al arrancar
+4B94	Inyectores, bancada 1, mando	Cortocircuito
+4B99	Inyectores, bancada 2, mando	Cortocircuito
+4BA0	Sensor de temperatura del aire de admisión, señal	Circuito abierto, cortocircuito a positivo o a masa, o temperatura demasiado alta
+4BA1	Sensor de temperatura del aire de admisión, señal	Temperatura demasiado baja
+4BAE	Inyector del cilindro 1, mando	Cortocircuito
+4BAF	Inyector del cilindro 2, mando	Cortocircuito
+4BB4	Inyector del cilindro 3, mando	Cortocircuito
+4BB5	Caudalímetro	Caudal de aire demasiado bajo (frecuencia corregida demasiado baja)
+4BB6	Caudalímetro	Caudal de aire demasiado alto (frecuencia corregida demasiado alta)
+4BB9	Inyector del cilindro 4, mando	Cortocircuito
+4BBE	Inyector del cilindro 5, mando	Cortocircuito
+4BBF	Inyector del cilindro 6, mando	Cortocircuito
+4BC0	Caudalímetro	Caudal de aire demasiado bajo (frecuencia de la señal demasiado baja)
+4BC1	Caudalímetro	Caudal de aire demasiado alto (frecuencia de la señal demasiado alta)
+4BC4	Inyector del cilindro 1, mando	Lado negativo en cortocircuito con el positivo
+4BC5	Sensor de temperatura del aire de admisión (señal de referencia del caudalímetro)	Frecuencia demasiado baja
+4BC6	Sensor de temperatura del aire de admisión (señal de referencia del caudalímetro)	Frecuencia demasiado alta
+4BC9	Inyector del cilindro 2, mando	Lado negativo en cortocircuito con el positivo
+4BCA	Modo de diagnóstico: prueba de compresión	Prueba de compresión activada
+4BCE	Inyector del cilindro 3, mando	Lado negativo en cortocircuito con el positivo
+4BCF	Inyector del cilindro 4, mando	Lado negativo en cortocircuito con el positivo
+4BD4	Inyector del cilindro 5, mando	Lado negativo en cortocircuito con el positivo
+4BD5	Soporte del motor, mando	Cortocircuito a positivo
+4BD6	Soporte del motor, mando	Cortocircuito a masa
+4BD7	Soporte del motor, mando	Circuito abierto (cable o pieza cortados)
+4BD8	Soporte del motor, mando	Etapa de potencia demasiado caliente
+4BD9	Inyector del cilindro 6, mando	Lado negativo en cortocircuito con el positivo
+4BDA	Regulación de la presión de baja de combustible	Presión de baja de combustible demasiado baja
+4BDB	Regulación de la presión de baja de combustible	Presión de baja de combustible demasiado alta
+4BDC	Regulación de la presión de baja de combustible	La bomba de combustible consume demasiado para la presión que da
+4BDD	Regulación de la presión de baja de combustible	La bomba de combustible consume demasiado poco para la presión que da
+4BDE	Centralita del motor, fallo interno (EEP)	Fallo de la memoria interna de la centralita
+4BDF	Mensaje de otra centralita (CODIERUNG_PM, 0x395)	Señales del mensaje no válidas
+4BE2	Mensaje de otra centralita (GETRIEBEDATEN, 0xBA)	Señales del mensaje no válidas
+4BE3	Mensaje de otra centralita (GETRIEBEDATEN, 0xBA)	No llega el mensaje de EGS
+4BE4	Detección de sobrerrégimen	Revoluciones del motor demasiado altas
+4BE5	Mensaje de otra centralita (GETRIEBEDATEN_2, 0x1A2)	Mensaje con error de comprobación
+4BE6	Mensaje de otra centralita (GETRIEBEDATEN_2, 0x1A2)	El mensaje de la otra centralita no se actualiza
+4BE7	Mensaje de otra centralita (GETRIEBEDATEN_2, 0x1A2)	Señales del mensaje no válidas
+4BE8	Mensaje de otra centralita (GETRIEBEDATEN_2, 0x1A2)	No llega el mensaje de EGS
+4BEA	Regulación de la presión de baja de combustible	Resistencia de la calefacción del filtro de combustible averiada
+4BEB	Regulación de la presión de baja de combustible	Calefacción del filtro de combustible activada demasiadas veces o con poca potencia
+4BED	Regulación de la presión de baja de combustible	Presión de combustible demasiado alta para lo que se manda a la bomba
+4BEE	xDFC_EnhSRCMaxT3ExhTMon	Tercera temperatura de escape por encima de su rango
+4BF2	Mensaje de otra centralita (WAERMESTROM_KLIMA, 0x1B5)	Señales del mensaje no válidas
+4BF3	Mensaje de otra centralita (WAERMESTROM_KLIMA, 0x1B5)	No llega el mensaje de IHK
+4BF4	Sensor de presión diferencial del filtro de partículas, señal	Cortocircuito a positivo
+4BF7	Mensaje de otra centralita (KILOMETERSTAND, 0x330)	Señales del mensaje no válidas
+4BF8	Mensaje de otra centralita (KILOMETERSTAND, 0x330)	No llega el mensaje de Kombi
+4BF9	Sensor de presión diferencial del filtro de partículas, señal	Circuito abierto o cortocircuito a masa
+4BFE	xDFC_EnhSRCMinT3ExhTMon	Tercera temperatura de escape por debajo de su rango
+4C00	Mensaje de otra centralita (BEDIENUNG_TEMPOMAT, 0x194)	Mensaje con error de comprobación
+4C01	Mensaje de otra centralita (BEDIENUNG_TEMPOMAT, 0x194)	El mensaje de la otra centralita no se actualiza
+4C02	Mensaje de otra centralita (BEDIENUNG_TEMPOMAT, 0x194)	Señales del mensaje no válidas
+4C03	Mensaje de otra centralita (BEDIENUNG_TEMPOMAT, 0x194)	No llega el mensaje de SZL
+4C04	Sensor de temperatura de escape antes del catalizador, coherencia	Demasiada diferencia entre la temperatura medida y la calculada antes del catalizador
+4C06	Mensaje de otra centralita (STAT_ARS, 0x1AC)	El mensaje de la otra centralita no se actualiza
+4C07	Mensaje de otra centralita (STAT_ARS, 0x1AC)	Señales del mensaje no válidas
+4C08	Mensaje de otra centralita (STAT_ARS, 0x1AC)	No llega el mensaje de ARS
+4C09	Sensor de temperatura de escape antes del filtro de partículas, coherencia	Demasiada diferencia entre la temperatura medida y la calculada antes del filtro de partículas
+4C0E	Sensor de temperatura de escape antes del catalizador SCR, coherencia	Demasiada diferencia entre la temperatura medida y la calculada antes del catalizador SCR
+4C0F	Centralita del motor, fallo interno (IVDiaChp_0)	Inyectores de la bancada 1, fallo en su circuito de mando
+4C12	Mensaje de otra centralita (STAT_DSC, 0x19E)	Señales del mensaje no válidas
+4C13	Mensaje de otra centralita (STAT_DSC, 0x19E)	No llega el mensaje de DSC
+4C14	xDFC_ExhTMonT1Plaus	Primera temperatura de escape no coherente en el arranque en frío
+4C15	Mensaje de otra centralita (KLEMMENSTATUS, 0x130)	Mensaje con error de comprobación
+4C16	Mensaje de otra centralita (KLEMMENSTATUS, 0x130)	El mensaje de la otra centralita no se actualiza
+4C17	Mensaje de otra centralita (KLEMMENSTATUS, 0x130)	Señales del mensaje no válidas
+4C18	Mensaje de otra centralita (KLEMMENSTATUS, 0x130)	No llega el mensaje de CAS
+4C19	xDFC_ExhTMonT2Plaus	Segunda temperatura de escape no coherente en el arranque en frío
+4C1D	Sensor de posición del actuador de EGR, rango	Por debajo del límite físico inferior
+4C1E	xDFC_ExhTMonT3Plaus	Tercera temperatura de escape no coherente en el arranque en frío
+4C20	Mensaje de otra centralita (DREHMOMENT_ANF_DSC, 0xB6)	Mensaje con error de comprobación
+4C21	Mensaje de otra centralita (DREHMOMENT_ANF_DSC, 0xB6)	El mensaje de la otra centralita no se actualiza
+4C22	Mensaje de otra centralita (DREHMOMENT_ANF_DSC, 0xB6)	Señales del mensaje no válidas
+4C23	Mensaje de otra centralita (DREHMOMENT_ANF_DSC, 0xB6)	No llega el mensaje de DSC
+4C24	Ajuste de cantidad de los inyectores	Falta programar los códigos de los inyectores
+4C25	Sensor de posición del actuador de EGR, rango	Límite físico superior superado
+4C27	Mensaje de otra centralita (GESCHWINDIGKEIT, 0x1A0)	Señales del mensaje no válidas
+4C28	Mensaje de otra centralita (GESCHWINDIGKEIT, 0x1A0)	No llega el mensaje de DSC
+4C29	Centralita del motor, fallo interno (MonLimCurr)	Limitado por la vigilancia interna de la centralita
+4C2E	Centralita del motor, fallo interno (MonLimLead)	Limitado por la vigilancia interna de la centralita
+4C2F	Centralita del motor, fallo interno (MonLimSet)	Limitado por la vigilancia interna de la centralita
+4C34	xDFC_ExhTMonPlaus	Temperatura de escape no coherente en el arranque en frío
+4C39	xDFC_RailPCV42	Presión máxima del raíl superada (segundo nivel)
+4C3C	Mensaje de otra centralita (SOLL_MOM_ANF, 0xBB)	Señales del mensaje no válidas
+4C3D	Mensaje de otra centralita (SOLL_MOM_ANF, 0xBB)	No llega el mensaje de DXC
+4C3E	xDFC_RailPCV22	Presión del raíl demasiado alta con la válvula de presión cerrada (segundo nivel)
+4C3F	xDFC_RailMeUn5	Presión del raíl demasiado baja en una subida rápida
+4C44	xDFC_RailMeUn42	Presión máxima del raíl superada (segundo nivel)
+4C49	xDFC_RailMeUn22	Presión del raíl demasiado alta con la válvula de caudal al mínimo (segundo nivel)
+4C4E	Válvula reguladora de presión del raíl, adaptación	Valor de adaptación demasiado alto
+4C4F	Válvula reguladora de presión del raíl, adaptación	Valor de adaptación demasiado bajo
+4C5E	Sistema del filtro de partículas	Presión diferencial por debajo del mínimo
+4C63	Sistema del filtro de partículas	Regeneraciones de protección del motor demasiado frecuentes
+4C88	Enfriador de EGR, coherencia	Rendimiento del enfriador demasiado bajo
+4C8F	Centralita del motor, fallo interno (CY320)	Fallo interno de medida o comunicación de la centralita
+4C94	Sensor de posición de la válvula de derivación del enfriador de EGR, señal	Cortocircuito a positivo
+4C97	Mensaje de otra centralita (ST_DVRG Fahrererkennung, 0x2F1)	Mensaje con error de comprobación
+4C98	Mensaje de otra centralita (ST_DVRG Fahrererkennung, 0x2F1)	El mensaje de la otra centralita no se actualiza
+4C99	Sensor de posición de la válvula de derivación del enfriador de EGR, señal	Circuito abierto o cortocircuito a masa
+4C9B	Mensaje de otra centralita (ST_DVRG Fahrererkennung, 0x2F1)	Señales del mensaje no válidas
+4C9C	Mensaje de otra centralita (ST_DVRG Fahrererkennung, 0x2F1)	No llega el mensaje de ACSM, MRSZ
+4C9E	Válvula de EGR, coherencia	Avería mecánica cerca de la posición cerrada
+4C9F	Válvula de EGR, coherencia	Avería mecánica cerca de la posición abierta
+4CA0	Interruptor de presión de aceite, coherencia	El estado de la presión de aceite no cuadra con el del motor
+4CA1	Protección del motor	Motor apagado por sobrerrégimen al aspirar aceite
+4CA4	Válvula de EGR, coherencia	Avería mecánica al aprender el cero
+4CA7	Sensor de temperatura del combustible, coherencia	La temperatura cambia demasiado deprisa
+4CA8	Sensor de presión de baja de combustible, prueba de desviación	Desviación de cero fuera del rango permitido
+4CA9	Sensor de posición del actuador de EGR, señal	Cortocircuito a positivo
+4CAE	Sensor de posición del actuador de EGR, señal	Circuito abierto o cortocircuito a masa
+4CAF	Centralita del motor, fallo interno (EngICO)	Inyectores cortados a altas revoluciones por la limitación de par
+4CB4	Línea de habilitación hacia el CAS, mando	Circuito abierto (cable o pieza cortados)
+4CB7	Interruptor del embrague, coherencia	Señales del embrague no coherentes entre sí
+4CB8	Mensaje de otra centralita (ANZEIGE_GETRIEBE, 0x1D2)	El mensaje de la otra centralita no se actualiza
+4CB9	Línea de habilitación hacia el CAS, mando	Cortocircuito a positivo
+4CBE	Línea de habilitación hacia el CAS, mando	Cortocircuito a masa
+4CC6	Actuador del turbo	Sensor de posición del actuador del turbo averiado
+4CC7	Actuador del turbo, mando	Señal de mando del actuador del turbo no coherente
+4CC8	Actuador del turbo	Temperatura excesiva en el actuador del turbo
+4CC9	Regulación de la temperatura de escape, desviación de la regulación	Desviación máxima en el lazo interno de regulación
+4CCE	Regulación de la temperatura de escape, desviación de la regulación	Desviación mínima en el lazo interno de regulación
+4CCF	Regulación de la temperatura de escape, desviación de la regulación	Desviación máxima en el lazo externo de regulación
+4CD0	Actuador del turbo	Actuador del turbo con avería eléctrica o mecánica, o demasiado caliente
+4CD1	Actuador del turbo	Actuador del turbo averiado cerca de la posición cerrada
+4CD2	Actuador del turbo	Actuador del turbo averiado cerca de la posición abierta
+4CD4	Regulación de la temperatura de escape, desviación de la regulación	Desviación mínima en el lazo externo de regulación
+4CD9	Electroventilador	Electroventilador, ventana 4
+4CE0	Sistema del filtro de partículas	Se ha activado la regeneración de protección del motor (filtro muy cargado)
+4CE4	Presión del raíl, coherencia	Presión del raíl demasiado baja para abrir los inyectores
+4CF1	Sensor de temperatura del refrigerante, coherencia	Prueba de coherencia
+4CF3	Sensor de contrapresión de escape, señal	Evolución no coherente
+4D00	Sensor de contrapresión de escape, señal	Señal demasiado alta
+4D01	Sensor de contrapresión de escape	Señal demasiado baja
+4D03	Sensor de contrapresión de escape	Deriva del sensor fuera de tolerancia
+4D13	Sistema del filtro de partículas	Tubo del sensor de contrapresión del filtro suelto
+4D2A	Mensaje de otra centralita (STATUS_EMF, 0x201)	Mensaje con error de comprobación
+4D2B	Mensaje de otra centralita (STATUS_EMF, 0x201)	El mensaje de la otra centralita no se actualiza
+4D2C	Mensaje de otra centralita (STATUS_EMF, 0x201)	Señales del mensaje no válidas
+4D2D	Mensaje de otra centralita (STATUS_EMF, 0x201)	No llega el mensaje de EMF
+4D3A	Mensaje de otra centralita (STELLANF_EMF, 0x1A7)	Mensaje con error de comprobación
+4D3B	Mensaje de otra centralita (STELLANF_EMF, 0x1A7)	El mensaje de la otra centralita no se actualiza
+4D3C	Mensaje de otra centralita (STELLANF_EMF, 0x1A7)	Señales del mensaje no válidas
+4D3D	Mensaje de otra centralita (STELLANF_EMF, 0x1A7)	No llega el mensaje de EHB3
+4D40	Sistema del filtro de partículas	Duración máxima de la regeneración superada
+4D4A	Sistema del filtro de partículas	Kilómetros máximos del filtro de partículas superados
+4D5E	Centralita del motor, fallo interno (MoCADCCmp)	Fallo interno de hardware de la centralita del motor
+4D5F	Centralita del motor, fallo interno (MoCADCVltgRatio)	Fallo interno de hardware de la centralita del motor
+4D64	Centralita del motor, fallo interno (MoCSOPTimeOut)	Fallo interno de hardware de la centralita del motor
+4D69	Vigilancia interna de la centralita, pedal del acelerador	Los sensores 1 y 2 no cuadran entre sí
+4D6E	Centralita del motor, fallo interno (MoFESpd)	La vigilancia interna del par de la centralita ha visto una incoherencia
+4D6F	Centralita del motor, fallo interno (MoFInjDatPhi)	La vigilancia interna del par de la centralita ha visto una incoherencia
+4D74	Centralita del motor, fallo interno (MoFInjDatQnt)	La vigilancia interna del par de la centralita ha visto una incoherencia
+4D79	Centralita del motor, fallo interno (MoFInjQnt)	La vigilancia interna del par de la centralita ha visto una incoherencia
+4D7E	Centralita del motor, fallo interno (MoFQntCor)	La vigilancia interna del par de la centralita ha visto una incoherencia
+4D7F	Centralita del motor, fallo interno (MoFTrqCmp)	La vigilancia interna del par de la centralita ha visto una incoherencia
+4D80	Sensor de temperatura tras el enfriador de EGR, coherencia	Demasiada diferencia entre el valor al arrancar y la temperatura de referencia
+4D84	Sensor de presión diferencial del filtro de partículas, coherencia	Tubos conectados al revés
+4D87	Sensor de temperatura tras el enfriador de EGR, señal	Circuito abierto o cortocircuito a positivo
+4D88	Sensor de temperatura tras el enfriador de EGR, señal	Cortocircuito a masa
+4D8E	Sensor de temperatura de escape antes del catalizador, coherencia	Demasiada diferencia entre la temperatura de escape medida y la calculada
+4D8F	Sensor de temperatura de escape antes del filtro de partículas, coherencia	Demasiada diferencia entre la temperatura de escape medida y la calculada
+4D99	Sistema del filtro de partículas	Presión diferencial por debajo del mínimo tras regenerar
+4DA9	Sistema del filtro de partículas, coherencia	Diferencia entre hollín calculado y medido demasiado alta
+4DAE	Sistema del filtro de partículas, coherencia	Diferencia entre hollín calculado y medido demasiado baja
+4DAF	Sistema del filtro de partículas	Hollín calculado en el filtro por encima del máximo
+4DB4	Protección contra manipulación del inmovilizador	Comprobación interna de la centralita (DFP_SIA_E1)
+4DBF	Protección contra manipulación del inmovilizador	Comprobación interna de la centralita (DFP_SIA_E1)
+4DDC	Mensaje de otra centralita (ANZEIGE_GETRIEBE, 0x1D2)	Señales del mensaje no válidas
+4DDD	Mensaje de otra centralita (ANZEIGE_GETRIEBE, 0x1D2)	No llega el mensaje de EGS
+4DE4	Mensaje entre inmovilizador y centralita defectuoso	Comprobación interna de la centralita (DFP_SIA_E4)
+4DEE	Mensaje entre inmovilizador y centralita defectuoso	Comprobación interna de la centralita (DFP_SIA_E4)
+4DF0	Mensaje de otra centralita (DREHMOMENT_ANF_EGS, 0xB5)	Mensaje con error de comprobación
+4DF1	Mensaje de otra centralita (DREHMOMENT_ANF_EGS, 0xB5)	El mensaje de la otra centralita no se actualiza
+4DF2	Mensaje de otra centralita (DREHMOMENT_ANF_EGS, 0xB5)	Señales del mensaje no válidas
+4DF3	Mensaje de otra centralita (DREHMOMENT_ANF_EGS, 0xB5)	No llega el mensaje de EGS
+4DF9	Sensor de posición del actuador de la mariposa, señal	Cortocircuito a positivo
+4DFE	Sensor de posición del actuador de la mariposa, señal	Circuito abierto o cortocircuito a masa
+4DFF	Actuador de las mariposas de turbulencia, regulación de posición	Mariposas de turbulencia demasiado abiertas
+4E04	Actuador de las mariposas de turbulencia, regulación de posición	Mariposas de turbulencia demasiado cerradas
+4E09	Mariposas de turbulencia, coherencia	Avería mecánica
+4E0E	Posición del actuador de las mariposas de turbulencia, deriva a largo plazo	Posición demasiado desviada respecto a cuando era nuevo
+4E0F	Mariposas de turbulencia, coherencia	Mariposas de turbulencia con avería mecánica al aprender el cero
+4E14	Posición del actuador de las mariposas de turbulencia, deriva a corto plazo	Posición demasiado desviada respecto al trayecto anterior
+4E19	Sensor de posición del actuador de las mariposas de turbulencia, señal	Cortocircuito a positivo
+4E1E	Sensor de posición del actuador de las mariposas de turbulencia, señal	Circuito abierto o cortocircuito a masa
+4E1F	Calefactor eléctrico auxiliar 4	Fallo del calefactor auxiliar 4
+CD87	Bus CAN de la transmisión	La centralita se ha desconectado del bus
+XYXY	Lugar de avería desconocido	

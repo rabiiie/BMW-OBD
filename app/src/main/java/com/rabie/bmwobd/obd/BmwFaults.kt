@@ -12,7 +12,11 @@ data class BmwFault(val code: Int, val status: Int) {
     /** En el estado, los bits 5 y 6 dicen si la averia esta presente (los dos) o solo guardada. */
     val active: Boolean get() = status and PRESENT == PRESENT
 
-    val text: String? get() = TEXTS[code]
+    /** Donde esta la averia, en español; null si la centralita da un codigo que no esta en su lista. */
+    val text: String? get() = BmwFaultTexts.of(code)?.first
+
+    /** Que le pasa a eso, segun la lista de la centralita: cortado, en corto, fuera de rango... */
+    val kind: String? get() = BmwFaultTexts.of(code)?.second?.takeIf { it.isNotEmpty() }
 
     companion object {
         private const val PRESENT = 0x60
@@ -35,13 +39,29 @@ data class BmwFault(val code: Int, val status: Int) {
             }
         }
 
-        // Solo los codigos ya vistos en un coche, traducidos de la descripcion de la DDE 7 del N47.
-        // Los demas salen con su numero, que se puede buscar.
-        private val TEXTS = mapOf(
-            0x498E to "Sensor de nivel de aceite",
-            0x3EFC to "Sensor térmico de nivel de aceite",
-            0x4A6E to "Calentador del cilindro 1: mando",
-            0x480A to "Sistema del filtro de partículas",
-        )
     }
+}
+
+/**
+ * Los textos de las 719 averias que conoce la DDE 7 del N47, traducidos de su descripcion
+ * (d70n47b0): por cada codigo, el lugar y lo que le pasa. Se cargan la primera vez que hacen falta.
+ */
+internal object BmwFaultTexts {
+
+    private val all: Map<Int, Pair<String, String>> by lazy {
+        val stream = BmwFaultTexts::class.java.getResourceAsStream(FILE) ?: return@lazy emptyMap()
+        stream.bufferedReader(Charsets.UTF_8).useLines { lines ->
+            lines.mapNotNull { line ->
+                val cells = line.split('	')
+                val code = cells[0].toIntOrNull(16) ?: return@mapNotNull null
+                code to (cells.getOrElse(1) { "" } to cells.getOrElse(2) { "" })
+            }.toMap()
+        }
+    }
+
+    val size: Int get() = all.size
+
+    fun of(code: Int): Pair<String, String>? = all[code]
+
+    private const val FILE = "/averias_dde.tsv"
 }

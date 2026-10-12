@@ -20,6 +20,12 @@ class BmwFaultsTest {
         assertEquals("Sensor de nivel de aceite", faults[0].text)
         assertEquals("Sistema del filtro de partículas", faults[3].text)
         assertFalse(faults[1].active)
+        // Cada una dice tambien que le pasa, segun la lista de la centralita.
+        assertEquals("Calentador del cilindro 1, mando", faults[1].text)
+        assertEquals("Circuito abierto (cable o pieza cortados)", faults[1].kind)
+        assertEquals("Sin comunicación", faults[0].kind)
+        assertEquals("Filtro de partículas muy cargado (contrapresión de escape alta)", faults[3].kind)
+        assertEquals(718, BmwFaultTexts.size)
     }
 
     @Test
