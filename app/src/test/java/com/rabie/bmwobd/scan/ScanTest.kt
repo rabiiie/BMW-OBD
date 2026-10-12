@@ -422,3 +422,84 @@ class ScanTest {
         assertEquals(listOf(12), saved.found)
     }
 }
+
+/**
+ * Un trayecto entero por el adaptador con sus dos defectos, de la conexion a la lectura: el
+ * reconocimiento de la centralita, sus medidas, los casos y el panel a la vista. Es lo mas
+ * parecido al coche que se puede probar sin ir a el.
+ */
+class WholeTripTest {
+
+    @Test
+    fun `de la conexion a una hora de lectura no se pierde ni se cruza ninguna medida`() = runBlocking<Unit> {
+        val adapter = RealAdapter(shiftEvery = 7)
+        val session = ObdSession(adapter) {}
+        val info = session.connect()
+
+        // Reconocer la centralita, como al conectar por primera vez.
+        val checks = com.rabie.bmwobd.vehicle.N47Fingerprint.checks
+        val own = session.readBmw(checks.map { it.def })!!
+        val obd = checks.mapNotNull { check ->
+            session.read(check.obd)?.let { Pids.byId.getValue(check.obd).decodeOrNull(it) }?.let { check.obd to it }
+        }.toMap()
+        assertTrue("propias $own, OBD $obd", com.rabie.bmwobd.vehicle.N47Fingerprint.fits(own, obd))
+
+        val profile = com.rabie.bmwobd.vehicle.EngineProfile.BMW_N47
+        val standard = Pids.all.filter { it.pid == Pids.ADAPTER_PID || it.pid in info.supportedPids }
+        val found = session.discoverBmw(profile.measures.filter { def -> standard.none { it.id == def.id } })
+        assertEquals(profile.measures.size, found.size)
+
+        val turns = com.rabie.bmwobd.Turns(standard + found, profile.caseMeasures, com.rabie.bmwobd.dash.Dashboard.background)
+        val silence = com.rabie.bmwobd.Silence()
+        val values = HashMap<Int, Double>()
+        var dropped = 0
+        val seen = HashSet<Int>()
+        suspend fun read(request: com.rabie.bmwobd.Request, first: Boolean = false) {
+            if (request.pid == Pids.ADAPTER_PID) return
+            val data = if (first) session.readFirst(request.pid) else session.read(request.pid, request.singleFrame)
+            if (data == null) {
+                if (silence.missed(request) && request.defs.any { it.id in values }) {
+                    dropped++
+                    for (def in request.defs) values.remove(def.id)
+                }
+                return
+            }
+            silence.answered(request)
+            for (def in request.defs) {
+                val value = def.decodeOrNull(data) ?: continue
+                values[def.id] = value
+                seen += def.id
+            }
+        }
+        for (request in turns.requests) read(request, first = true)
+
+        // Lo que el coche simulado da siempre igual: si una lectura se cruza con otra, deja de cuadrar.
+        val fixed = mapOf(
+            Pids.BMW_SOOT_MEASURED to 14.2, Pids.bmw(0x03EB) to 183.4, Pids.bmw(Pids.BMW_TANK_ADDRESS) to 31.0,
+            Pids.bmw(0x0405) to 13.9, Pids.bmw(0x0408) to 7400.0 / 60, Pids.bmw(0x14B5) to -0.3, Pids.bmw(0x1462) to 43.0,
+            Pids.bmw(0x01B9) to 14.1, Pids.bmw(0x0E43) to 52.0, Pids.bmw(0x10D5) to 61.0,
+        )
+        val cases = com.rabie.bmwobd.cases.Case.entries
+        val groups = com.rabie.bmwobd.dash.DashGroup.entries
+        repeat(4_000) { turn ->
+            // Cada rato cambia el caso y lo que hay en pantalla, como en un trayecto con avisos.
+            if (turn % 250 == 0) {
+                val focus = com.rabie.bmwobd.dash.Dashboard.watched(groups[(turn / 250) % groups.size]) +
+                    com.rabie.bmwobd.dash.Dashboard.watched(groups[(turn / 250 + 1) % groups.size])
+                values.keys.retainAll(turns.use(cases[(turn / 250) % cases.size], focus))
+            }
+            for (request in turns.next()) read(request)
+            for ((id, expected) in fixed) values[id]?.let { assertEquals("%X en la vuelta %d".format(id, turn), expected, it, 0.06) }
+            assertTrue(values.getValue(Pids.RPM) in 600.0..4500.0)
+            assertTrue(values.getValue(Pids.COOLANT) in 0.0..120.0)
+        }
+
+        assertTrue("el adaptador tiene que haber desfasado respuestas: ${adapter.shifts}", adapter.shifts > 50)
+        assertEquals("medidas que se han dado por calladas", 0, dropped)
+        assertTrue(seen.containsAll(fixed.keys))
+        // Todas las medidas de todos los casos han llegado a leerse con su valor.
+        assertTrue(seen.containsAll(profile.caseMeasures.map { it.id }))
+        // Y nunca se uso la lectura rapida en una consulta de BMW, que es lo que corta la direccion.
+        assertTrue(adapter.sent.none { it.startsWith("2C10") && it.length != 8 })
+    }
+}

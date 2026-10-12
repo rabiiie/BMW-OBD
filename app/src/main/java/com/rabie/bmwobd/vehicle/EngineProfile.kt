@@ -54,17 +54,17 @@ object N47Fingerprint {
         ProfileCheck(Pids.bmwChecks[3], Pids.BAROMETRIC, tolerance = 3.0, scale = 0.1),
     )
 
-    /** Hacen falta tres coincidencias y ninguna medida que desentone. */
-    fun fits(own: Map<Int, Double>, obd: Map<Int, Double>): Boolean {
-        var matches = 0
-        for (check in checks) {
-            val mine = own[check.def.id] ?: continue
-            val standard = obd[check.obd] ?: continue
-            if (abs(mine * check.scale - standard) > check.tolerance) return false
-            matches++
-        }
-        return matches >= MIN_MATCHES
-    }
+    /**
+     * Hacen falta tres coincidencias de las cuatro. Una sola que desentone no lo tumba: las dos
+     * lecturas no son del mismo instante y una puede caer en un aceleron. Tres valores iguales
+     * por casualidad en otra centralita no son creibles.
+     */
+    fun fits(own: Map<Int, Double>, obd: Map<Int, Double>): Boolean =
+        checks.count { check ->
+            val mine = own[check.def.id]
+            val standard = obd[check.obd]
+            mine != null && standard != null && abs(mine * check.scale - standard) <= check.tolerance
+        } >= MIN_MATCHES
 
     private const val MODULE_VOLTAGE = 0x42
     private const val MIN_MATCHES = 3
