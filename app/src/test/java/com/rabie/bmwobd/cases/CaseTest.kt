@@ -104,6 +104,33 @@ class CaseTest {
     }
 
     @Test
+    fun `la tarjeta del turbo cuenta lo que pide y lo que tiene`() {
+        // Lecturas del barrido del 11 de octubre a 113 km/h; 0C86 contesto 6C6D en su maximo.
+        assertEquals(105_886.0, Pids.byId.getValue(Pids.bmw(0x0C86)).decodeOrNull(intArrayOf(0x6C, 0x6D))!!, 1.0)
+        val read = mapOf(
+            Pids.bmw(0x01F4) to 169.0, Pids.MAP to 167.0, Pids.BAROMETRIC to 93.0, Pids.bmw(0x01F9) to 5.0,
+            Pids.bmw(0x0BEB) to 85.9, Pids.bmw(0x0C86) to 98_737.0, Pids.bmw(0x0709) to 513.3, Pids.bmw(0x07A2) to 2.3,
+            Pids.bmw(0x0BB4) to 28.8, Pids.bmw(0x07AD) to 10.5, Pids.bmw(0x0C87) to 79.4, Pids.bmw(0x076F) to 32.6,
+        )
+        val card = CaseCards.card(Case.TURBO, read)!!
+        assertEquals(HealthLevel.OK, card.level)
+        assertEquals("Soplando: pide 169 kPa y tiene 167.", card.headline)
+        assertEquals(
+            listOf(
+                "Diferencia que ve la centralita entre lo pedido y lo real: 5 hPa.",
+                "Actuador del turbo al 86 %; el turbo gira a unas 98.737 rpm.",
+                "Aire por cilindro: 513 mg, a 2,3 mg de lo pedido.",
+                "EGR: válvula al 29 %; recircula el 11 % del gas.",
+                "El aire sale del compresor a 79 °C y del intercooler a 33 °C.",
+            ),
+            card.facts,
+        )
+        val idle = CaseCards.card(Case.TURBO, read + (Pids.bmw(0x01F4) to 100.0) + (Pids.MAP to 99.0))!!
+        assertEquals("Sin exigirle al turbo: pide 100 kPa y tiene 99.", idle.headline)
+        assertEquals(HealthLevel.UNKNOWN, CaseCards.card(Case.TURBO, emptyMap())!!.level)
+    }
+
+    @Test
     fun `las medidas de inyectores salen con la formula de la tabla`() {
         // 1462 contesto 81B2 en el barrido.
         assertEquals(0.62, Pids.byId.getValue(Pids.BMW_CYLINDER_CORRECTIONS[0]).decodeOrNull(intArrayOf(0x80, 0xCA))!!, 0.01)

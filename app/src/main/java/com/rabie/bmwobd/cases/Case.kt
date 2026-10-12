@@ -23,6 +23,11 @@ enum class Case(val title: String, val watch: List<Int>, val also: List<Int>) {
         watch = Pids.BMW_CYLINDER_CORRECTIONS + listOf(0x14D3, 0x0500, 0x04B1).map(Pids::bmw),
         also = Pids.BMW_INJECTOR_TIMES.flatten() + listOf(0x145E, 0x145F, 0x1460, 0x1964, 0x04B0).map(Pids::bmw),
     ),
+    TURBO(
+        "Turbo y aire",
+        watch = listOf(0x01F4, 0x01F9, 0x0BEB, 0x0C86, 0x0709, 0x07A2, 0x0BB4, 0x07AD).map(Pids::bmw),
+        also = listOf(0x079E, 0x0793, 0x0B1F, 0x0C87, 0x0777, 0x0C1C).map(Pids::bmw),
+    ),
 }
 
 /** Lo que pasa ahora en lo que mira un caso, dicho sin jerga. */
@@ -37,6 +42,18 @@ object CaseCards {
     private val BEFORE_FILTER = Pids.bmw(0x0434)
     private val ENGINE_MODE = Pids.bmw(0x05AA)
     private val GENERAL_CORRECTION = Pids.bmw(0x14D3)
+    private val BOOST_ASKED = Pids.bmw(0x01F4)
+    private val BOOST_DEVIATION = Pids.bmw(0x01F9)
+    private val TURBO_ACTUATOR = Pids.bmw(0x0BEB)
+    private val TURBO_SPEED = Pids.bmw(0x0C86)
+    private val AIR_PER_CYLINDER = Pids.bmw(0x0709)
+    private val AIR_DEVIATION = Pids.bmw(0x07A2)
+    private val EGR_POSITION = Pids.bmw(0x0BB4)
+    private val EGR_RATE = Pids.bmw(0x07AD)
+    private val AFTER_COMPRESSOR = Pids.bmw(0x0C87)
+    private val AFTER_INTERCOOLER = Pids.bmw(0x076F)
+    private const val SEA_LEVEL_KPA = 100.0
+    private const val BOOSTING_OVER_AMBIENT_KPA = 20.0
     private const val CORRECTION_WARN = 2.0
     private const val CORRECTION_BAD = 4.0
 
@@ -47,6 +64,38 @@ object CaseCards {
         Case.NORMAL -> null
         Case.FILTER -> filter(values)
         Case.INJECTORS -> injectors(values)
+        Case.TURBO -> turbo(values)
+    }
+
+    /**
+     * Lo que se le pide al turbo y lo que da, el aire que entra y lo que recircula la EGR. Es
+     * informativa: un instante suelto no dice si falta presion, porque el turbo tarda en llegar.
+     * Los avisos de falta de presion salen del consejero, que espera a que se mantenga.
+     */
+    private fun turbo(values: Map<Int, Double>): HealthCard {
+        val asked = values[BOOST_ASKED]
+        val real = values[Pids.MAP]
+        val air = values[AIR_PER_CYLINDER]
+        val facts = listOfNotNull(
+            values[BOOST_DEVIATION]?.let { "Diferencia que ve la centralita entre lo pedido y lo real: ${n(it)} hPa." },
+            values[TURBO_ACTUATOR]?.let { actuator ->
+                "Actuador del turbo al ${n(actuator)} %" + (values[TURBO_SPEED]?.let { "; el turbo gira a unas ${thousands(it)} rpm." } ?: ".")
+            },
+            air?.let { mg ->
+                "Aire por cilindro: ${n(mg)} mg" + (values[AIR_DEVIATION]?.let { ", a ${n(it, 1)} mg de lo pedido." } ?: ".")
+            },
+            values[EGR_POSITION]?.let { position ->
+                "EGR: válvula al ${n(position)} %" + (values[EGR_RATE]?.let { "; recircula el ${n(it)} % del gas." } ?: ".")
+            },
+            values[AFTER_COMPRESSOR]?.let { hot ->
+                "El aire sale del compresor a ${n(hot)} °C" + (values[AFTER_INTERCOOLER]?.let { " y del intercooler a ${n(it)} °C." } ?: ".")
+            },
+        )
+        if (asked == null) return HealthCard(HealthSystem.TURBO, HealthLevel.UNKNOWN, "Esperando los datos del turbo.", facts)
+        val ambient = values[Pids.BAROMETRIC] ?: SEA_LEVEL_KPA
+        val now = "pide ${n(asked)} kPa" + (real?.let { " y tiene ${n(it)}" } ?: "")
+        val headline = if (asked - ambient >= BOOSTING_OVER_AMBIENT_KPA) "Soplando: $now." else "Sin exigirle al turbo: $now."
+        return HealthCard(HealthSystem.TURBO, HealthLevel.OK, headline, facts)
     }
 
     /**
@@ -138,6 +187,8 @@ object CaseCards {
     }
 
     private fun n(value: Double, decimals: Int = 0) = String.format(Locale.US, "%.${decimals}f", value).replace('.', ',')
+
+    private fun thousands(value: Double) = String.format(Locale.US, "%,.0f", value).replace(',', '.')
 
     private fun signed(value: Double, decimals: Int) = n(value, decimals).let { if (value > 0 && it.any { c -> c in '1'..'9' }) "+$it" else it }
 }

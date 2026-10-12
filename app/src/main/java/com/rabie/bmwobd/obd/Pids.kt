@@ -343,7 +343,19 @@ object Pids {
         }
     } + (0..2).map { point ->
         bmwDef(0x145E + point, "Calibración de inyectores: ciclos (punto ${point + 1})", "", 0, PidGroup.FUEL) { it.toDouble() }
-    }
+    } + listOf(
+        bmwDef(0x01F9, "Turbo: desviación que ve la centralita", "hPa", 0, PidGroup.AIR) { it.toDouble() },
+        bmwDef(0x0C86, "Turbo: giro calculado", "rpm", 0, PidGroup.AIR) { it * 3.814755 },
+        bmwDef(0x0709, "Aire por cilindro", "mg", 0, PidGroup.AIR) { it * 0.024414 },
+        bmwDef(0x079E, "Aire por cilindro pedido", "mg", 0, PidGroup.AIR) { it * 0.030518 },
+        bmwDef(0x07A2, "Aire: desviación", "mg", 1, PidGroup.AIR) { it * 0.1 },
+        bmwDef(0x07AD, "EGR: gas que recircula (calculado)", "%", 0, PidGroup.AIR) { it * 0.012207 },
+        bmwDef(0x0793, "EGR: gas que pide recircular", "%", 0, PidGroup.AIR) { it * 0.01 },
+        bmwDef(0x0B1F, "Mariposa: posición", "%", 0, PidGroup.AIR) { it * 0.001526 },
+        bmwDef(0x0C87, "Aire tras el compresor (calculada)", "°C", 0, PidGroup.AIR) { it * 0.009155 - 100.0 },
+        bmwDef(0x0777, "EGR: gas tras su enfriador", "°C", 0, PidGroup.AIR) { it * 0.016022 - 50.0 },
+        bmwDef(0x0C1C, "Presión ambiente (centralita)", "hPa", 0, PidGroup.AIR) { it * 0.030518 },
+    )
 
     /** Si a un coche se le pueden pedir las medidas de [bmwDiesel]. */
     fun hasBmwMeasures(make: String?, diesel: Boolean) = diesel && make != null && make.startsWith("BMW")
