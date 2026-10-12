@@ -376,6 +376,19 @@ object Pids {
         bmwDef(0x01B1, "Batería: margen para arrancar", "", 1, PidGroup.ELECTRIC) { it * 0.003052 },
         bmwDef(0x01B8, "Batería: temperatura", "°C", 0, PidGroup.ELECTRIC) { it * 0.009237 - 50.0 },
         bmwDef(0x01B9, "Batería: tensión en el borne", "V", 2, PidGroup.ELECTRIC) { it * 0.00025 + 6.0 },
+        bmwDef(0x0EA6, "Marcha (0 = punto muerto)", "", 0, PidGroup.ENGINE, size = 1) { it.toDouble() },
+        bmwDef(0x07D1, "Par motor", "Nm", 0, PidGroup.ENGINE) { it * 0.114443 - 2500.0 },
+        bmwDef(0x0578, "Par: parte del máximo", "%", 0, PidGroup.ENGINE) { it * 0.001526 },
+        bmwDef(0x0579, "Par: límite ahora", "Nm", 0, PidGroup.ENGINE) { it * 0.1 },
+        bmwDef(0x1036, "Par perdido en rozamiento", "Nm", 0, PidGroup.ENGINE) { it * 0.114443 - 2500.0 },
+        bmwDef(0x0DE3, "Control de crucero: estado (0 apagado, 1 en espera, 2 llevando)", "", 0, PidGroup.ENGINE, size = 1) {
+            it.toDouble()
+        },
+        bmwDef(0x0DE2, "Control de crucero: velocidad fijada", "km/h", 0, PidGroup.ENGINE) { it * 0.01 },
+        bmwDef(0x0DDF, "Control de crucero: motivo de desconexión (código)", "", 0, PidGroup.ENGINE, size = 1) { it.toDouble() },
+        bmwDef(0x106B, "Freno pisado (1 = sí)", "", 0, PidGroup.ENGINE, size = 1) { it.toDouble() },
+        bmwDef(0x0F0A, "Embrague: estado (código)", "", 0, PidGroup.ENGINE, size = 1) { it.toDouble() },
+        bmwDef(0x1068, "Servofreno: presión", "hPa", 0, PidGroup.ENGINE) { it.toDouble() },
     ) + BMW_GLOW_FAULTS.map { (id, text) ->
         PidDef(id, "Calentadores: $text (0 = no)", "", 1, 0, group = PidGroup.ENGINE) { it[0].toDouble() }
     }

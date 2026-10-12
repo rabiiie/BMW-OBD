@@ -163,6 +163,29 @@ class CaseTest {
     }
 
     @Test
+    fun `la tarjeta de conduccion dice la marcha, la fuerza y el control de crucero`() {
+        // Ultima lectura del barrido del 11 de octubre: sexta a 113 km/h con el crucero fijado en 119,86.
+        assertEquals(119.86, Pids.byId.getValue(Pids.bmw(0x0DE2)).decodeOrNull(intArrayOf(0x2E, 0xD2))!!, 0.001)
+        val read = mapOf(
+            Pids.bmw(0x0EA6) to 6.0, Pids.SPEED to 113.0, Pids.RPM to 1949.0, Pids.bmw(0x07D1) to 210.9,
+            Pids.bmw(0x0DE3) to 2.0, Pids.bmw(0x0DE2) to 119.86, Pids.BMW_INJECTION to 27.0,
+        )
+        val card = CaseCards.card(Case.DRIVING, read)!!
+        assertEquals("6ª a 113 km/h, 1.949 rpm.", card.headline)
+        assertEquals(
+            listOf("El motor da 211 Nm, unos 59 CV ahora.", "Consumo: 6,7 L/100.", "Control de crucero llevando el coche a 120 km/h."),
+            card.facts,
+        )
+        val waiting = CaseCards.card(Case.DRIVING, read + (Pids.bmw(0x0DE3) to 1.0) + (Pids.bmw(0x0DE2) to 84.46) + (Pids.bmw(0x07D1) to -26.0))!!
+        assertEquals("El motor no empuja: retiene con 26 Nm.", waiting.facts[0])
+        assertEquals("Control de crucero en espera; velocidad guardada 84 km/h.", waiting.facts[2])
+        val stopped = CaseCards.card(Case.DRIVING, mapOf(Pids.bmw(0x0EA6) to 0.0, Pids.SPEED to 0.0, Pids.RPM to 850.0, Pids.bmw(0x0DE3) to 0.0))!!
+        assertEquals("Punto muerto, 0 km/h, 850 rpm.", stopped.headline)
+        assertEquals(listOf("Control de crucero apagado."), stopped.facts)
+        assertEquals(HealthLevel.UNKNOWN, CaseCards.card(Case.DRIVING, emptyMap())!!.level)
+    }
+
+    @Test
     fun `las medidas de inyectores salen con la formula de la tabla`() {
         // 1462 contesto 81B2 en el barrido.
         assertEquals(0.62, Pids.byId.getValue(Pids.BMW_CYLINDER_CORRECTIONS[0]).decodeOrNull(intArrayOf(0x80, 0xCA))!!, 0.01)

@@ -33,6 +33,11 @@ enum class Case(val title: String, val watch: List<Int>, val also: List<Int>) {
         watch = listOf(0x1609, 0x160B, 0x012C, 0x15FE).map(Pids::bmw),
         also = Pids.BMW_GLOW_FAULTS.map { it.first } + listOf(0x15FF, 0x01B1, 0x01B8, 0x01B9).map(Pids::bmw),
     ),
+    DRIVING(
+        "Conducción",
+        watch = listOf(0x0EA6, 0x07D1, 0x0DE3, 0x0DE2, 0x0500).map(Pids::bmw),
+        also = listOf(0x0578, 0x0579, 0x1036, 0x0DDF, 0x106B, 0x0F0A, 0x1068).map(Pids::bmw),
+    ),
 }
 
 /** Lo que pasa ahora en lo que mira un caso, dicho sin jerga. */
@@ -61,6 +66,14 @@ object CaseCards {
     private val GLOW_TEMP = Pids.bmw(0x160B)
     private val BATTERY_VOLTS = Pids.bmw(0x012C)
     private val BATTERY_MARGIN = Pids.bmw(0x01B1)
+    private val GEAR = Pids.bmw(0x0EA6)
+    private val TORQUE = Pids.bmw(0x07D1)
+    private val CRUISE_STATE = Pids.bmw(0x0DE3)
+    private val CRUISE_SPEED = Pids.bmw(0x0DE2)
+    private const val CRUISE_WAITING = 1
+    private const val CRUISE_DRIVING = 2
+    private const val RPM_NM_PER_KW = 9549.0
+    private const val HP_PER_KW = 1.36
     private const val GLOWING_FROM_W = 20.0
     private const val WARM_ENGINE = 60.0
     private const val SEA_LEVEL_KPA = 100.0
@@ -77,6 +90,40 @@ object CaseCards {
         Case.INJECTORS -> injectors(values)
         Case.TURBO -> turbo(values)
         Case.COLD_START -> coldStart(values)
+        Case.DRIVING -> driving(values)
+    }
+
+    /**
+     * La marcha, la fuerza que da el motor y el control de crucero. Los estados del crucero son
+     * los que se vieron en el coche: 1 con una velocidad guardada y el pie en el pedal, 2 llevandolo.
+     */
+    private fun driving(values: Map<Int, Double>): HealthCard {
+        val gear = values[GEAR]
+        val speed = values[Pids.SPEED]
+        val rpm = values[Pids.RPM]
+        val torque = values[TORQUE]
+        val set = values[CRUISE_SPEED]
+        val facts = listOfNotNull(
+            torque?.let { nm ->
+                val horsepower = rpm?.takeIf { nm > 0 }?.let { nm * it / RPM_NM_PER_KW * HP_PER_KW }
+                if (nm <= 0) "El motor no empuja: retiene con ${n(-nm)} Nm." else "El motor da ${n(nm)} Nm" +
+                    (horsepower?.let { ", unos ${n(it)} CV ahora." } ?: ".")
+            },
+            Pids.litersPer100Km(values)?.let { "Consumo: ${n(it, 1)} L/100." },
+            when (values[CRUISE_STATE]?.toInt()) {
+                null -> null
+                CRUISE_DRIVING -> "Control de crucero llevando el coche" + (set?.let { " a ${n(it)} km/h." } ?: ".")
+                CRUISE_WAITING -> "Control de crucero en espera" + (set?.takeIf { it > 0 }?.let { "; velocidad guardada ${n(it)} km/h." } ?: ".")
+                else -> "Control de crucero apagado."
+            },
+        )
+        val moving = listOfNotNull(speed?.let { "${n(it)} km/h" }, rpm?.let { "${thousands(it)} rpm" }).joinToString(", ")
+        val headline = when {
+            gear == null -> return HealthCard(HealthSystem.DRIVING, HealthLevel.UNKNOWN, "Esperando los datos de conducción.", facts)
+            gear < 1 -> "Punto muerto" + if (moving.isEmpty()) "." else ", $moving."
+            else -> "${n(gear)}ª" + if (moving.isEmpty()) "." else " a $moving."
+        }
+        return HealthCard(HealthSystem.DRIVING, HealthLevel.OK, headline, facts)
     }
 
     /**
