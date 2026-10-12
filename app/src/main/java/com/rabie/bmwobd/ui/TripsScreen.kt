@@ -287,7 +287,7 @@ private fun StatCell(title: String, value: String, modifier: Modifier = Modifier
 }
 
 @Composable
-private fun Chip(text: String, selected: Boolean, onClick: () -> Unit) {
+fun Chip(text: String, selected: Boolean, onClick: () -> Unit) {
     Text(
         text,
         color = if (selected) Bmw.Background else Bmw.Text,

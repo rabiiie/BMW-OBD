@@ -1,6 +1,7 @@
 package com.rabie.bmwobd.settings
 
 import android.content.SharedPreferences
+import com.rabie.bmwobd.cases.Case
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,6 +20,7 @@ data class AppSettings(
     val expertConsole: Boolean = false,
     val autoConnect: Boolean = true,
     val lastAdapter: String? = null,
+    val case: Case = Case.NORMAL,
 )
 
 /** Los ajustes de la app, guardados en el movil. */
@@ -36,6 +38,7 @@ class SettingsStore(private val prefs: SharedPreferences) {
             .putBoolean(KEY_EXPERT, next.expertConsole)
             .putBoolean(KEY_AUTO_CONNECT, next.autoConnect)
             .putString(KEY_LAST_ADAPTER, next.lastAdapter)
+            .putString(KEY_CASE, next.case.name)
             .apply()
         _state.value = next
     }
@@ -49,6 +52,7 @@ class SettingsStore(private val prefs: SharedPreferences) {
             expertConsole = prefs.getBoolean(KEY_EXPERT, defaults.expertConsole),
             autoConnect = prefs.getBoolean(KEY_AUTO_CONNECT, defaults.autoConnect),
             lastAdapter = prefs.getString(KEY_LAST_ADAPTER, null),
+            case = Case.entries.firstOrNull { it.name == prefs.getString(KEY_CASE, null) } ?: defaults.case,
         )
     }
 
@@ -59,5 +63,6 @@ class SettingsStore(private val prefs: SharedPreferences) {
         const val KEY_EXPERT = "expert_console"
         const val KEY_AUTO_CONNECT = "auto_connect"
         const val KEY_LAST_ADAPTER = "last_adapter"
+        const val KEY_CASE = "case"
     }
 }

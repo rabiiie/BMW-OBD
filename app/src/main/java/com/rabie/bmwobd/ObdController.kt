@@ -11,6 +11,7 @@ import androidx.core.content.ContextCompat
 import com.rabie.bmwobd.advice.Advice
 import com.rabie.bmwobd.advice.Advisor
 import com.rabie.bmwobd.advice.Severity
+import com.rabie.bmwobd.cases.Case
 import com.rabie.bmwobd.obd.Commands
 import com.rabie.bmwobd.obd.DiagnosticsReport
 import com.rabie.bmwobd.obd.MonitorTest
@@ -19,7 +20,6 @@ import com.rabie.bmwobd.obd.ObdSession
 import com.rabie.bmwobd.obd.ObdTransport
 import com.rabie.bmwobd.obd.PidDef
 import com.rabie.bmwobd.obd.Pids
-import com.rabie.bmwobd.obd.Tier
 import com.rabie.bmwobd.scan.ScanProgress
 import com.rabie.bmwobd.scan.ScanRunner
 import com.rabie.bmwobd.scan.ScanSaved
@@ -57,6 +57,9 @@ data class LiveState(
     val liveSinceMillis: Long = 0,
     val advice: List<Advice> = emptyList(),
     val vehicle: Vehicle = Vehicle.GENERIC,
+    /** Si a este coche se le pueden poner casos, y el que tiene puesto. */
+    val cases: Boolean = false,
+    val case: Case = Case.NORMAL,
     val error: String? = null,
 )
 
@@ -70,14 +73,6 @@ data class DiagnosticsState(
 
 /** [finished] cuenta los sondeos terminados, para que la pantalla sepa cuando acaba uno. */
 data class ProbeState(val running: Boolean = false, val finished: Int = 0)
-
-/** Una peticion al coche y las medidas que salen de su respuesta. */
-private class Request(val pid: Int, val defs: List<PidDef>) {
-    val tier: Tier = defs.minOf { it.tier }
-
-    /** Los PIDs de una sola medida caben en una trama y admiten la lectura rapida. */
-    val singleFrame: Boolean = !Pids.isBmw(pid) && defs.all { it.pid == it.id }
-}
 
 /**
  * La conexion con el coche. Vive en la aplicacion y no en una pantalla, para que la lectura y la
@@ -140,9 +135,11 @@ class ObdController(
                     emptyList()
                 }
                 val defs = standard + own
+                // Las medidas de los casos tienen su columna desde el principio, aunque no se pidan.
+                val extras = if (own.isEmpty()) emptyList() else Pids.bmwCases
                 appendLog("## Coche: ${vehicle.name} · ${if (vehicle.diesel) "diésel" else "gasolina"} · bastidor ${info.vin ?: "no leído"}")
                 val started = withContext(Dispatchers.IO) {
-                    TripRecorder(trips.newFile(simulated, vehicle.key), defs.map { it.id })
+                    TripRecorder(trips.newFile(simulated, vehicle.key), (defs + extras).map { it.id }.distinct())
                 }
                 recorder = started
                 _state.update {
@@ -151,6 +148,7 @@ class ObdController(
                         vehicle = vehicle,
                         adapterInfo = info.summary,
                         supported = defs.map { def -> def.id }.toSet(),
+                        cases = extras.isNotEmpty(),
                         liveSinceMillis = System.currentTimeMillis(),
                     )
                 }
@@ -158,7 +156,7 @@ class ObdController(
                     appendLog("## Escaneo: sigue por donde iba")
                     openScan(vehicle.key)
                 }
-                poll(session, defs, started)
+                poll(session, defs, extras, started)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -348,25 +346,17 @@ class ObdController(
 
     private fun isLive() = _state.value.phase == Phase.LIVE
 
-    private suspend fun poll(session: ObdSession, defs: List<PidDef>, recorder: TripRecorder) {
-        val requests = defs.groupBy { it.pid }.map { Request(it.key, it.value) }
-        val fast = requests.filter { it.tier == Tier.FAST }
-        val medium = requests.filter { it.tier == Tier.MEDIUM }
-        val slow = requests.filter { it.tier == Tier.SLOW }
+    private suspend fun poll(session: ObdSession, defs: List<PidDef>, extras: List<PidDef>, recorder: TripRecorder) {
+        val turns = Turns(defs, extras)
         val values = HashMap<Int, Double>()
         val advisor = Advisor()
         var soundedAlerts = emptySet<String>()
 
-        for (request in requests) read(session, request, values, first = true)
+        for (request in turns.requests) read(session, request, values, first = true)
         var lastAnswerNanos = System.nanoTime()
         var windowStartNanos = lastAnswerNanos
         var cyclesInWindow = 0
         var rate = 0.0
-        var mediumIndex = 0
-        var slowIndex = 0
-        var cycle = 0
-        // Con muchas medidas lentas se lee una cada dos vueltas, para que no tarden en repetirse.
-        val slowEvery = if (slow.size > MANY_SLOW) SLOW_EVERY / 2 else SLOW_EVERY
 
         while (currentCoroutineContext().isActive) {
             while (true) {
@@ -374,10 +364,18 @@ class ObdController(
                 task(session)
             }
 
+            // El caso se puede cambiar en marcha. Lo que solo leia el anterior se quita para que
+            // no quede en la grabacion un valor que ya no se actualiza.
+            val wanted = if (extras.isEmpty()) Case.NORMAL else settings.state.value.case
+            if (wanted != turns.case) {
+                val shown = turns.use(wanted)
+                values.keys.retainAll(shown)
+                _state.update { it.copy(case = wanted, supported = shown) }
+                appendLog("## Caso: ${wanted.title}")
+            }
+
             var answered = false
-            val turn = fast.toMutableList()
-            if (medium.isNotEmpty()) turn += medium[mediumIndex++ % medium.size]
-            if (slow.isNotEmpty() && (cycle++ % slowEvery == 0 || medium.isEmpty())) turn += slow[slowIndex++ % slow.size]
+            val turn = turns.next(scanning = scan != null)
             for (request in turn) {
                 if (read(session, request, values)) answered = true
             }
@@ -464,10 +462,8 @@ class ObdController(
 
     private companion object {
         const val IDLE_DELAY_MS = 200L
-        const val SLOW_EVERY = 4
         const val SCAN_PER_TURN = 3
         const val SCAN_SLOW_QUERY_NANOS = 700_000_000L
-        const val MANY_SLOW = 16
         const val BEEP_MS = 600
         const val SILENCE_LIMIT_NANOS = 10_000_000_000L
         const val RATE_WINDOW_NANOS = 2_000_000_000L

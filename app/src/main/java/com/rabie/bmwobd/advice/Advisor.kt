@@ -587,6 +587,15 @@ class Advisor {
                 )
             },
             Rule("regeneration", Limits.REGEN_HOLD_MS) { m ->
+                // Si la centralita dice si pide regenerar, vale eso y no se deduce por la temperatura.
+                m.values[Pids.BMW_REGEN_REQUEST]?.let { asked ->
+                    if (asked <= 0 || !m.running) return@Rule null
+                    return@Rule Advice(
+                        "regeneration", Severity.INFO, "El filtro está regenerando",
+                        "Lo dice la centralita. Si puedes, sigue circulando unos minutos antes de apagar: " +
+                            "una regeneración a medias deja el filtro sin limpiar.",
+                    )
+                }
                 val exhaust = Moment.EXHAUST_TEMPS.mapNotNull { m.values[it] }.maxOrNull() ?: return@Rule null
                 val lambda = m.values[Pids.LAMBDA]
                 val rich = lambda == null || lambda in 0.5..Limits.REGEN_MAX_LAMBDA

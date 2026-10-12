@@ -68,6 +68,9 @@ object Pids {
     val BMW_SOOT_MEASURED = bmw(0x03EA)
     val BMW_SOOT_MODEL = bmw(0x03ED)
 
+    /** Mayor que cero mientras la centralita pide regenerar el filtro; en el coche marco 5. */
+    val BMW_REGEN_REQUEST = bmw(0x0404)
+
     const val BMW_TANK_ADDRESS = 0x0384
     const val BMW_ODOMETER_ADDRESS = 0x05DD
     const val BMW_TOTAL_FUEL_ADDRESS = 0x0939
@@ -269,6 +272,7 @@ object Pids {
         bmwDef(0x03EB, "Filtro: desde la última regeneración", "km", 1, PidGroup.EXHAUST, size = 4) { it / 1000.0 },
         bmwDef(0x03E8, "Filtro: gasóleo desde la última regeneración", "L", 1, PidGroup.EXHAUST) { it * 0.01 },
         bmwDef(0x0424, "Filtro: presión diferencial", "hPa", 0, PidGroup.EXHAUST) { it * 0.045777 - 1000.0 },
+        bmwDef(0x0404, "Filtro: regeneración pedida (0 = no)", "", 0, PidGroup.EXHAUST, size = 1) { it.toDouble() },
         bmwDef(0x01B2, "Corriente de batería", "A", 1, PidGroup.ELECTRIC) { it * 0.08 - 200.0 },
         bmwDef(0x09C4, "Ventilador", "%", 0, PidGroup.ENGINE) { it * 0.001526 },
         bmwDef(0x0839, "Control de crucero (1 = puesto)", "", 0, PidGroup.ENGINE, size = 1) { it.toDouble() },
@@ -290,11 +294,30 @@ object Pids {
         bmwDef(0x0BA5, "Filtro: km desde su cambio", "km", 0, PidGroup.EXHAUST, Tier.ONCE, size = 4) { it * 10.0 },
         bmwDef(0x03E9, "Filtro: ceniza calculada", "g", 0, PidGroup.EXHAUST, Tier.ONCE) { it * 0.015259 },
         bmwDef(0x042E, "Escape antes del filtro (sensor)", "°C", 0, PidGroup.EXHAUST, Tier.ONCE) { it * 0.031281 - 50.0 },
+        bmwDef(0x03DF, "Filtro: horas regenerando en total", "h", 0, PidGroup.EXHAUST, Tier.ONCE) { it * 23.002976 / 3600.0 },
+        bmwDef(0x0BA4, "Filtro: km que le calcula el coche", "km", 0, PidGroup.EXHAUST, Tier.ONCE) { it * 10.0 },
     ) + BMW_REGENERATION_ADDRESSES.mapIndexed { index, address ->
         bmwDef(address, "Filtro: km en la regeneración ${index + 1} hacia atrás", "km", 0, PidGroup.EXHAUST, Tier.ONCE, size = 4) {
             it / 1000.0
         }
     }
+
+    /**
+     * Medidas de la misma tabla que solo se piden con un caso puesto. Todas contestaron en el
+     * barrido completo del coche. La resistencia va en Pa para que quepa en dos decimales.
+     */
+    val bmwCases: List<PidDef> = listOf(
+        bmwDef(0x0405, "Filtro: hollín medido corregido", "g", 1, PidGroup.EXHAUST) { it * 0.01 },
+        bmwDef(0x03F1, "Filtro: resistencia al paso", "Pa·h/m³", 1, PidGroup.EXHAUST) { it * 0.01 },
+        bmwDef(0x0420, "Filtro: presión delante", "hPa", 0, PidGroup.EXHAUST) { it * 0.091554 },
+        bmwDef(0x041E, "Escape antes del catalizador", "°C", 0, PidGroup.EXHAUST) { it * 0.031281 - 50.0 },
+        bmwDef(0x0434, "Escape antes del filtro (calculada)", "°C", 0, PidGroup.EXHAUST) { it * 0.031281 - 50.0 },
+        bmwDef(0x03E0, "Escape: presión antes del turbo", "hPa", 0, PidGroup.EXHAUST) { it * 0.038148 + 500.0 },
+        bmwDef(0x0408, "Filtro: tiempo desde la última regeneración", "min", 0, PidGroup.EXHAUST, size = 4) { it / 60.0 },
+        bmwDef(0x03EC, "Filtro: código de interrupción", "", 0, PidGroup.EXHAUST) { it.toDouble() },
+        bmwDef(0x05AA, "Motor: modo de funcionamiento (código)", "", 0, PidGroup.EXHAUST, size = 4) { it.toDouble() },
+        bmwDef(0x03DE, "Filtro: velocidad media desde la regeneración", "km/h", 0, PidGroup.EXHAUST) { it * 0.003815 },
+    )
 
     /** Si a un coche se le pueden pedir las medidas de [bmwDiesel]. */
     fun hasBmwMeasures(make: String?, diesel: Boolean) = diesel && make != null && make.startsWith("BMW")
@@ -309,7 +332,8 @@ object Pids {
             exhaust.inGroup(PidGroup.EXHAUST) +
             electric.inGroup(PidGroup.ELECTRIC) +
             counters.inGroup(PidGroup.COUNTERS) +
-            bmwDiesel
+            bmwDiesel +
+            bmwCases
 
     val byId: Map<Int, PidDef> = all.associateBy { it.id }
 

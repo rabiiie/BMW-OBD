@@ -336,6 +336,19 @@ object SimulatedDde {
         measure(0x0BA5) { _ -> long(TOTAL_KM / 10) },
         measure(0x03E9) { _ -> word(18.0 / 0.015259) },
         measure(0x042E) { s -> word((150 + s.load * 4.2 - 20 + 50) / 0.031281) },
+        measure(0x0404) { _ -> byte(0.0) },
+        measure(0x03DF) { _ -> word(210.0 * 3600 / 23.002976) },
+        measure(0x0BA4) { _ -> word(9_000.0) },
+        measure(0x0405) { _ -> word(13.9 / 0.01) },
+        measure(0x03F1) { s -> word(1_200.0 + s.load * 8) },
+        measure(0x0420) { s -> word((1_010 + s.load * 2) / 0.091554) },
+        measure(0x041E) { s -> word((150 + s.load * 4.2 + 50) / 0.031281) },
+        measure(0x0434) { s -> word((150 + s.load * 4.2 - 20 + 50) / 0.031281) },
+        measure(0x03E0) { s -> word((s.mapKpa * 10 + 100 - 500) / 0.038148) },
+        measure(0x0408) { _ -> long(7_400.0) },
+        measure(0x03EC) { _ -> word(0.0) },
+        measure(0x05AA) { _ -> long(1_048_577.0) },
+        measure(0x03DE) { _ -> word(64.0 / 0.003815) },
         ) + listOf(183.4, 610.0, 1_020.0, 1_455.0, 1_840.0).mapIndexed { index, back ->
             measure(Pids.BMW_REGENERATION_ADDRESSES[index]) { _ -> long((TOTAL_KM - back) * 1000) }
         }

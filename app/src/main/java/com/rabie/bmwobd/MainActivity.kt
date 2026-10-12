@@ -140,6 +140,7 @@ private fun MainScreen(vm: ObdViewModel = viewModel()) {
                     bubbleEnabled = bubbleEnabled,
                     onToggleBubble = toggleBubble,
                     onSaveVehicle = vm::updateVehicle,
+                    onCase = { case -> vm.updateSettings { it.copy(case = case) } },
                     onDisconnect = vm::disconnect,
                     modifier = content,
                 )

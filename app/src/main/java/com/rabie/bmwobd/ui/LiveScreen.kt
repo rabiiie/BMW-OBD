@@ -25,6 +25,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.ui.platform.LocalContext
@@ -47,6 +48,8 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rabie.bmwobd.LiveState
+import com.rabie.bmwobd.cases.Case
+import com.rabie.bmwobd.cases.CaseCards
 import com.rabie.bmwobd.obd.DefaultRanges
 import com.rabie.bmwobd.obd.PidGroup
 import com.rabie.bmwobd.obd.Pids
@@ -74,6 +77,7 @@ fun LiveScreen(
     bubbleEnabled: Boolean,
     onToggleBubble: () -> Unit,
     onSaveVehicle: (Vehicle) -> Unit,
+    onCase: (Case) -> Unit,
     onDisconnect: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -110,6 +114,17 @@ fun LiveScreen(
         }
         for (advice in state.advice) {
             AdviceCard(advice, Modifier.clickable { searchWeb(context, "${vehicle.searchTerms} ${advice.title}") })
+        }
+        if (state.cases) {
+            Row(
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Label("Caso")
+                for (case in Case.entries) Chip(case.title, case == state.case) { onCase(case) }
+            }
+            CaseCards.card(state.case, values)?.let { HealthCardView(it) }
         }
 
         val rpm = values[Pids.RPM]

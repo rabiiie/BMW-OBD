@@ -57,6 +57,8 @@ object Health {
     private const val FILTER_ASH = 0x03E9
     private const val FILTER_USUAL_INTERVAL = 0x03F3
     private const val FILTER_TEMP_SENSOR = 0x042E
+    private const val FILTER_REGEN_HOURS = 0x03DF
+    private const val FILTER_KM_LEFT = 0x0BA4
     private const val SENSOR_OPEN_BELOW = -35.0
     private const val RECENT_REGENERATIONS = 3
     private const val SHORT_INTERVAL_SHARE = 0.5
@@ -124,6 +126,8 @@ object Health {
             data.last(Pids.bmw(Pids.BMW_TANK_ADDRESS))?.let { "Depósito al acabar" to n(it, 1) + " L" },
             data.last(Pids.bmw(FILTER_REGENERATIONS))?.let { "Regeneraciones del filtro en su vida" to thousands(it) },
             data.last(Pids.bmw(FILTER_KM))?.let { "Km con este filtro de partículas, según el coche" to thousands(it) + " km" },
+            data.last(Pids.bmw(FILTER_KM_LEFT))?.let { "Km que el coche le calcula todavía al filtro" to thousands(it) + " km" },
+            data.last(Pids.bmw(FILTER_REGEN_HOURS))?.let { "Horas regenerando en toda su vida, según el coche" to thousands(it) + " h" },
         )
     }
 
@@ -202,6 +206,7 @@ object Health {
      */
     fun regeneration(data: TripData): Regeneration? {
         val rows = Rows(data)
+        if (data.series[Pids.BMW_REGEN_REQUEST]?.any { !it.isNaN() } == true) return announced(data, rows)
         // Una regeneracion es un rato seguido con esas condiciones; se interrumpen en las
         // retenciones y en las paradas, asi que se juntan los tramos separados por pocos minutos.
         var best: IntArray? = null
@@ -243,6 +248,36 @@ object Health {
             else -> null
         }
         return Regeneration(data.tMs[from], (data.tMs[to] - data.tMs[from]) / 1000, finished)
+    }
+
+    /**
+     * La regeneracion que anuncia la propia centralita: el rato en que pide regenerar. Termino si
+     * la distancia desde la ultima vuelve a cero.
+     */
+    private fun announced(data: TripData, rows: Rows): Regeneration? {
+        var first = -1
+        var last = -1
+        var activeMs = 0L
+        var reset = false
+        var previousDistance: Double? = null
+        for (i in 0 until data.size) {
+            if ((rows.at(Pids.BMW_REGEN_REQUEST, i) ?: 0.0) > 0) {
+                if (first < 0) first = i
+                last = i
+                activeMs += rows.dt(i)
+            }
+            val distance = rows.at(Pids.bmw(FILTER_DISTANCE), i)
+            if (first >= 0 && distance != null && previousDistance != null && previousDistance - distance > REGEN_RESET_KM) reset = true
+            if (distance != null) previousDistance = distance
+        }
+        if (first < 0) return null
+        // Que deje de pedirla sin que la distancia vuelva a cero no dice si termino o se corto.
+        val finished = when {
+            reset -> true
+            last >= data.size - 1 -> false
+            else -> null
+        }
+        return Regeneration(data.tMs[first], activeMs / 1000, finished)
     }
 
     private fun filter(data: TripData): HealthCard {
