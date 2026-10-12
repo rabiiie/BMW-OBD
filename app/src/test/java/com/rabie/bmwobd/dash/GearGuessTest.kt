@@ -52,4 +52,56 @@ class GearGuessTest {
         assertEquals(6, gears.now(speed, rpm))
         assertEquals(0, SimulatedEngine.gearAt(0.0, 800.0))
     }
+
+    private fun held(hint: ShiftHint, speed: Double, rpm: Double, gear: Int?, nextRpm: Double?, demanding: Boolean = false, coolant: Double = 90.0): Int {
+        var last = ShiftHint.NONE
+        for (t in 0..3000 step 500) last = hint.update(t.toLong(), speed, rpm, coolant, gear, nextRpm, demanding)
+        return last
+    }
+
+    @Test
+    fun `recomienda subir cuando el motor va holgado y la siguiente aguanta`() {
+        val gears = GearGuess()
+        // Cuarta a 2.100 rpm son 78 km/h; en quinta caeria a 1.640.
+        val next = 78.0 / gears.ratio(5)!! * 1000.0
+        assertEquals(1642.0, next, 1.0)
+        assertEquals(ShiftHint.UP, held(ShiftHint(), 78.0, 2100.0, 4, next))
+        // Pidiendole fuerza no: en la marcha larga se quedaria sin ella.
+        assertEquals(ShiftHint.NONE, held(ShiftHint(), 78.0, 2100.0, 4, next, demanding = true))
+        // A pocas vueltas tampoco, ni en la ultima marcha, ni si la siguiente caeria demasiado.
+        assertEquals(ShiftHint.NONE, held(ShiftHint(), 60.0, 1620.0, 4, 60.0 / 47.5 * 1000))
+        assertEquals(ShiftHint.NONE, held(ShiftHint(), 130.0, 2245.0, 6, null))
+        assertEquals(ShiftHint.NONE, held(ShiftHint(), 78.0, 2100.0, 4, 1200.0))
+        // En frio se deja subir mas de vueltas antes de recomendarlo.
+        assertEquals(ShiftHint.NONE, held(ShiftHint(), 78.0, 2100.0, 4, next, coolant = 35.0))
+        assertEquals(ShiftHint.UP, held(ShiftHint(), 95.0, 2570.0, 4, 2000.0, coolant = 35.0))
+        // Sin conocer la relacion de la siguiente, basta con que vaya holgado de vueltas.
+        assertEquals(ShiftHint.UP, held(ShiftHint(), 30.0, 2300.0, 2, null))
+    }
+
+    @Test
+    fun `recomienda bajar cuando va ahogado y no dice nada parado o sin marcha`() {
+        assertEquals(ShiftHint.DOWN, held(ShiftHint(), 45.0, 1050.0, 4, null))
+        assertEquals(ShiftHint.DOWN, held(ShiftHint(), 55.0, 1300.0, 5, null, demanding = true))
+        assertEquals(ShiftHint.NONE, held(ShiftHint(), 55.0, 1300.0, 5, null))
+        // En primera no hay a donde bajar.
+        assertEquals(ShiftHint.NONE, held(ShiftHint(), 12.0, 1000.0, 1, null))
+        assertEquals(ShiftHint.NONE, held(ShiftHint(), 0.0, 800.0, 0, null))
+        assertEquals(ShiftHint.NONE, held(ShiftHint(), 60.0, 2400.0, null, null))
+    }
+
+    @Test
+    fun `la recomendacion tarda un momento en salir y se quita en cuanto deja de valer`() {
+        val hint = ShiftHint()
+        assertEquals(ShiftHint.NONE, hint.update(0, 78.0, 2100.0, 90.0, 4, 1640.0, false))
+        assertEquals(ShiftHint.NONE, hint.update(1000, 78.0, 2100.0, 90.0, 4, 1640.0, false))
+        assertEquals(ShiftHint.UP, hint.update(1600, 78.0, 2100.0, 90.0, 4, 1640.0, false))
+        // Al cambiar a quinta desaparece al momento.
+        assertEquals(ShiftHint.NONE, hint.update(1900, 78.0, 1640.0, 90.0, 5, 1347.0, false))
+        // Un golpe de pedal la reinicia: no vuelve hasta que se mantiene otra vez.
+        hint.update(2000, 78.0, 2100.0, 90.0, 4, 1640.0, false)
+        hint.update(2500, 78.0, 2100.0, 90.0, 4, 1640.0, true)
+        assertEquals(ShiftHint.NONE, hint.update(3000, 78.0, 2100.0, 90.0, 4, 1640.0, false))
+        assertEquals(ShiftHint.UP, hint.update(4600, 78.0, 2100.0, 90.0, 4, 1640.0, false))
+    }
 }

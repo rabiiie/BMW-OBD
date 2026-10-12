@@ -31,6 +31,9 @@ class GearGuess {
         return nearest(learned, ratio) ?: nearest(SEEN.filterKeys { it !in learned }, ratio)
     }
 
+    /** Los km/h por cada mil vueltas de [gear], aprendidos o vistos; null si no se conocen. */
+    fun ratio(gear: Int): Double? = learned[gear] ?: SEEN[gear]
+
     private fun nearest(ratios: Map<Int, Double>, ratio: Double): Int? =
         ratios.minByOrNull { abs(it.value / ratio - 1) }?.takeIf { abs(it.value / ratio - 1) <= TOLERANCE }?.key
 

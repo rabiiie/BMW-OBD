@@ -13,7 +13,9 @@ import com.rabie.bmwobd.advice.Advisor
 import com.rabie.bmwobd.advice.Severity
 import com.rabie.bmwobd.cases.Case
 import com.rabie.bmwobd.dash.Dashboard
+import com.rabie.bmwobd.advice.Moment
 import com.rabie.bmwobd.dash.GearGuess
+import com.rabie.bmwobd.dash.ShiftHint
 import com.rabie.bmwobd.obd.Commands
 import com.rabie.bmwobd.obd.DiagnosticsReport
 import com.rabie.bmwobd.obd.MonitorTest
@@ -68,6 +70,8 @@ data class LiveState(
     val averageL100: Double? = null,
     /** La marcha de ahora, deducida de velocidad y revoluciones; 0 parado, null si no se sabe. */
     val gear: Int? = null,
+    /** Recomendacion de cambio calculada por la app: [ShiftHint.UP], [ShiftHint.DOWN] o ninguna. */
+    val shift: Int = ShiftHint.NONE,
     val error: String? = null,
 )
 
@@ -404,6 +408,7 @@ class ObdController(
         var km = 0.0
         var lastSumNanos = System.nanoTime()
         val gears = GearGuess()
+        val shifts = ShiftHint()
         var looked = emptyList<Int>()
         _state.update { it.copy(supported = turns.shown) }
 
@@ -470,10 +475,15 @@ class ObdController(
                 snapshot[Dashboard.GEAR]?.let { gears.learn(it.toInt(), snapshot[Pids.SPEED], snapshot[Pids.RPM]) }
             }
             val gear = if (extras.isEmpty()) null else gears.now(snapshot[Pids.SPEED], snapshot[Pids.RPM])
+            val nextRpm = gear?.let { gears.ratio(it + 1) }?.let { ratio -> snapshot[Pids.SPEED]?.let { it / ratio * 1000.0 } }
+            val shift = shifts.update(
+                now / 1_000_000, snapshot[Pids.SPEED], snapshot[Pids.RPM], snapshot[Pids.COOLANT], gear, nextRpm,
+                Moment(snapshot, 0L, null, _state.value.vehicle).demanding,
+            )
             val alerts = advice.filter { it.severity == Severity.ALERT }.map { it.id }.toSet()
             if ((alerts - soundedAlerts).isNotEmpty()) beep()
             soundedAlerts = alerts
-            _state.update { it.copy(values = snapshot, cyclesPerSecond = rate, advice = advice, averageL100 = average, gear = gear) }
+            _state.update { it.copy(values = snapshot, cyclesPerSecond = rate, advice = advice, averageL100 = average, gear = gear, shift = shift) }
             if (answered) withContext(Dispatchers.IO) { recorder.append(snapshot) }
         }
     }

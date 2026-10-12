@@ -49,6 +49,7 @@ import com.rabie.bmwobd.advice.Severity
 import com.rabie.bmwobd.dash.DashGroup
 import com.rabie.bmwobd.dash.DashTile
 import com.rabie.bmwobd.dash.Dashboard
+import com.rabie.bmwobd.dash.ShiftHint
 import com.rabie.bmwobd.obd.Pids
 import kotlinx.coroutines.delay
 
@@ -145,15 +146,22 @@ internal fun DashPanel(state: LiveState, onMenu: () -> Unit, onWatch: (List<Int>
                     center = {
                         // Sin marcha conocida el hueco se queda, para que el consumo no salte de sitio.
                         val gear = state.gear
-                        Text(
-                            when {
-                                gear == null -> " "
-                                gear < 1 -> "N"
-                                else -> Dashboard.CALCULATED + "${gear}ª"
-                            },
-                            color = Bmw.Text,
-                            fontSize = (22 * scale).sp,
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(
+                                when {
+                                    gear == null -> " "
+                                    gear < 1 -> "N"
+                                    else -> Dashboard.CALCULATED + "${gear}ª"
+                                },
+                                color = Bmw.Text,
+                                fontSize = (22 * scale).sp,
+                            )
+                            // La recomendacion de cambio, tambien calculada: flecha arriba para subir, abajo para bajar.
+                            when (state.shift) {
+                                ShiftHint.UP -> Text("▲", color = Bmw.Accent, fontSize = (22 * scale).sp)
+                                ShiftHint.DOWN -> Text("▼", color = Bmw.Amber, fontSize = (22 * scale).sp)
+                            }
+                        }
                         CenterReadout(state, (28 * scale).sp)
                     },
                     right = {
