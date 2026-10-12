@@ -186,6 +186,42 @@ class CaseTest {
     }
 
     @Test
+    fun `la tarjeta electrica dice si carga y solo avisa con tension baja en marcha`() {
+        // Lecturas del barrido del 11 de octubre: 01B2 contesto 09F7 (4,08 A) y 01B9 contesto 89E4 (14,83 V).
+        assertEquals(4.08, Pids.byId.getValue(Pids.bmw(0x01B2)).decodeOrNull(intArrayOf(0x09, 0xF7))!!, 0.001)
+        assertEquals(14.825, Pids.byId.getValue(Pids.bmw(0x01B9)).decodeOrNull(intArrayOf(0x89, 0xE4))!!, 0.001)
+        val read = mapOf(
+            Pids.RPM to 1950.0, Pids.bmw(0x01B2) to 4.08, Pids.bmw(0x01B9) to 14.83, Pids.bmw(0x01AF) to 14.8,
+            Pids.bmw(0x0186) to 18.7, Pids.bmw(0x0E43) to 56.0, Pids.bmw(0x01B1) to 39.4, Pids.bmw(0x01B8) to 25.5,
+            Pids.bmw(0x10CE) to 617.0, Pids.bmw(0x10D5) to 82.16,
+        )
+        val card = CaseCards.card(Case.ELECTRIC, read)!!
+        assertEquals("La batería está cargando: entran 4,1 A.", card.headline)
+        assertEquals(
+            listOf(
+                "Tensión: 14,8 V; el coche le pide 14,8 V al alternador.",
+                "Alternador al 19 % de carga, a 56 °C.",
+                "Margen de la batería para arrancar: 39 (más alto, mejor); batería a 26 °C.",
+                "Antes de este arranque estuvo aparcado 10,3 h.",
+                "Energía recuperada en retenciones: 82,2 Ah.",
+            ),
+            card.facts,
+        )
+        val giving = CaseCards.card(Case.ELECTRIC, read + (Pids.bmw(0x01B2) to -6.0) + (Pids.bmw(0x01B8) to -50.0))!!
+        assertEquals(HealthLevel.OK, giving.level)
+        assertEquals("La batería está dando 6,0 A. En marcha es normal a ratos: carga en las retenciones.", giving.headline)
+        assertEquals("Margen de la batería para arrancar: 39 (más alto, mejor).", giving.facts[2])
+        assertEquals("Batería en equilibrio: ni carga ni descarga.", CaseCards.card(Case.ELECTRIC, read + (Pids.bmw(0x01B2) to -0.4))!!.headline)
+
+        val low = CaseCards.card(Case.ELECTRIC, read + (Pids.bmw(0x01B9) to 11.9))!!
+        assertEquals(HealthLevel.WATCH, low.level)
+        assertEquals("Solo 11,9 V con el motor en marcha: el alternador no está cargando.", low.headline)
+        // Con el motor parado esa tension no es un aviso.
+        assertEquals(HealthLevel.OK, CaseCards.card(Case.ELECTRIC, read + (Pids.bmw(0x01B9) to 11.9) + (Pids.RPM to 0.0))!!.level)
+        assertEquals(HealthLevel.UNKNOWN, CaseCards.card(Case.ELECTRIC, emptyMap())!!.level)
+    }
+
+    @Test
     fun `las medidas de inyectores salen con la formula de la tabla`() {
         // 1462 contesto 81B2 en el barrido.
         assertEquals(0.62, Pids.byId.getValue(Pids.BMW_CYLINDER_CORRECTIONS[0]).decodeOrNull(intArrayOf(0x80, 0xCA))!!, 0.01)

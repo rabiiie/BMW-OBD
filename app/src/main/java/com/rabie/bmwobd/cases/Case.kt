@@ -38,6 +38,11 @@ enum class Case(val title: String, val watch: List<Int>, val also: List<Int>) {
         watch = listOf(0x0EA6, 0x07D1, 0x0DE3, 0x0DE2, 0x0500).map(Pids::bmw),
         also = listOf(0x0578, 0x0579, 0x1036, 0x0DDF, 0x106B, 0x0F0A, 0x1068).map(Pids::bmw),
     ),
+    ELECTRIC(
+        "Eléctrico",
+        watch = listOf(0x01B2, 0x01B9, 0x01AF, 0x0186, 0x01BC).map(Pids::bmw),
+        also = listOf(0x01B1, 0x01B8, 0x0E43, 0x10D5, 0x10CE, 0x012C).map(Pids::bmw),
+    ),
 }
 
 /** Lo que pasa ahora en lo que mira un caso, dicho sin jerga. */
@@ -74,6 +79,18 @@ object CaseCards {
     private const val CRUISE_DRIVING = 2
     private const val RPM_NM_PER_KW = 9549.0
     private const val HP_PER_KW = 1.36
+    private val BATTERY_CURRENT = Pids.bmw(0x01B2)
+    private val BATTERY_TERMINAL = Pids.bmw(0x01B9)
+    private val BATTERY_TEMP = Pids.bmw(0x01B8)
+    private val ALTERNATOR_ASKED = Pids.bmw(0x01AF)
+    private val ALTERNATOR_LOAD = Pids.bmw(0x0186)
+    private val ALTERNATOR_TEMP = Pids.bmw(0x0E43)
+    private val RECOVERED_AH = Pids.bmw(0x10D5)
+    private val PARKED_MINUTES = Pids.bmw(0x10CE)
+    private const val RUNNING_RPM = 400.0
+    private const val LOW_RUNNING_VOLTS = 12.3
+    private const val STEADY_AMPS = 1.0
+    private const val SENSOR_OPEN_BELOW = -40.0
     private const val GLOWING_FROM_W = 20.0
     private const val WARM_ENGINE = 60.0
     private const val SEA_LEVEL_KPA = 100.0
@@ -91,7 +108,50 @@ object CaseCards {
         Case.TURBO -> turbo(values)
         Case.COLD_START -> coldStart(values)
         Case.DRIVING -> driving(values)
+        Case.ELECTRIC -> electric(values)
     }
+
+    /**
+     * La bateria y el alternador. Este coche regula la carga: carga mas en las retenciones y
+     * deja descargar algo la bateria acelerando, asi que una corriente negativa en marcha no es
+     * una averia. Solo avisa una tension baja con el motor girando.
+     */
+    private fun electric(values: Map<Int, Double>): HealthCard {
+        val current = values[BATTERY_CURRENT]
+        val volts = values[BATTERY_TERMINAL] ?: values[BATTERY_VOLTS]
+        val running = (values[Pids.RPM] ?: 0.0) > RUNNING_RPM
+        val facts = listOfNotNull(
+            volts?.let { v -> "Tensión: ${n(v, 1)} V" + (values[ALTERNATOR_ASKED]?.let { "; el coche le pide ${n(it, 1)} V al alternador." } ?: ".") },
+            values[ALTERNATOR_LOAD]?.let { load ->
+                "Alternador al ${n(load)} % de carga" + (values[ALTERNATOR_TEMP]?.let { ", a ${n(it)} °C." } ?: ".")
+            },
+            values[BATTERY_MARGIN]?.let { margin ->
+                "Margen de la batería para arrancar: ${n(margin)} (más alto, mejor)" +
+                    (values[BATTERY_TEMP]?.takeIf { it > SENSOR_OPEN_BELOW }?.let { "; batería a ${n(it)} °C." } ?: ".")
+            },
+            values[PARKED_MINUTES]?.let { "Antes de este arranque estuvo aparcado ${duration(it)}." },
+            values[RECOVERED_AH]?.let { "Energía recuperada en retenciones: ${n(it, 1)} Ah." },
+        )
+        return when {
+            current == null -> HealthCard(HealthSystem.ELECTRIC, HealthLevel.UNKNOWN, "Esperando los datos de la batería.", facts)
+            running && volts != null && volts < LOW_RUNNING_VOLTS -> HealthCard(
+                HealthSystem.ELECTRIC, HealthLevel.WATCH,
+                "Solo ${n(volts, 1)} V con el motor en marcha: el alternador no está cargando.",
+                facts,
+                "Si se mantiene varios minutos, mirar la correa del alternador y sus conexiones antes de que la batería se agote.",
+            )
+            current >= STEADY_AMPS -> HealthCard(HealthSystem.ELECTRIC, HealthLevel.OK, "La batería está cargando: entran ${n(current, 1)} A.", facts)
+            current <= -STEADY_AMPS -> HealthCard(
+                HealthSystem.ELECTRIC, HealthLevel.OK,
+                "La batería está dando ${n(-current, 1)} A." + if (running) " En marcha es normal a ratos: carga en las retenciones." else "",
+                facts,
+            )
+            else -> HealthCard(HealthSystem.ELECTRIC, HealthLevel.OK, "Batería en equilibrio: ni carga ni descarga.", facts)
+        }
+    }
+
+    private fun duration(minutes: Double): String =
+        if (minutes < 90) "${n(minutes)} min" else "${n(minutes / 60, 1)} h"
 
     /**
      * La marcha, la fuerza que da el motor y el control de crucero. Los estados del crucero son
