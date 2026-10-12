@@ -47,6 +47,14 @@ class BmwMeasuresTest {
     }
 
     @Test
+    fun `el desfase de la distribucion sale con lo que contesto el coche`() {
+        // Barrido del 11 de octubre: 2C1015E5 contesto 7FD3 en las siete lecturas.
+        val def = Pids.byId.getValue(Pids.bmw(Pids.BMW_TIMING_OFFSET_ADDRESS))
+        assertEquals(-0.129, def.decodeOrNull(intArrayOf(0x7F, 0xD3))!!, 0.002)
+        assertEquals(com.rabie.bmwobd.obd.Tier.ONCE, def.tier)
+    }
+
+    @Test
     fun `al conectar se quedan las medidas que contestan y una sola de cada identificador`() = runBlocking<Unit> {
         val session = ObdSession(SimulatedTransport(latencyMs = 0)) { log += it }
         session.connect()

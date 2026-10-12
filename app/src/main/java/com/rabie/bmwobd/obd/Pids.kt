@@ -99,6 +99,7 @@ object Pids {
     const val BMW_FAULTS_ADDRESS = 0x04A7
     const val BMW_OIL_KM_ADDRESS = 0x044C
     const val BMW_OIL_LEVEL_ADDRESS = 0x044D
+    const val BMW_TIMING_OFFSET_ADDRESS = 0x15E5
 
     /** Lo que marcaba la distancia total en cada una de las cinco ultimas regeneraciones, de la mas reciente a la mas antigua. */
     val BMW_REGENERATION_ADDRESSES = listOf(0x03FD, 0x03FE, 0x03FF, 0x0400, 0x0401)
@@ -318,6 +319,10 @@ object Pids {
         bmwDef(0x042E, "Escape antes del filtro (sensor)", "°C", 0, PidGroup.EXHAUST, Tier.ONCE) { it * 0.031281 - 50.0 },
         bmwDef(0x03DF, "Filtro: horas regenerando en total", "h", 0, PidGroup.EXHAUST, Tier.ONCE) { it * 23.002976 / 3600.0 },
         bmwDef(0x0BA4, "Filtro: km que le calcula el coche", "km", 0, PidGroup.EXHAUST, Tier.ONCE) { it * 10.0 },
+        // Lo que el arbol de levas va desfasado del cigueñal, en grados de cigueñal. Crece si la cadena se estira.
+        bmwDef(BMW_TIMING_OFFSET_ADDRESS, "Distribución: desfase del árbol de levas", "°", 2, PidGroup.ENGINE, Tier.ONCE) {
+            it * 0.003052 - 100.0
+        },
     ) + BMW_REGENERATION_ADDRESSES.mapIndexed { index, address ->
         bmwDef(address, "Filtro: km en la regeneración ${index + 1} hacia atrás", "km", 0, PidGroup.EXHAUST, Tier.ONCE, size = 4) {
             it / 1000.0

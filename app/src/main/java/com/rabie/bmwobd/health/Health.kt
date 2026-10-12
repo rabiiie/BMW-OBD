@@ -130,6 +130,8 @@ object Health {
             data.last(Pids.bmw(FILTER_KM))?.let { "Km con este filtro de partículas, según el coche" to thousands(it) + " km" },
             data.last(Pids.bmw(FILTER_KM_LEFT))?.let { "Km que el coche le calcula todavía al filtro" to thousands(it) + " km" },
             data.last(Pids.bmw(FILTER_REGEN_HOURS))?.let { "Horas regenerando en toda su vida, según el coche" to thousands(it) + " h" },
+            // Vale por su tendencia de un trayecto a otro: si crece, la cadena se esta estirando.
+            data.last(Pids.bmw(Pids.BMW_TIMING_OFFSET_ADDRESS))?.let { "Desfase de la distribución (árbol de levas respecto al cigüeñal)" to n(it, 2) + "°" },
         )
     }
 
