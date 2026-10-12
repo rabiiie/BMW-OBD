@@ -331,7 +331,8 @@ internal fun CenterReadout(state: LiveState, size: TextUnit) {
         val perHour = Pids.fuelRate(state.values, diesel)
         val per100 = Pids.litersPer100Km(state.values, diesel)
         Text((per100 ?: perHour)?.let { formatValue(it, 1) } ?: "—", color = Bmw.Accent, fontSize = size)
-        Label(if (per100 == null && perHour != null) "L/h" else "L/100")
+        // El consumo es una cuenta de la app con lo que inyecta el motor: lleva la marca de lo calculado.
+        Label(if (per100 == null && perHour != null) "≈ L/h" else "≈ L/100")
     } else {
         val boost = Pids.boostBar(state.values)
         Text(boost?.let { formatValue(it, 2) } ?: "—", color = Bmw.Accent, fontSize = size)

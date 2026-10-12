@@ -68,6 +68,23 @@ class DashboardTest {
     }
 
     @Test
+    fun `una medida se da por callada a los pocos silencios seguidos y vuelve al contestar`() {
+        val turns = Turns(base, Pids.bmwCases, Dashboard.background)
+        val slow = turns.requests.first { it.pid == Pids.COOLANT }
+        val fast = turns.requests.first { it.pid == Pids.RPM }
+        val silence = com.rabie.bmwobd.Silence()
+
+        assertEquals(listOf(false, true, false), List(3) { silence.missed(slow) })
+        // Un silencio suelto entre respuestas no cuenta.
+        silence.answered(slow)
+        assertEquals(false, silence.missed(slow))
+        silence.answered(slow)
+        assertEquals(listOf(false, true), List(2) { silence.missed(slow) })
+        // Las que se leen en cada vuelta aguantan uno mas.
+        assertEquals(listOf(false, false, true, false), List(4) { silence.missed(fast) })
+    }
+
+    @Test
     fun `la presion del turbo sale de un mismo mensaje cuando el coche lo da`() {
         val own = mapOf(Pids.bmw(0x01F4) to 169.0, Pids.MAP to 150.0)
         assertEquals("169 / 150", Dashboard.tiles(DashGroup.TURBO, own).first().value)
@@ -81,7 +98,7 @@ class DashboardTest {
             Pids.RPM to 1949.0, Pids.MAP to 167.0, Pids.BMW_SOOT_MEASURED to 21.1, Pids.bmw(0x03EB) to 31.95,
             Pids.bmw(0x041E) to 440.8, Pids.bmw(0x01F4) to 169.0, Pids.bmw(0x0C86) to 98_737.0, Pids.bmw(0x0BEB) to 85.9,
             Pids.bmw(0x07D1) to 210.9, Pids.BMW_INJECTION to 27.0, Pids.bmw(0x01B9) to 14.11, Pids.bmw(0x01B2) to 4.08,
-            Pids.bmw(0x0186) to 18.7,
+            Pids.bmw(0x0E43) to 56.0,
         ) + Pids.BMW_CYLINDER_CORRECTIONS.zip(listOf(0.62, -0.49, 0.41, -0.63)).toMap()
 
         assertEquals(
@@ -93,7 +110,7 @@ class DashboardTest {
             Dashboard.tiles(DashGroup.TURBO, values),
         )
         assertEquals(
-            listOf(DashTile("Par", "211", "Nm"), DashTile("Potencia", "59", "CV"), DashTile("Inyecta", "27,0", "mg")),
+            listOf(DashTile("Par", "211", "Nm"), DashTile("Potencia", "≈ 59", "CV"), DashTile("Inyecta", "27,0", "mg")),
             Dashboard.tiles(DashGroup.ENGINE, values),
         )
         assertEquals(
@@ -101,7 +118,7 @@ class DashboardTest {
             Dashboard.tiles(DashGroup.INJECTORS, values),
         )
         assertEquals(
-            listOf(DashTile("Batería", "14,1", "V"), DashTile("Corriente", "+4,1", "A"), DashTile("Alternador", "19", "%")),
+            listOf(DashTile("Batería", "14,1", "V"), DashTile("Corriente", "+4,1", "A"), DashTile("Alternador", "56", "°C")),
             Dashboard.tiles(DashGroup.ELECTRIC, values),
         )
         for (group in DashGroup.entries) {

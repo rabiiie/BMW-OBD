@@ -149,7 +149,7 @@ internal fun DashPanel(state: LiveState, onMenu: () -> Unit, onWatch: (List<Int>
                             when {
                                 gear == null -> " "
                                 gear < 1 -> "N"
-                                else -> "${gear}ª"
+                                else -> Dashboard.CALCULATED + "${gear}ª"
                             },
                             color = Bmw.Text,
                             fontSize = (22 * scale).sp,

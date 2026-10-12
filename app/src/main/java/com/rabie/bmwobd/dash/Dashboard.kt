@@ -33,7 +33,7 @@ object Dashboard {
     private val TORQUE = Pids.bmw(0x07D1)
     private val BATTERY_VOLTS = Pids.bmw(0x01B9)
     private val BATTERY_CURRENT = Pids.bmw(0x01B2)
-    private val ALTERNATOR_LOAD = Pids.bmw(0x0186)
+    private val ALTERNATOR_TEMP = Pids.bmw(0x0E43)
     private val AIR_PER_CYLINDER = Pids.bmw(0x0709)
     private val EGR_RATE = Pids.bmw(0x07AD)
     private val AFTER_INTERCOOLER = Pids.bmw(0x076F)
@@ -46,7 +46,7 @@ object Dashboard {
 
     /** Las medidas del panel que solo existen en los casos: se leen siempre, por el turno lento. */
     val background: List<Int> =
-        listOf(BEFORE_CATALYST, TURBO_SPEED, TORQUE, BATTERY_VOLTS, ALTERNATOR_LOAD, AIR_PER_CYLINDER, EGR_RATE, GEAR) +
+        listOf(BEFORE_CATALYST, TURBO_SPEED, TORQUE, BATTERY_VOLTS, ALTERNATOR_TEMP, AIR_PER_CYLINDER, EGR_RATE, GEAR) +
             Pids.BMW_CYLINDER_CORRECTIONS
 
     /**
@@ -59,7 +59,7 @@ object Dashboard {
         DashGroup.TURBO -> listOf(Moment.BOOST_COMMANDED, BOOST_ASKED, TURBO_SPEED, TURBO_ACTUATOR)
         DashGroup.ENGINE -> listOf(TORQUE, Pids.BMW_INJECTION)
         DashGroup.INJECTORS -> emptyList()
-        DashGroup.ELECTRIC -> listOf(BATTERY_VOLTS, BATTERY_CURRENT, ALTERNATOR_LOAD)
+        DashGroup.ELECTRIC -> listOf(BATTERY_VOLTS, BATTERY_CURRENT, ALTERNATOR_TEMP)
         DashGroup.AIR -> listOf(AIR_PER_CYLINDER, EGR_RATE, AFTER_INTERCOOLER)
     }
 
@@ -87,7 +87,7 @@ object Dashboard {
         )
         DashGroup.ENGINE -> listOf(
             tile("Par", values[TORQUE], 0, "Nm"),
-            tile("Potencia", horsepower(values), 0, "CV"),
+            DashTile("Potencia", horsepower(values)?.let { CALCULATED + n(it) } ?: MISSING, "CV"),
             tile("Inyecta", values[Pids.BMW_INJECTION], 1, "mg"),
         )
         DashGroup.INJECTORS -> {
@@ -101,7 +101,7 @@ object Dashboard {
         DashGroup.ELECTRIC -> listOf(
             tile("Batería", values[BATTERY_VOLTS] ?: values[Moment.MODULE_VOLTAGE] ?: values[Pids.ADAPTER_VOLTAGE], 1, "V"),
             DashTile("Corriente", values[BATTERY_CURRENT]?.let { signed(it, 1) } ?: MISSING, "A"),
-            tile("Alternador", values[ALTERNATOR_LOAD], 0, "%"),
+            tile("Alternador", values[ALTERNATOR_TEMP], 0, "°C"),
         )
         DashGroup.AIR -> listOf(
             tile("Por cilindro", values[AIR_PER_CYLINDER], 0, "mg"),
@@ -161,6 +161,9 @@ object Dashboard {
     private fun signed(value: Double, decimals: Int) = n(value, decimals).let { if (value > 0 && it.any { c -> c in '1'..'9' }) "+$it" else it }
 
     const val MISSING = "—"
+
+    /** Va delante de lo que no es una lectura del coche sino una cuenta de la app. */
+    const val CALCULATED = "≈ "
     private const val RPM_NM_PER_KW = 9549.0
     private const val HP_PER_KW = 1.36
     private const val MIN_AVERAGE = 2.0

@@ -14,6 +14,31 @@ internal class Request(val pid: Int, val defs: List<PidDef>) {
 }
 
 /**
+ * Las medidas que han dejado de contestar. Un silencio suelto se tolera; a los pocos seguidos el
+ * valor que quedaba ya no es de ahora y hay que dejar de enseñarlo y de grabarlo.
+ */
+internal class Silence {
+
+    private val misses = HashMap<Int, Int>()
+
+    fun answered(request: Request) {
+        misses.remove(request.pid)
+    }
+
+    /** Apunta un silencio. Devuelve true justo cuando la medida se da por callada. */
+    fun missed(request: Request): Boolean {
+        val count = (misses[request.pid] ?: 0) + 1
+        misses[request.pid] = count
+        return count == if (request.tier == Tier.FAST) FAST_LIMIT else LIMIT
+    }
+
+    private companion object {
+        const val FAST_LIMIT = 3
+        const val LIMIT = 2
+    }
+}
+
+/**
  * Que se pregunta en cada vuelta de lectura. Las rapidas, siempre; de las medias, una; de las
  * lentas, una cada varias vueltas. Con un caso puesto, las medidas que vigila salen del turno que
  * tuvieran y se lee una en cada vuelta. Las de [extras] solo existen dentro de los casos: fuera

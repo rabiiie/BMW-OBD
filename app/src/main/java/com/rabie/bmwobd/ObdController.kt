@@ -120,6 +120,9 @@ class ObdController(
     // Las medidas que la pantalla enseña ahora mismo.
     @Volatile
     private var focus: List<Int> = emptyList()
+
+    // Solo se toca desde la lectura.
+    private var silence = Silence()
     private var job: Job? = null
 
     fun connect(transport: ObdTransport, simulated: Boolean) {
@@ -363,6 +366,7 @@ class ObdController(
 
     private suspend fun poll(session: ObdSession, defs: List<PidDef>, extras: List<PidDef>, recorder: TripRecorder) {
         val turns = Turns(defs, extras, Dashboard.background)
+        silence = Silence()
         val values = HashMap<Int, Double>()
         val advisor = Advisor()
         var soundedAlerts = emptySet<String>()
@@ -456,12 +460,29 @@ class ObdController(
         first: Boolean = false,
     ): Boolean {
         if (request.pid == Pids.ADAPTER_PID) {
-            session.adapterVoltage()?.let { values[Pids.ADAPTER_VOLTAGE] = it }
+            val volts = session.adapterVoltage()
+            if (volts != null) {
+                values[Pids.ADAPTER_VOLTAGE] = volts
+                silence.answered(request)
+            } else if (silence.missed(request)) {
+                values.remove(Pids.ADAPTER_VOLTAGE)
+            }
             return false
         }
-        val data = (if (first) session.readFirst(request.pid) else session.read(request.pid, request.singleFrame))
-            ?: return false
-        for (def in request.defs) def.decodeOrNull(data)?.let { values[def.id] = it }
+        val data = if (first) session.readFirst(request.pid) else session.read(request.pid, request.singleFrame)
+        if (data == null) {
+            // Lo que deja de contestar no se sigue enseñando ni grabando con su ultimo valor.
+            if (silence.missed(request) && request.defs.any { it.id in values }) {
+                for (def in request.defs) values.remove(def.id)
+                appendLog("## ${request.defs.first().name} ha dejado de contestar: deja de enseñarse hasta que vuelva")
+            }
+            return false
+        }
+        silence.answered(request)
+        for (def in request.defs) {
+            val value = def.decodeOrNull(data)
+            if (value != null) values[def.id] = value else values.remove(def.id)
+        }
         return true
     }
 
