@@ -125,6 +125,7 @@ private fun MainScreen(vm: ObdViewModel = viewModel()) {
             state = state,
             keepScreenOn = settings.keepScreenOn,
             onMenu = { menuInLandscape = true },
+            onWatch = vm::watch,
             modifier = Modifier.safeDrawingPadding(),
         )
         return

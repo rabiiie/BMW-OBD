@@ -208,12 +208,18 @@ fun LiveScreen(
  * rotan; si no, el cuadro con sus lecturas fijas.
  */
 @Composable
-fun LandscapePanel(state: LiveState, keepScreenOn: Boolean, onMenu: () -> Unit, modifier: Modifier = Modifier) {
+fun LandscapePanel(
+    state: LiveState,
+    keepScreenOn: Boolean,
+    onMenu: () -> Unit,
+    onWatch: (List<Int>) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     if (keepScreenOn) KeepScreenOn()
     HideSystemBars()
     BoxWithConstraints(modifier.fillMaxSize()) {
         if (state.cases && maxWidth >= maxHeight * WIDE_RATIO) {
-            DashPanel(state, onMenu, maxWidth, maxHeight)
+            DashPanel(state, onMenu, onWatch, maxWidth, maxHeight)
         } else {
             ClassicLandscape(state, onMenu)
         }

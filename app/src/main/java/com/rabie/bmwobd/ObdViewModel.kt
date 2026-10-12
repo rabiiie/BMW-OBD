@@ -75,6 +75,8 @@ class ObdViewModel(app: Application) : AndroidViewModel(app) {
 
     fun updateSettings(transform: (AppSettings) -> AppSettings) = settingsStore.update(transform)
 
+    fun watch(ids: List<Int>) = controller.watch(ids)
+
     fun probe() = controller.probe()
     val probeState: StateFlow<ProbeState> = controller.probeState
 

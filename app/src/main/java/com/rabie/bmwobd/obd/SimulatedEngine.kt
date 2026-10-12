@@ -44,6 +44,10 @@ object SimulatedEngine {
     // Revoluciones por cada km/h en cada marcha, de primera a sexta.
     private val gears = listOf(115.0, 62.0, 40.0, 30.0, 24.5, 20.5)
 
+    /** La marcha que lleva el motor simulado a esa velocidad y esas vueltas; 0 parado. */
+    fun gearAt(speed: Double, rpm: Double): Int =
+        if (speed < 3.0) 0 else 1 + gears.indices.minBy { kotlin.math.abs(gears[it] - rpm / speed) }
+
     fun at(seconds: Double): EngineState {
         val t = seconds % LOOP_SECONDS
         val index = route.indexOfLast { it.first <= t }.coerceIn(0, route.size - 2)

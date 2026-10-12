@@ -13,6 +13,7 @@ import com.rabie.bmwobd.advice.Advisor
 import com.rabie.bmwobd.advice.Severity
 import com.rabie.bmwobd.cases.Case
 import com.rabie.bmwobd.dash.Dashboard
+import com.rabie.bmwobd.dash.GearGuess
 import com.rabie.bmwobd.obd.Commands
 import com.rabie.bmwobd.obd.DiagnosticsReport
 import com.rabie.bmwobd.obd.MonitorTest
@@ -63,6 +64,8 @@ data class LiveState(
     val case: Case = Case.NORMAL,
     /** Consumo medio de lo que va de trayecto, en L/100; null hasta llevar unos kilometros. */
     val averageL100: Double? = null,
+    /** La marcha de ahora, deducida de velocidad y revoluciones; 0 parado, null si no se sabe. */
+    val gear: Int? = null,
     val error: String? = null,
 )
 
@@ -113,6 +116,10 @@ class ObdController(
 
     // Lo que se pide a mano (consola, averias) espera aqui y se atiende entre dos vueltas de lectura.
     private val tasks = Channel<suspend (ObdSession) -> Unit>(Channel.UNLIMITED)
+
+    // Las medidas que la pantalla enseña ahora mismo.
+    @Volatile
+    private var focus: List<Int> = emptyList()
     private var job: Job? = null
 
     fun connect(transport: ObdTransport, simulated: Boolean) {
@@ -179,6 +186,11 @@ class ObdController(
         _scan.update { it.copy(active = false) }
         _probe.update { it.copy(running = false) }
         _state.value = LiveState()
+    }
+
+    /** La pantalla dice que medidas enseña, para que se lean mas seguido mientras esten a la vista. */
+    fun watch(ids: List<Int>) {
+        focus = ids
     }
 
     /** Guarda los cambios del usuario en el perfil del coche conectado. */
@@ -358,6 +370,8 @@ class ObdController(
         var liters = 0.0
         var km = 0.0
         var lastSumNanos = System.nanoTime()
+        val gears = GearGuess()
+        var looked = emptyList<Int>()
         _state.update { it.copy(supported = turns.shown) }
 
         for (request in turns.requests) read(session, request, values, first = true)
@@ -382,11 +396,13 @@ class ObdController(
                 chosen != Case.NORMAL -> chosen
                 else -> urgent?.let(Dashboard::group)?.case ?: Case.NORMAL
             }
-            if (wanted != turns.case) {
-                val shown = turns.use(wanted)
+            val looking = focus
+            if (wanted != turns.case || looking != looked) {
+                if (wanted != turns.case) appendLog("## Caso: ${wanted.title}")
+                looked = looking
+                val shown = turns.use(wanted, looking)
                 values.keys.retainAll(shown)
                 _state.update { it.copy(case = wanted, supported = shown) }
-                appendLog("## Caso: ${wanted.title}")
             }
 
             var answered = false
@@ -417,10 +433,14 @@ class ObdController(
             km += (snapshot[Pids.SPEED] ?: 0.0) * hours
             liters += (Pids.fuelRate(snapshot, _state.value.vehicle.diesel) ?: 0.0) * hours
             val average = if (km >= MIN_AVERAGE_KM) liters / km * 100.0 else null
+            if (turn.any { it.pid == Dashboard.GEAR }) {
+                snapshot[Dashboard.GEAR]?.let { gears.learn(it.toInt(), snapshot[Pids.SPEED], snapshot[Pids.RPM]) }
+            }
+            val gear = if (extras.isEmpty()) null else gears.now(snapshot[Pids.SPEED], snapshot[Pids.RPM])
             val alerts = advice.filter { it.severity == Severity.ALERT }.map { it.id }.toSet()
             if ((alerts - soundedAlerts).isNotEmpty()) beep()
             soundedAlerts = alerts
-            _state.update { it.copy(values = snapshot, cyclesPerSecond = rate, advice = advice, averageL100 = average) }
+            _state.update { it.copy(values = snapshot, cyclesPerSecond = rate, advice = advice, averageL100 = average, gear = gear) }
             if (answered) withContext(Dispatchers.IO) { recorder.append(snapshot) }
         }
     }

@@ -356,7 +356,7 @@ object SimulatedDde {
         measure(0x0E43) { _ -> word(52.0 / 0.1) },
         measure(0x10D5) { _ -> word(61.0 / 0.018204) },
         measure(0x10CE) { _ -> word(540.0) },
-        measure(0x0EA6) { s -> byte(if (s.speed < 3) 0.0 else (1 + s.speed / 25).coerceAtMost(6.0)) },
+        measure(0x0EA6) { s -> byte(SimulatedEngine.gearAt(s.speed, s.rpm).toDouble()) },
         measure(0x07D1) { s -> word((s.load * 3.2 - 20 + 2500) / 0.114443) },
         measure(0x0578) { s -> word(s.load / 0.001526) },
         measure(0x0579) { _ -> word(250.0 / 0.1) },

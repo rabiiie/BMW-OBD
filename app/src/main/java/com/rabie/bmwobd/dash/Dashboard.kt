@@ -49,6 +49,31 @@ object Dashboard {
         listOf(BEFORE_CATALYST, TURBO_SPEED, TORQUE, BATTERY_VOLTS, ALTERNATOR_LOAD, AIR_PER_CYLINDER, EGR_RATE, GEAR) +
             Pids.BMW_CYLINDER_CORRECTIONS
 
+    /**
+     * Las medidas de [group] que cambian deprisa y no se leen ya en cada vuelta: mientras el
+     * grupo esta en pantalla se piden mas seguido. Las correcciones de los inyectores no: son
+     * valores aprendidos que apenas se mueven.
+     */
+    fun watched(group: DashGroup): List<Int> = when (group) {
+        DashGroup.FILTER -> listOf(SOOT, SINCE_REGEN, BEFORE_CATALYST)
+        DashGroup.TURBO -> listOf(Moment.BOOST_COMMANDED, BOOST_ASKED, TURBO_SPEED, TURBO_ACTUATOR)
+        DashGroup.ENGINE -> listOf(TORQUE, Pids.BMW_INJECTION)
+        DashGroup.INJECTORS -> emptyList()
+        DashGroup.ELECTRIC -> listOf(BATTERY_VOLTS, BATTERY_CURRENT, ALTERNATOR_LOAD)
+        DashGroup.AIR -> listOf(AIR_PER_CYLINDER, EGR_RATE, AFTER_INTERCOOLER)
+    }
+
+    /**
+     * La presion pedida al turbo y la real. Si el coche da las dos en un mismo mensaje se usan
+     * esas, que son del mismo instante; si no, la pedida de BMW con la de admision, que puede
+     * llevarle unos segundos de adelanto.
+     */
+    private fun boost(values: Map<Int, Double>): Pair<Double?, Double?> {
+        val asked = values[Moment.BOOST_COMMANDED]
+        val real = values[Moment.BOOST_ACTUAL]
+        return if (asked != null && real != null) asked to real else values[BOOST_ASKED] to values[Pids.MAP]
+    }
+
     fun tiles(group: DashGroup, values: Map<Int, Double>): List<DashTile> = when (group) {
         DashGroup.FILTER -> listOf(
             tile("Hollín medido", values[SOOT], 1, "g"),
@@ -56,13 +81,13 @@ object Dashboard {
             tile("Escape", values[BEFORE_CATALYST] ?: Moment.EXHAUST_TEMPS.mapNotNull { values[it] }.maxOrNull(), 0, "°C"),
         )
         DashGroup.TURBO -> listOf(
-            DashTile("Pide / tiene", pair(values[BOOST_ASKED], values[Pids.MAP], 0, " / ", plus = false), "kPa"),
+            boost(values).let { (asked, real) -> DashTile("Pide / tiene", pair(asked, real, 0, " / ", plus = false), "kPa") },
             tile("Giro", values[TURBO_SPEED], 0, "rpm", thousands = true),
             tile("Actuador", values[TURBO_ACTUATOR], 0, "%"),
         )
         DashGroup.ENGINE -> listOf(
             tile("Par", values[TORQUE], 0, "Nm"),
-            tile("Potencia ahora", horsepower(values), 0, "CV"),
+            tile("Potencia", horsepower(values), 0, "CV"),
             tile("Inyecta", values[Pids.BMW_INJECTION], 1, "mg"),
         )
         DashGroup.INJECTORS -> {
@@ -98,7 +123,7 @@ object Dashboard {
         else -> null
     }
 
-    /** La potencia que entrega el motor en este instante: par por revoluciones. */
+    /** La potencia que entrega el motor: el ultimo par leido por las revoluciones de ahora. */
     fun horsepower(values: Map<Int, Double>): Double? {
         val torque = values[TORQUE] ?: return null
         val rpm = values[Pids.RPM] ?: return null

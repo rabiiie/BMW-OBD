@@ -53,10 +53,13 @@ internal class Turns(defs: List<PidDef>, extras: List<PidDef>, background: Colle
         use(Case.NORMAL)
     }
 
-    /** Pone un caso y devuelve las medidas que quedan a la vista. */
-    fun use(wanted: Case): Set<Int> {
+    /**
+     * Pone un caso y devuelve las medidas que quedan a la vista. Las de [focus] son las que la
+     * pantalla enseña ahora: se leen tambien una por vuelta, para que no se vean atrasadas.
+     */
+    fun use(wanted: Case, focus: Collection<Int> = emptyList()): Set<Int> {
         case = wanted
-        watch = wanted.watch.mapNotNull { requestOf[it] }.distinct()
+        watch = (wanted.watch + focus).mapNotNull { requestOf[it] }.distinct() - fast.toSet()
         val also = (always + wanted.also).mapNotNull { requestOf[it] }.distinct()
         mediumNow = medium - watch.toSet()
         slowNow = (slow - watch.toSet()).let { kept -> kept + (also - kept.toSet() - watch.toSet()) }

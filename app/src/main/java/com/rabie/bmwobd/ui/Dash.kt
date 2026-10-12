@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -75,7 +76,7 @@ private fun nextGroup(index: Int, other: Int, pinned: Int?): Int {
  * aviso, la columna izquierda se queda fija en el grupo al que toca.
  */
 @Composable
-internal fun DashPanel(state: LiveState, onMenu: () -> Unit, maxWidth: Dp, maxHeight: Dp) {
+internal fun DashPanel(state: LiveState, onMenu: () -> Unit, onWatch: (List<Int>) -> Unit, maxWidth: Dp, maxHeight: Dp) {
     val values = state.values
     val vehicle = state.vehicle
     val groups = DashGroup.entries
@@ -98,6 +99,13 @@ internal fun DashPanel(state: LiveState, onMenu: () -> Unit, maxWidth: Dp, maxHe
     val leftGroup = pinned ?: groups[left]
     val rightGroup = groups[right].takeIf { it != leftGroup } ?: groups[nextGroup(right, leftGroup.ordinal, pinned?.ordinal)]
     val alertColor = top?.let { severityColor(it.severity) } ?: Bmw.Accent
+
+    // Lo que esta en pantalla se lee mas seguido; al salir del panel, deja de pedirse asi. La
+    // marcha va siempre: de sus lecturas se aprende la relacion de cada una.
+    LaunchedEffect(leftGroup, rightGroup) {
+        onWatch(listOf(Dashboard.GEAR) + Dashboard.watched(leftGroup) + Dashboard.watched(rightGroup))
+    }
+    DisposableEffect(Unit) { onDispose { onWatch(emptyList()) } }
 
     val clusterWidth = minOf((maxHeight - STRIP_HEIGHT - INFO_HEIGHT - 20.dp) * CLUSTER_ASPECT, maxWidth * CLUSTER_MAX_SHARE)
     val scale = clusterWidth / FULL_CLUSTER
@@ -135,9 +143,17 @@ internal fun DashPanel(state: LiveState, onMenu: () -> Unit, maxWidth: Dp, maxHe
                         Label("km/h")
                     },
                     center = {
-                        values[Dashboard.GEAR]?.let { gear ->
-                            Text(if (gear < 1) "N" else formatValue(gear, 0) + "ª", color = Bmw.Text, fontSize = (22 * scale).sp)
-                        }
+                        // Sin marcha conocida el hueco se queda, para que el consumo no salte de sitio.
+                        val gear = state.gear
+                        Text(
+                            when {
+                                gear == null -> " "
+                                gear < 1 -> "N"
+                                else -> "${gear}ª"
+                            },
+                            color = Bmw.Text,
+                            fontSize = (22 * scale).sp,
+                        )
                         CenterReadout(state, (28 * scale).sp)
                     },
                     right = {

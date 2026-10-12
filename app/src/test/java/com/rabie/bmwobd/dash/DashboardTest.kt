@@ -46,6 +46,36 @@ class DashboardTest {
     }
 
     @Test
+    fun `lo que esta en pantalla se lee una medida por vuelta y nada se pide dos veces`() {
+        val turns = Turns(base, Pids.bmwCases, Dashboard.background)
+        val looking = Dashboard.watched(DashGroup.ENGINE) + Dashboard.watched(DashGroup.ELECTRIC)
+        turns.use(Case.NORMAL, looking)
+        val rounds = List(looking.size * 3) { turns.next().flatMap { request -> request.defs.map { it.id } } }
+        for (turn in rounds) assertEquals(turn.size, turn.toSet().size)
+        // Cada medida a la vista sale una vez por ronda, no cada minuto.
+        for (id in looking) assertEquals("%X".format(id), 3, rounds.count { id in it })
+
+        // Con un aviso que pone su caso, se suman las del caso sin repetirse.
+        turns.use(Case.FILTER, Dashboard.watched(DashGroup.FILTER) + Dashboard.watched(DashGroup.TURBO))
+        val mixed = List(60) { turns.next().flatMap { request -> request.defs.map { it.id } } }
+        for (turn in mixed) assertEquals(turn.size, turn.toSet().size)
+        assertTrue(mixed.flatten().containsAll(Case.FILTER.watch + Dashboard.watched(DashGroup.TURBO).filter { it in Pids.byId && it in turns.shown }))
+
+        // Una medida que ya se lee en cada vuelta no ocupa ademas un sitio de las vigiladas.
+        turns.use(Case.NORMAL, listOf(Pids.RPM, Pids.MAP))
+        val fast = List(4) { turns.next().flatMap { request -> request.defs.map { it.id } } }
+        for (turn in fast) assertEquals(1, turn.count { it == Pids.RPM })
+    }
+
+    @Test
+    fun `la presion del turbo sale de un mismo mensaje cuando el coche lo da`() {
+        val own = mapOf(Pids.bmw(0x01F4) to 169.0, Pids.MAP to 150.0)
+        assertEquals("169 / 150", Dashboard.tiles(DashGroup.TURBO, own).first().value)
+        val together = own + (com.rabie.bmwobd.advice.Moment.BOOST_COMMANDED to 168.0) + (com.rabie.bmwobd.advice.Moment.BOOST_ACTUAL to 166.0)
+        assertEquals("168 / 166", Dashboard.tiles(DashGroup.TURBO, together).first().value)
+    }
+
+    @Test
     fun `cada grupo da tres datos escritos y una raya en lo que falta`() {
         val values = mapOf(
             Pids.RPM to 1949.0, Pids.MAP to 167.0, Pids.BMW_SOOT_MEASURED to 21.1, Pids.bmw(0x03EB) to 31.95,
@@ -63,7 +93,7 @@ class DashboardTest {
             Dashboard.tiles(DashGroup.TURBO, values),
         )
         assertEquals(
-            listOf(DashTile("Par", "211", "Nm"), DashTile("Potencia ahora", "59", "CV"), DashTile("Inyecta", "27,0", "mg")),
+            listOf(DashTile("Par", "211", "Nm"), DashTile("Potencia", "59", "CV"), DashTile("Inyecta", "27,0", "mg")),
             Dashboard.tiles(DashGroup.ENGINE, values),
         )
         assertEquals(
