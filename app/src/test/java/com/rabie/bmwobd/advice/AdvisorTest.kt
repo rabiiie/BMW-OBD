@@ -22,6 +22,20 @@ class AdvisorTest {
     private fun List<Advice>.find(id: String) = firstOrNull { it.id == id }
 
     @Test
+    fun `parado regenerando avisa de no apagar y un ralenti largo se dice`() {
+        val regenerating = warmIdle + (Pids.BMW_REGEN_REQUEST to 5.0)
+        assertEquals(Severity.WARN, hold(regenerating, 30).find("regen_stop")?.severity)
+        assertNull(hold(regenerating, 10).find("regen_stop"))
+        // Circulando no: ese es el aviso normal de regeneracion.
+        assertNull(hold(regenerating + (Pids.SPEED to 80.0) + (Pids.RPM to 1900.0), 120).find("regen_stop"))
+
+        assertNull(hold(warmIdle, 240).find("long_idle"))
+        assertEquals(Severity.INFO, hold(warmIdle, 320).find("long_idle")?.severity)
+        // Regenerando no se suma el aviso de ralenti largo.
+        assertNull(hold(regenerating, 400).find("long_idle"))
+    }
+
+    @Test
     fun `un ralenti normal en caliente no dice nada`() {
         assertTrue(hold(warmIdle, 120).isEmpty())
     }

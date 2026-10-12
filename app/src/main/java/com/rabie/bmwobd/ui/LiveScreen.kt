@@ -60,8 +60,8 @@ private data class Reading(val title: String, val value: String, val unit: Strin
 
 private val BOOST_LABELS = listOf("0", "0.5", "1", "1.5", "2")
 private const val BOOST_MAX_BAR = 2.0
-private val SPEED_LABELS = listOf("0", "40", "80", "120", "160", "200", "240")
-private const val SPEED_MAX = 240.0
+internal val SPEED_LABELS = listOf("0", "40", "80", "120", "160", "200", "240")
+internal const val SPEED_MAX = 240.0
 private val COOLANT_LABELS = listOf("40", "70", "100", "130")
 private const val COOLANT_MIN = 40.0
 private const val COOLANT_MAX = 130.0
@@ -203,14 +203,26 @@ fun LiveScreen(
 }
 
 /**
- * Panel con el movil apaisado en el soporte: el cuadro a toda la altura, cuatro lecturas a los
- * lados y, arriba, el indicio mas grave. Sin barras del sistema ni pestañas; [onMenu] vuelve a
- * la app normal.
+ * Panel con el movil apaisado en el soporte, sin barras del sistema ni pestañas; [onMenu] vuelve
+ * a la app normal. Con las medidas propias de BMW y sitio a lo ancho sale el panel de grupos que
+ * rotan; si no, el cuadro con sus lecturas fijas.
  */
 @Composable
 fun LandscapePanel(state: LiveState, keepScreenOn: Boolean, onMenu: () -> Unit, modifier: Modifier = Modifier) {
     if (keepScreenOn) KeepScreenOn()
     HideSystemBars()
+    BoxWithConstraints(modifier.fillMaxSize()) {
+        if (state.cases && maxWidth >= maxHeight * WIDE_RATIO) {
+            DashPanel(state, onMenu, maxWidth, maxHeight)
+        } else {
+            ClassicLandscape(state, onMenu)
+        }
+    }
+}
+
+/** El cuadro a toda la altura, unas lecturas fijas a los lados y, arriba, el indicio mas grave. */
+@Composable
+private fun ClassicLandscape(state: LiveState, onMenu: () -> Unit, modifier: Modifier = Modifier) {
     val values = state.values
     val vehicle = state.vehicle
     val rpm = values[Pids.RPM]
@@ -307,7 +319,7 @@ fun LandscapePanel(state: LiveState, keepScreenOn: Boolean, onMenu: () -> Unit, 
  * coche no da con que calcularlo, el turbo. Parado el consumo sale en litros por hora.
  */
 @Composable
-private fun CenterReadout(state: LiveState, size: TextUnit) {
+internal fun CenterReadout(state: LiveState, size: TextUnit) {
     if (Pids.hasFuelRate(state.supported)) {
         val diesel = state.vehicle.diesel
         val perHour = Pids.fuelRate(state.values, diesel)
@@ -377,7 +389,7 @@ private fun Readout(side: Side, modifier: Modifier = Modifier.fillMaxWidth()) {
 
 /** Oculta la barra de estado y la de navegacion mientras este en pantalla; deslizar las enseña un momento. */
 @Composable
-private fun HideSystemBars() {
+internal fun HideSystemBars() {
     val view = LocalView.current
     val window = LocalActivity.current?.window ?: return
     DisposableEffect(window) {
@@ -459,7 +471,7 @@ private fun Tile(reading: Reading, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun KeepScreenOn() {
+internal fun KeepScreenOn() {
     val view = LocalView.current
     DisposableEffect(view) {
         view.keepScreenOn = true

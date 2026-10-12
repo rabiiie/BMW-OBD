@@ -112,6 +112,8 @@ object Limits {
     const val HOT_STOP_AVG_LOAD = 50.0
     const val HOT_STOP_EXHAUST = 350.0
     const val HOT_STOP_WINDOW_MS = 120_000L
+    const val REGEN_STOP_HOLD_MS = 20_000L
+    const val LONG_IDLE_MS = 5 * 60_000L
 }
 
 /** Lo que se sabe del coche en un instante, con el contexto ya deducido. */
@@ -614,6 +616,22 @@ class Advisor {
                     "soot_gap", Severity.WARN, "Filtro: ${n(measured)} g medidos frente a ${n(model)} calculados",
                     "Por la presión, la centralita ve el filtro mucho más cargado de lo que calcula por el uso. " +
                         "Suele ser ceniza acumulada, que no se quema al regenerar, o el sensor de presión o sus tubos.",
+                )
+            },
+            Rule("regen_stop", Limits.REGEN_STOP_HOLD_MS) { m ->
+                val asked = m.values[Pids.BMW_REGEN_REQUEST] ?: return@Rule null
+                if (asked <= 0 || !m.idle) return@Rule null
+                Advice(
+                    "regen_stop", Severity.WARN, "Regenerando y parado",
+                    "Si apagas ahora, la regeneración se queda a medias. Mejor circular unos minutos más.",
+                )
+            },
+            Rule("long_idle", Limits.LONG_IDLE_MS) { m ->
+                // Regenerando el ralenti tiene su aviso propio.
+                if (!m.idle || (m.values[Pids.BMW_REGEN_REQUEST] ?: 0.0) > 0) return@Rule null
+                Advice(
+                    "long_idle", Severity.INFO, "Mucho rato al ralentí",
+                    "Más de cinco minutos parado con el motor en marcha: gasta, ensucia la EGR y carga el filtro.",
                 )
             },
             Rule("hot_stop", 0) { m ->

@@ -17,9 +17,9 @@ internal class Request(val pid: Int, val defs: List<PidDef>) {
  * Que se pregunta en cada vuelta de lectura. Las rapidas, siempre; de las medias, una; de las
  * lentas, una cada varias vueltas. Con un caso puesto, las medidas que vigila salen del turno que
  * tuvieran y se lee una en cada vuelta. Las de [extras] solo existen dentro de los casos: fuera
- * de ellos no se piden.
+ * de ellos no se piden, salvo las de [background], que el panel enseña siempre y van al turno lento.
  */
-internal class Turns(defs: List<PidDef>, extras: List<PidDef>) {
+internal class Turns(defs: List<PidDef>, extras: List<PidDef>, background: Collection<Int> = emptyList()) {
 
     /** Todo lo que se lee siempre, para la primera lectura al conectar. */
     val requests: List<Request> = defs.groupBy { it.pid }.map { Request(it.key, it.value) }
@@ -43,15 +43,25 @@ internal class Turns(defs: List<PidDef>, extras: List<PidDef>) {
     private var slowIndex = 0
     private var watchIndex = 0
     private var cycle = 0
+    private val always = background.filter { it in extraIds }
 
-    /** Pone un caso. Devuelve las medidas que quedan a la vista: las de siempre y las propias del caso. */
+    /** Las medidas a la vista ahora: las de siempre, las del panel y las propias del caso puesto. */
+    var shown: Set<Int> = emptySet()
+        private set
+
+    init {
+        use(Case.NORMAL)
+    }
+
+    /** Pone un caso y devuelve las medidas que quedan a la vista. */
     fun use(wanted: Case): Set<Int> {
         case = wanted
         watch = wanted.watch.mapNotNull { requestOf[it] }.distinct()
-        val also = wanted.also.mapNotNull { requestOf[it] }.distinct()
+        val also = (always + wanted.also).mapNotNull { requestOf[it] }.distinct()
         mediumNow = medium - watch.toSet()
         slowNow = (slow - watch.toSet()).let { kept -> kept + (also - kept.toSet() - watch.toSet()) }
-        return baseIds + (wanted.watch + wanted.also).filter { it in extraIds }
+        shown = baseIds + (always + wanted.watch + wanted.also).filter { it in extraIds }
+        return shown
     }
 
     /** Las peticiones de la vuelta siguiente. Durante un barrido el caso espera: el barrido ya ocupa su sitio. */

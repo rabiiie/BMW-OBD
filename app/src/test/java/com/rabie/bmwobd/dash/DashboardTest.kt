@@ -1,0 +1,101 @@
+package com.rabie.bmwobd.dash
+
+import com.rabie.bmwobd.Turns
+import com.rabie.bmwobd.advice.Advice
+import com.rabie.bmwobd.advice.Severity
+import com.rabie.bmwobd.cases.Case
+import com.rabie.bmwobd.obd.Pids
+import com.rabie.bmwobd.obd.Tier
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+class DashboardTest {
+
+    private val base = Pids.all.filter { it !in Pids.bmwCases }
+    private val extraIds = Pids.bmwCases.map { it.id }.toSet()
+
+    private fun Turns.ids(turns: Int) = List(turns) { next().flatMap { request -> request.defs.map { it.id } } }.flatten()
+
+    @Test
+    fun `las medidas del panel se leen siempre, sin caso y por el turno lento`() {
+        assertTrue(Dashboard.background.all { it in extraIds })
+        val turns = Turns(base, Pids.bmwCases, Dashboard.background)
+        assertEquals(base.map { it.id }.toSet() + Dashboard.background, turns.shown)
+
+        val read = turns.ids(600)
+        assertEquals((base.filter { it.tier != Tier.ONCE }.map { it.id } + Dashboard.background).toSet(), read.toSet())
+        // Ninguna gasta mas de un sitio por ronda del turno lento.
+        assertTrue(Dashboard.background.all { id -> read.count { it == id } <= read.count { it == Pids.COOLANT } + 1 })
+    }
+
+    @Test
+    fun `con un caso puesto las del panel siguen y al quitarlo no se pierden`() {
+        val turns = Turns(base, Pids.bmwCases, Dashboard.background)
+        val shown = turns.use(Case.FILTER)
+        assertTrue(shown.containsAll(Dashboard.background))
+        val during = turns.ids(800).toSet()
+        assertTrue(during.containsAll(Dashboard.background))
+        assertTrue(during.containsAll(Case.FILTER.watch))
+
+        assertEquals(base.map { it.id }.toSet() + Dashboard.background, turns.use(Case.NORMAL))
+        val after = turns.ids(600).toSet()
+        assertTrue(after.containsAll(Dashboard.background))
+        assertTrue(after.none { it in extraIds && it !in Dashboard.background })
+    }
+
+    @Test
+    fun `cada grupo da tres datos escritos y una raya en lo que falta`() {
+        val values = mapOf(
+            Pids.RPM to 1949.0, Pids.MAP to 167.0, Pids.BMW_SOOT_MEASURED to 21.1, Pids.bmw(0x03EB) to 31.95,
+            Pids.bmw(0x041E) to 440.8, Pids.bmw(0x01F4) to 169.0, Pids.bmw(0x0C86) to 98_737.0, Pids.bmw(0x0BEB) to 85.9,
+            Pids.bmw(0x07D1) to 210.9, Pids.BMW_INJECTION to 27.0, Pids.bmw(0x01B9) to 14.11, Pids.bmw(0x01B2) to 4.08,
+            Pids.bmw(0x0186) to 18.7,
+        ) + Pids.BMW_CYLINDER_CORRECTIONS.zip(listOf(0.62, -0.49, 0.41, -0.63)).toMap()
+
+        assertEquals(
+            listOf(DashTile("Hollín medido", "21,1", "g"), DashTile("Desde regenerar", "32", "km"), DashTile("Escape", "441", "°C")),
+            Dashboard.tiles(DashGroup.FILTER, values),
+        )
+        assertEquals(
+            listOf(DashTile("Pide / tiene", "169 / 167", "kPa"), DashTile("Giro", "98.737", "rpm"), DashTile("Actuador", "86", "%")),
+            Dashboard.tiles(DashGroup.TURBO, values),
+        )
+        assertEquals(
+            listOf(DashTile("Par", "211", "Nm"), DashTile("Potencia ahora", "59", "CV"), DashTile("Inyecta", "27,0", "mg")),
+            Dashboard.tiles(DashGroup.ENGINE, values),
+        )
+        assertEquals(
+            listOf(DashTile("Cil. 1 · 2", "+0,6 · -0,5", "mg"), DashTile("Cil. 3 · 4", "+0,4 · -0,6", "mg"), DashTile("Raíl", "—", "bar")),
+            Dashboard.tiles(DashGroup.INJECTORS, values),
+        )
+        assertEquals(
+            listOf(DashTile("Batería", "14,1", "V"), DashTile("Corriente", "+4,1", "A"), DashTile("Alternador", "19", "%")),
+            Dashboard.tiles(DashGroup.ELECTRIC, values),
+        )
+        for (group in DashGroup.entries) {
+            val empty = Dashboard.tiles(group, emptyMap())
+            assertEquals(3, empty.size)
+            assertTrue(empty.all { Dashboard.MISSING in it.value })
+        }
+    }
+
+    @Test
+    fun `un aviso fija su grupo y los kilometros que quedan salen de una cuenta`() {
+        fun advice(id: String) = Advice(id, Severity.WARN, "", "")
+        assertEquals(DashGroup.FILTER, Dashboard.group(advice("regen_stop")))
+        assertEquals(DashGroup.ENGINE, Dashboard.group(advice("cold_push")))
+        assertEquals(DashGroup.TURBO, Dashboard.group(advice("boost_low")))
+        assertEquals(DashGroup.ELECTRIC, Dashboard.group(advice("voltage")))
+        assertNull(Dashboard.group(advice("otra_cosa")))
+
+        val tank = Pids.bmw(Pids.BMW_TANK_ADDRESS) to 31.0
+        assertEquals(596.0, Dashboard.rangeKm(mapOf(tank), 5.2)!!, 0.5)
+        // Sin media del trayecto todavia, la de toda la vida del coche: 18.970 L en 378.420 km.
+        val life = mapOf(tank, Pids.bmw(Pids.BMW_ODOMETER_ADDRESS) to 378_420.0, Pids.bmw(Pids.BMW_TOTAL_FUEL_ADDRESS) to 18_970.0)
+        assertEquals(618.0, Dashboard.rangeKm(life, null)!!, 1.0)
+        assertNull(Dashboard.rangeKm(mapOf(tank), null))
+        assertNull(Dashboard.rangeKm(emptyMap(), 5.2))
+    }
+}

@@ -12,6 +12,7 @@ import com.rabie.bmwobd.advice.Advice
 import com.rabie.bmwobd.advice.Advisor
 import com.rabie.bmwobd.advice.Severity
 import com.rabie.bmwobd.cases.Case
+import com.rabie.bmwobd.dash.Dashboard
 import com.rabie.bmwobd.obd.Commands
 import com.rabie.bmwobd.obd.DiagnosticsReport
 import com.rabie.bmwobd.obd.MonitorTest
@@ -60,6 +61,8 @@ data class LiveState(
     /** Si a este coche se le pueden poner casos, y el que tiene puesto. */
     val cases: Boolean = false,
     val case: Case = Case.NORMAL,
+    /** Consumo medio de lo que va de trayecto, en L/100; null hasta llevar unos kilometros. */
+    val averageL100: Double? = null,
     val error: String? = null,
 )
 
@@ -347,10 +350,15 @@ class ObdController(
     private fun isLive() = _state.value.phase == Phase.LIVE
 
     private suspend fun poll(session: ObdSession, defs: List<PidDef>, extras: List<PidDef>, recorder: TripRecorder) {
-        val turns = Turns(defs, extras)
+        val turns = Turns(defs, extras, Dashboard.background)
         val values = HashMap<Int, Double>()
         val advisor = Advisor()
         var soundedAlerts = emptySet<String>()
+        var advice = emptyList<Advice>()
+        var liters = 0.0
+        var km = 0.0
+        var lastSumNanos = System.nanoTime()
+        _state.update { it.copy(supported = turns.shown) }
 
         for (request in turns.requests) read(session, request, values, first = true)
         var lastAnswerNanos = System.nanoTime()
@@ -366,7 +374,14 @@ class ObdController(
 
             // El caso se puede cambiar en marcha. Lo que solo leia el anterior se quita para que
             // no quede en la grabacion un valor que ya no se actualiza.
-            val wanted = if (extras.isEmpty()) Case.NORMAL else settings.state.value.case
+            // Sin caso elegido a mano, lo pone el aviso mas grave: sus medidas se leen mas seguido mientras dura.
+            val chosen = settings.state.value.case
+            val urgent = advice.firstOrNull { it.severity != Severity.INFO } ?: advice.firstOrNull()
+            val wanted = when {
+                extras.isEmpty() -> Case.NORMAL
+                chosen != Case.NORMAL -> chosen
+                else -> urgent?.let(Dashboard::group)?.case ?: Case.NORMAL
+            }
             if (wanted != turns.case) {
                 val shown = turns.use(wanted)
                 values.keys.retainAll(shown)
@@ -396,11 +411,16 @@ class ObdController(
             }
 
             val snapshot = values.toMap()
-            val advice = advisor.update(now / 1_000_000, snapshot, _state.value.vehicle)
+            advice = advisor.update(now / 1_000_000, snapshot, _state.value.vehicle)
+            val hours = (now - lastSumNanos).coerceIn(0L, MAX_SUM_GAP_NANOS) / NANOS_PER_HOUR
+            lastSumNanos = now
+            km += (snapshot[Pids.SPEED] ?: 0.0) * hours
+            liters += (Pids.fuelRate(snapshot, _state.value.vehicle.diesel) ?: 0.0) * hours
+            val average = if (km >= MIN_AVERAGE_KM) liters / km * 100.0 else null
             val alerts = advice.filter { it.severity == Severity.ALERT }.map { it.id }.toSet()
             if ((alerts - soundedAlerts).isNotEmpty()) beep()
             soundedAlerts = alerts
-            _state.update { it.copy(values = snapshot, cyclesPerSecond = rate, advice = advice) }
+            _state.update { it.copy(values = snapshot, cyclesPerSecond = rate, advice = advice, averageL100 = average) }
             if (answered) withContext(Dispatchers.IO) { recorder.append(snapshot) }
         }
     }
@@ -467,5 +487,8 @@ class ObdController(
         const val BEEP_MS = 600
         const val SILENCE_LIMIT_NANOS = 10_000_000_000L
         const val RATE_WINDOW_NANOS = 2_000_000_000L
+        const val MAX_SUM_GAP_NANOS = 5_000_000_000L
+        const val NANOS_PER_HOUR = 3.6e12
+        const val MIN_AVERAGE_KM = 2.0
     }
 }
