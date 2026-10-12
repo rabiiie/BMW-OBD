@@ -13,6 +13,8 @@ data class Vehicle(
     val make: String?,
     val diesel: Boolean,
     val displacementLiters: Double?,
+    /** La clave del [EngineProfile] reconocido en este coche; null mientras no se reconozca ninguno. */
+    val profile: String? = null,
 ) {
     /** Escala del cuentarrevoluciones: un diesel corta mucho antes que un gasolina. */
     val rpmMax: Double get() = if (diesel) 6000.0 else 8000.0
@@ -87,6 +89,7 @@ class VehicleStore(private val prefs: SharedPreferences) {
             make = vin?.let(Vin::make),
             diesel = prefs.getBoolean("$key.diesel", true),
             displacementLiters = prefs.getFloat("$key.displacement", 0f).takeIf { it > 0f }?.toDouble(),
+            profile = prefs.getString("$key.profile", null),
         )
     }
 
@@ -99,6 +102,7 @@ class VehicleStore(private val prefs: SharedPreferences) {
             .putString("${vehicle.key}.vin", vehicle.vin)
             .putBoolean("${vehicle.key}.diesel", vehicle.diesel)
             .putFloat("${vehicle.key}.displacement", vehicle.displacementLiters?.toFloat() ?: 0f)
+            .putString("${vehicle.key}.profile", vehicle.profile)
             .putString(KEY_LAST, vehicle.key)
             .apply()
     }

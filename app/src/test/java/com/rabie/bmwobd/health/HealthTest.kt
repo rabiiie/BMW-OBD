@@ -14,7 +14,7 @@ import org.junit.Test
 
 class HealthTest {
 
-    private val bmw = Vehicle.GENERIC.copy(name = "118d N47", make = "BMW", displacementLiters = 1.995)
+    private val bmw = Vehicle.GENERIC.copy(name = "118d N47", make = "BMW", profile = "bmw_n47", displacementLiters = 1.995)
 
     private fun real(name: String): TripData {
         val stream = checkNotNull(javaClass.classLoader?.getResourceAsStream(name))

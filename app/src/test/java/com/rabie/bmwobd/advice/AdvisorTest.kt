@@ -128,7 +128,7 @@ class AdvisorTest {
 
     @Test
     fun `turbo y aire a plena carga contra la referencia del motor`() {
-        val bmw = com.rabie.bmwobd.vehicle.Vehicle.GENERIC.copy(name = "118d", make = "BMW", displacementLiters = 2.0)
+        val bmw = com.rabie.bmwobd.vehicle.Vehicle.GENERIC.copy(name = "118d", make = "BMW", profile = "bmw_n47", displacementLiters = 2.0)
         fun pull(rpm: Double, map: Double, air: Double): List<Advice> {
             val advisor = Advisor()
             val values = mapOf(
@@ -158,7 +158,7 @@ class AdvisorTest {
 
     @Test
     fun `la carga corregida no cambia al abrir o cerrar la EGR`() {
-        val bmw = com.rabie.bmwobd.vehicle.Vehicle.GENERIC.copy(name = "118d", make = "BMW", displacementLiters = 1.995)
+        val bmw = com.rabie.bmwobd.vehicle.Vehicle.GENERIC.copy(name = "118d", make = "BMW", profile = "bmw_n47", displacementLiters = 1.995)
         // Dos momentos reales del mismo ralenti: EGR abierta y, un minuto despues, cerrada.
         val base = mapOf(Pids.RPM to 842.0, Pids.SPEED to 0.0, Pids.COOLANT to 90.0, Pids.MAP to 96.0, Moment.INTAKE_TEMP to 21.0)
         val open = Moment(base + (Pids.LOAD to 53.9) + (Moment.MAF to 7.5), 0, null, bmw).egrFreeLoad!!

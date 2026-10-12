@@ -34,7 +34,7 @@ class RealTripTest {
         assertTrue(pulls.isNotEmpty())
         assertTrue(pulls.all { it.boostPeakBar!! > 0.9 })
         assertEquals(1.33, pulls.maxOf { it.boostPeakBar!! }, 0.02)
-        val findings = Advisor.review(data, Vehicle.GENERIC.copy(name = "118d N47", make = "BMW", displacementLiters = 1.995))
+        val findings = Advisor.review(data, Vehicle.GENERIC.copy(name = "118d N47", make = "BMW", profile = "bmw_n47", displacementLiters = 1.995))
         println("Indicios: " + findings.map { "${it.advice.severity} ${it.advice.id} ${it.seconds}s" })
         assertTrue(findings.none { it.advice.severity != Severity.INFO })
     }
@@ -60,7 +60,7 @@ class RealTripTest {
 
     @Test
     fun `con la referencia del N47 la carga corregida al ralenti queda dentro y no hay avisos`() {
-        val bmw = Vehicle.GENERIC.copy(name = "118d N47", make = "BMW", displacementLiters = 1.995)
+        val bmw = Vehicle.GENERIC.copy(name = "118d N47", make = "BMW", profile = "bmw_n47", displacementLiters = 1.995)
         val data = trip()
         val findings = Advisor.review(data, bmw)
         println("Indicios con referencia N47: " + findings.map { "${it.advice.severity} ${it.advice.id} ${it.seconds}s" })

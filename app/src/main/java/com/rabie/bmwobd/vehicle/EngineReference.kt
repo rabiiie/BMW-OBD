@@ -2,8 +2,8 @@ package com.rabie.bmwobd.vehicle
 
 /**
  * Valores de referencia de un motor concreto, para juzgar las lecturas con algo que no sea el
- * propio coche. Solo se aplican al coche que encaja con ese motor; los demas se quedan con los
- * umbrales genericos.
+ * propio coche. Solo se aplican al coche que tiene el perfil de ese motor; los demas se quedan
+ * con los umbrales genericos.
  */
 data class EngineReference(
     val name: String,
@@ -34,14 +34,7 @@ data class EngineReference(
             maxRailBar = 1600.0,
         )
 
-        /** La referencia que corresponde a este coche, o null si su motor no tiene ninguna. */
-        fun of(vehicle: Vehicle): EngineReference? {
-            val liters = vehicle.displacementLiters ?: return null
-            val names = listOfNotNull(vehicle.make, vehicle.name).joinToString(" ")
-            val isBmw = BMW_HINTS.any { names.contains(it, ignoreCase = true) }
-            return if (isBmw && vehicle.diesel && liters in 1.9..2.1) N47 else null
-        }
-
-        private val BMW_HINTS = listOf("BMW", "118d", "120d", "N47")
+        /** La referencia del motor de este coche, o null si su perfil no tiene ninguna. */
+        fun of(vehicle: Vehicle): EngineReference? = EngineProfile.of(vehicle).reference
     }
 }

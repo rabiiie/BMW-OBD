@@ -399,7 +399,19 @@ object Pids {
         PidDef(id, "Calentadores: $text (0 = no)", "", 1, 0, group = PidGroup.ENGINE) { it[0].toDouble() }
     }
 
-    /** Si a un coche se le pueden pedir las medidas de [bmwDiesel]. */
+    /**
+     * Medidas de la tabla del N47 que el coche da tambien por el OBD normal: refrigerante,
+     * revoluciones, tension y presion ambiente. Sirven para comprobar que la tabla es la de la
+     * centralita que contesta.
+     */
+    val bmwChecks: List<PidDef> = listOf(
+        bmwDef(0x0547, "Refrigerante (BMW)", "°C", 0, PidGroup.ENGINE) { it * 0.01 - 100.0 },
+        bmwDef(0x10CF, "Revoluciones (BMW)", "rpm", 0, PidGroup.ENGINE) { it.toDouble() },
+        bmwDef(0x0042, "Tensión (BMW)", "V", 1, PidGroup.ELECTRIC) { it * 0.001 },
+        bmwDef(0x0C1C, "Presión ambiente (BMW)", "hPa", 0, PidGroup.AIR) { it * 0.030518 },
+    )
+
+    /** Si a un coche merece la pena preguntarle por el protocolo propio de BMW. */
     fun hasBmwMeasures(make: String?, diesel: Boolean) = diesel && make != null && make.startsWith("BMW")
 
     private fun List<PidDef>.inGroup(group: PidGroup) = map { it.copy(group = group) }

@@ -197,8 +197,9 @@ class ScanTest {
         fromScratch(store)
         val runner = ScanRunner(store, "coche")
         repeat(100) { runner.step(3, emptyMap(), session::ask) }
-        assertEquals(0, runner.progress().answering)
-        assertTrue(rows(store).isEmpty())
+        // De las trescientas primeras direcciones el coche simulado solo conoce la 0042.
+        assertEquals(1, runner.progress().answering)
+        assertEquals(listOf("2C100042"), rows(store).map { it[2] })
     }
 
     @Test

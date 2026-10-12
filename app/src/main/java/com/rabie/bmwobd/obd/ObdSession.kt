@@ -124,6 +124,16 @@ class ObdSession(
     }
 
     /**
+     * Lee una vez cada medida de [defs] por el protocolo de BMW y devuelve lo que valen. Null si
+     * la centralita no atiende ese protocolo. Sirve para comprobar de que centralita se trata.
+     */
+    suspend fun readBmw(defs: List<PidDef>): Map<Int, Double>? {
+        attempt(BMW_IDENT)
+        if (!bmwAnswers()) return null
+        return defs.mapNotNull { def -> readFirst(def.pid)?.let(def::decodeOrNull)?.let { def.id to it } }.toMap()
+    }
+
+    /**
      * Si la centralita atiende las consultas de BMW. Si calla con la espera adaptativa del
      * adaptador se prueba con una espera fija mas larga, que se queda puesta. Si tampoco, se
      * repite con la configuracion del sondeo que funciono, solo para dejarlo en el registro.

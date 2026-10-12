@@ -37,6 +37,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.rabie.bmwobd.vehicle.EngineProfile
 import com.rabie.bmwobd.vehicle.Vehicle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -112,6 +113,7 @@ fun LiveScreen(
             Text(vehicle.name, color = Bmw.Text, fontSize = 18.sp, modifier = Modifier.weight(1f))
             Label(if (vehicle.displacementLiters == null) "Completar perfil" else "Editar", color = Bmw.Accent)
         }
+        Label("Perfil: " + EngineProfile.of(vehicle).title)
         for (advice in state.advice) {
             AdviceCard(advice, Modifier.clickable { searchWeb(context, "${vehicle.searchTerms} ${advice.title}") })
         }

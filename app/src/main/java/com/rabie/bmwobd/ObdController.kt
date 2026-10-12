@@ -28,6 +28,8 @@ import com.rabie.bmwobd.scan.ScanSaved
 import com.rabie.bmwobd.scan.ScanStore
 import com.rabie.bmwobd.trips.TripRecorder
 import com.rabie.bmwobd.trips.TripStore
+import com.rabie.bmwobd.vehicle.EngineProfile
+import com.rabie.bmwobd.vehicle.N47Fingerprint
 import com.rabie.bmwobd.vehicle.Vehicle
 import com.rabie.bmwobd.vehicle.VehicleStore
 import kotlinx.coroutines.CancellationException
@@ -139,18 +141,16 @@ class ObdController(
             var recorder: TripRecorder? = null
             try {
                 val info = session.connect()
-                val vehicle = vehicles.resolve(info.vin, info.diesel)
+                val vehicle = withProfile(session, vehicles.resolve(info.vin, info.diesel))
+                val profile = EngineProfile.of(vehicle)
                 val standard = Pids.all.filter { it.pid == Pids.ADAPTER_PID || it.pid in info.supportedPids }
                 val taken = standard.map { it.id }.toSet()
-                val own = if (Pids.hasBmwMeasures(vehicle.make, vehicle.diesel)) {
-                    session.discoverBmw(Pids.bmwDiesel.filter { it.id !in taken })
-                } else {
-                    emptyList()
-                }
+                val own = if (profile.measures.isEmpty()) emptyList() else session.discoverBmw(profile.measures.filter { it.id !in taken })
                 val defs = standard + own
                 // Las medidas de los casos tienen su columna desde el principio, aunque no se pidan.
-                val extras = if (own.isEmpty()) emptyList() else Pids.bmwCases
+                val extras = if (own.isEmpty()) emptyList() else profile.caseMeasures
                 appendLog("## Coche: ${vehicle.name} · ${if (vehicle.diesel) "diésel" else "gasolina"} · bastidor ${info.vin ?: "no leído"}")
+                appendLog("## Perfil: ${profile.title}")
                 val started = withContext(Dispatchers.IO) {
                     TripRecorder(trips.newFile(simulated, vehicle.key), (defs + extras).map { it.id }.distinct())
                 }
@@ -219,8 +219,37 @@ class ObdController(
         }
     }
 
-    /** El barrido solo sabe preguntar a la centralita del motor de un BMW diesel. */
-    fun canScan(vehicle: Vehicle) = Pids.hasBmwMeasures(vehicle.make, vehicle.diesel)
+    /** El barrido y la memoria de averias propia son de los motores con perfil que los tenga. */
+    fun canScan(vehicle: Vehicle) = EngineProfile.of(vehicle).ownDiagnostics
+
+    /**
+     * El coche con su perfil. El que ya lo tiene guardado lo conserva sin volver a preguntar. Al
+     * que no, y solo si su marca lo hace posible, se le comprueba la centralita: si encaja, el
+     * perfil se guarda con el coche; si no, sigue como generico y se vuelve a mirar otro dia.
+     */
+    private suspend fun withProfile(session: ObdSession, vehicle: Vehicle): Vehicle {
+        if (EngineProfile.of(vehicle) != EngineProfile.GENERIC) return vehicle
+        val candidate = EngineProfile.candidate(vehicle) ?: return vehicle
+        // Las dos lecturas no son del mismo instante: si no cuadran a la primera se repite una vez,
+        // para no dejar un trayecto sin perfil por un acelerón al conectar.
+        var fits = false
+        for (attempt in 1..PROFILE_ATTEMPTS) {
+            val own = session.readBmw(N47Fingerprint.checks.map { it.def }) ?: break
+            val obd = N47Fingerprint.checks.mapNotNull { check ->
+                val def = Pids.byId[check.obd] ?: return@mapNotNull null
+                session.read(check.obd)?.let(def::decodeOrNull)?.let { check.obd to it }
+            }.toMap()
+            fits = N47Fingerprint.fits(own, obd)
+            if (fits) break
+            appendLog("## Perfil: intento $attempt sin coincidencia. Propias ${own.values.map { "%.1f".format(it) }}, OBD ${obd.values.map { "%.1f".format(it) }}")
+        }
+        if (!fits) {
+            appendLog("## Perfil: la centralita no encaja con ${candidate.title}; el coche se trata como genérico")
+            return vehicle
+        }
+        appendLog("## Perfil: centralita reconocida como ${candidate.title}; queda guardado con el coche")
+        return vehicle.copy(profile = candidate.key).also(vehicles::save)
+    }
 
     /** El fichero con lo que ha contestado el coche conectado, o el ultimo que se conecto. */
     fun scanFile(): java.io.File? {
@@ -531,5 +560,6 @@ class ObdController(
         const val MAX_SUM_GAP_NANOS = 5_000_000_000L
         const val NANOS_PER_HOUR = 3.6e12
         const val MIN_AVERAGE_KM = 2.0
+        const val PROFILE_ATTEMPTS = 2
     }
 }
