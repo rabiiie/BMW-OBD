@@ -18,6 +18,9 @@ class CaseTest {
     private val base = Pids.all.filter { it !in Pids.bmwCases }
     private val extraIds = Pids.bmwCases.map { it.id }.toSet()
 
+    /** Las medidas que solo se piden con [case] puesto. */
+    private fun own(case: Case) = (case.watch + case.also).filter { it in extraIds }.toSet()
+
     private fun Turns.ids(turns: Int, scanning: Boolean = false): List<List<Int>> =
         List(turns) { next(scanning).flatMap { request -> request.defs.map { it.id } } }
 
@@ -45,7 +48,7 @@ class CaseTest {
     fun `con el caso del filtro sus medidas se leen una por vuelta y las demas siguen`() {
         val turns = Turns(base, Pids.bmwCases)
         val shown = turns.use(Case.FILTER)
-        assertEquals(base.map { it.id }.toSet() + extraIds, shown)
+        assertEquals(base.map { it.id }.toSet() + own(Case.FILTER), shown)
 
         val watch = Case.FILTER.watch
         val read = turns.ids(watch.size)
@@ -54,7 +57,7 @@ class CaseTest {
         for (turn in read) assertEquals(turn.size, turn.toSet().size)
 
         val later = turns.ids(600).flatten()
-        assertEquals((base.filter { it.tier != Tier.ONCE }.map { it.id } + extraIds).toSet(), (read.flatten() + later).toSet())
+        assertEquals((base.filter { it.tier != Tier.ONCE }.map { it.id } + own(Case.FILTER)).toSet(), (read.flatten() + later).toSet())
         // Las vigiladas ya no gastan ademas su turno lento.
         assertEquals(600, later.count { it == Pids.BMW_SOOT_MEASURED } * watch.size)
     }
@@ -66,9 +69,46 @@ class CaseTest {
         assertTrue(turns.ids(40, scanning = true).all { turn -> turn.count { it in Case.FILTER.watch } <= 1 })
         assertFalse(turns.ids(3, scanning = true).flatten().any { it == Pids.bmw(0x041E) })
 
+        // De un caso a otro solo quedan las del nuevo.
+        assertEquals(base.map { it.id }.toSet() + own(Case.INJECTORS), turns.use(Case.INJECTORS))
+        val injectors = turns.ids(800).flatten().toSet()
+        assertTrue(injectors.containsAll(own(Case.INJECTORS)))
+        assertTrue(injectors.none { it in own(Case.FILTER) })
+
         val shown = turns.use(Case.NORMAL)
         assertEquals(base.map { it.id }.toSet(), shown)
         assertTrue(turns.ids(400).flatten().none { it in extraIds })
+    }
+
+    @Test
+    fun `la tarjeta de inyectores con lo que marco el coche dice que van parejos`() {
+        // Ultima lectura del barrido del 11 de octubre.
+        val read = Pids.BMW_CYLINDER_CORRECTIONS.zip(listOf(0.624, -0.486, 0.405, -0.627)).toMap() +
+            (Pids.bmw(0x14D3) to -0.44) +
+            Pids.BMW_INJECTOR_TIMES[0].zip(listOf(35.0, 66.3, 63.4, 65.1)).toMap() +
+            Pids.BMW_INJECTOR_TIMES[2].zip(listOf(13.0, 24.2, 18.2, 10.3)).toMap()
+        val card = CaseCards.card(Case.INJECTORS, read)!!
+        assertEquals(HealthLevel.OK, card.level)
+        assertEquals("Los cuatro inyectores van parejos.", card.headline)
+        assertEquals("Lo que corrige a cada inyector para igualar los cilindros: 1: +0,6 · 2: -0,5 · 3: +0,4 · 4: -0,6 mg.", card.facts[0])
+        assertEquals("Corrección general de la cantidad: -0,44 mg.", card.facts[1])
+        assertEquals("Tiempo de más que ha aprendido a darles, punto 1: 1: 35 · 2: 66 · 3: 63 · 4: 65 µs.", card.facts[2])
+        // El punto 2 no se ha leido entero todavia: no sale a medias.
+        assertEquals("Tiempo de más que ha aprendido a darles, punto 3: 1: 13 · 2: 24 · 3: 18 · 4: 10 µs.", card.facts[3])
+
+        val apart = CaseCards.card(Case.INJECTORS, read + (Pids.BMW_CYLINDER_CORRECTIONS[2] to 2.6))!!
+        assertEquals(HealthLevel.WATCH, apart.level)
+        assertEquals("El inyector 3 se aparta de los demás: le corrige +2,6 mg.", apart.headline)
+        assertEquals(HealthLevel.BAD, CaseCards.card(Case.INJECTORS, read + (Pids.BMW_CYLINDER_CORRECTIONS[1] to -4.5))!!.level)
+        assertEquals(HealthLevel.UNKNOWN, CaseCards.card(Case.INJECTORS, emptyMap())!!.level)
+    }
+
+    @Test
+    fun `las medidas de inyectores salen con la formula de la tabla`() {
+        // 1462 contesto 81B2 en el barrido.
+        assertEquals(0.62, Pids.byId.getValue(Pids.BMW_CYLINDER_CORRECTIONS[0]).decodeOrNull(intArrayOf(0x80, 0xCA))!!, 0.01)
+        assertEquals(66.3, Pids.byId.getValue(Pids.BMW_INJECTOR_TIMES[0][1]).decodeOrNull(intArrayOf(0x81, 0xB2))!!, 0.05)
+        assertEquals(Pids.all.size, Pids.byId.size)
     }
 
     @Test

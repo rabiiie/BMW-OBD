@@ -18,6 +18,11 @@ enum class Case(val title: String, val watch: List<Int>, val also: List<Int>) {
         watch = listOf(0x0404, 0x03EA, 0x03ED, 0x03F1, 0x0424, 0x0420, 0x041E, 0x0434).map(Pids::bmw),
         also = listOf(0x0405, 0x0408, 0x03EC, 0x05AA, 0x03DE, 0x03E0).map(Pids::bmw),
     ),
+    INJECTORS(
+        "Inyectores",
+        watch = Pids.BMW_CYLINDER_CORRECTIONS + listOf(0x14D3, 0x0500, 0x04B1).map(Pids::bmw),
+        also = Pids.BMW_INJECTOR_TIMES.flatten() + listOf(0x145E, 0x145F, 0x1460, 0x1964, 0x04B0).map(Pids::bmw),
+    ),
 }
 
 /** Lo que pasa ahora en lo que mira un caso, dicho sin jerga. */
@@ -31,6 +36,9 @@ object CaseCards {
     private val BEFORE_CATALYST = Pids.bmw(0x041E)
     private val BEFORE_FILTER = Pids.bmw(0x0434)
     private val ENGINE_MODE = Pids.bmw(0x05AA)
+    private val GENERAL_CORRECTION = Pids.bmw(0x14D3)
+    private const val CORRECTION_WARN = 2.0
+    private const val CORRECTION_BAD = 4.0
 
     // Lo que marcaba el modo del motor en el coche fuera de una regeneracion. Regenerando marco 0x02010002.
     private const val MODE_NORMAL = 0x00100001.toDouble()
@@ -38,6 +46,51 @@ object CaseCards {
     fun card(case: Case, values: Map<Int, Double>): HealthCard? = when (case) {
         Case.NORMAL -> null
         Case.FILTER -> filter(values)
+        Case.INJECTORS -> injectors(values)
+    }
+
+    /**
+     * La centralita iguala los cilindros corrigiendo lo que inyecta cada uno, y aprende cuanto
+     * tiempo de mas necesita cada inyector. Uno que se aparta de los otros es el sospechoso. Los
+     * limites son orientativos, de lo que se suele dar por bueno en estos motores, no de BMW.
+     */
+    private fun injectors(values: Map<Int, Double>): HealthCard {
+        val corrections = Pids.BMW_CYLINDER_CORRECTIONS.map { values[it] }
+        val general = values[GENERAL_CORRECTION]
+        val times = Pids.BMW_INJECTOR_TIMES.map { point -> point.map { values[it] } }
+        val facts = listOfNotNull(
+            perCylinder(corrections, 1)?.let { "Lo que corrige a cada inyector para igualar los cilindros: $it mg." },
+            general?.let { "Corrección general de la cantidad: ${signed(it, 2)} mg." },
+        ) + times.mapIndexedNotNull { point, row ->
+            perCylinder(row, 0, plus = false)?.let { "Tiempo de más que ha aprendido a darles, punto ${point + 1}: $it µs." }
+        }
+        val known = corrections.withIndex().mapNotNull { (i, value) -> value?.let { i + 1 to it } }
+        val worst = known.maxByOrNull { kotlin.math.abs(it.second) }
+        val far = worst?.takeIf { kotlin.math.abs(it.second) >= CORRECTION_WARN }
+        return when {
+            worst == null -> HealthCard(HealthSystem.INJECTION, HealthLevel.UNKNOWN, "Esperando los datos de los inyectores.", facts)
+            far != null -> HealthCard(
+                HealthSystem.INJECTION,
+                if (kotlin.math.abs(far.second) >= CORRECTION_BAD) HealthLevel.BAD else HealthLevel.WATCH,
+                "El inyector ${far.first} se aparta de los demás: le corrige ${signed(far.second, 1)} mg.",
+                facts,
+                "Con signo más, ese cilindro da menos fuerza y le añade gasóleo; con menos, le sobra. Si se mantiene en " +
+                    "caliente y al ralentí, en el taller: prueba de retorno de inyectores y compresión de ese cilindro.",
+            )
+            else -> HealthCard(
+                HealthSystem.INJECTION, HealthLevel.OK,
+                "Los cuatro inyectores van parejos.",
+                facts + "Cerca de cero es lo bueno. Se ajusta sobre todo al ralentí y en caliente.",
+            )
+        }
+    }
+
+    /** Los valores de los cuatro cilindros en una frase, o null si falta alguno. */
+    private fun perCylinder(row: List<Double?>, decimals: Int, plus: Boolean = true): String? {
+        if (row.any { it == null }) return null
+        return row.withIndex().joinToString(" · ") { (i, value) ->
+            "${i + 1}: " + if (plus) signed(value!!, decimals) else n(value!!, decimals)
+        }
     }
 
     private fun filter(values: Map<Int, Double>): HealthCard {
@@ -85,4 +138,6 @@ object CaseCards {
     }
 
     private fun n(value: Double, decimals: Int = 0) = String.format(Locale.US, "%.${decimals}f", value).replace('.', ',')
+
+    private fun signed(value: Double, decimals: Int) = n(value, decimals).let { if (value > 0 && it.any { c -> c in '1'..'9' }) "+$it" else it }
 }

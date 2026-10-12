@@ -71,6 +71,15 @@ object Pids {
     /** Mayor que cero mientras la centralita pide regenerar el filtro; en el coche marco 5. */
     val BMW_REGEN_REQUEST = bmw(0x0404)
 
+    /** Lo que la centralita suma o quita a cada inyector para igualar los cilindros, del 1 al 4. */
+    val BMW_CYLINDER_CORRECTIONS = listOf(0x14B4, 0x14B5, 0x14B6, 0x14B7).map(::bmw)
+
+    /**
+     * El tiempo de mas que ha aprendido a dar a cada inyector, en los tres puntos de presion en
+     * que lo calibra: una lista por punto, con los cilindros del 1 al 4.
+     */
+    val BMW_INJECTOR_TIMES = listOf(0x1461, 0x1467, 0x146D).map { first -> (0..3).map { bmw(first + it) } }
+
     const val BMW_TANK_ADDRESS = 0x0384
     const val BMW_ODOMETER_ADDRESS = 0x05DD
     const val BMW_TOTAL_FUEL_ADDRESS = 0x0939
@@ -317,7 +326,24 @@ object Pids {
         bmwDef(0x03EC, "Filtro: código de interrupción", "", 0, PidGroup.EXHAUST) { it.toDouble() },
         bmwDef(0x05AA, "Motor: modo de funcionamiento (código)", "", 0, PidGroup.EXHAUST, size = 4) { it.toDouble() },
         bmwDef(0x03DE, "Filtro: velocidad media desde la regeneración", "km/h", 0, PidGroup.EXHAUST) { it * 0.003815 },
-    )
+    ) + BMW_CYLINDER_CORRECTIONS.mapIndexed { cylinder, id ->
+        PidDef(id, "Inyector ${cylinder + 1}: corrección de cantidad", "mg", 2, 2, group = PidGroup.FUEL) {
+            word(it) * 0.003052 - 100.0
+        }
+    } + listOf(
+        bmwDef(0x14D3, "Inyección: corrección general de cantidad", "mg", 2, PidGroup.FUEL) { it * 0.01 - 327.67 },
+        bmwDef(0x04B1, "Inyección principal: duración", "µs", 0, PidGroup.FUEL) { it * 0.038148 },
+        bmwDef(0x04B0, "Preinyección: volumen", "mm³", 2, PidGroup.FUEL) { it * 0.003052 - 100.0 },
+        bmwDef(0x1964, "Calibración de cantidad mínima: estado", "", 0, PidGroup.FUEL, size = 1) { it.toDouble() },
+    ) + BMW_INJECTOR_TIMES.flatMapIndexed { point, ids ->
+        ids.mapIndexed { cylinder, id ->
+            PidDef(id, "Inyector ${cylinder + 1}: tiempo aprendido (punto ${point + 1})", "µs", 2, 1, group = PidGroup.FUEL) {
+                word(it) * 0.15259 - 5000.0
+            }
+        }
+    } + (0..2).map { point ->
+        bmwDef(0x145E + point, "Calibración de inyectores: ciclos (punto ${point + 1})", "", 0, PidGroup.FUEL) { it.toDouble() }
+    }
 
     /** Si a un coche se le pueden pedir las medidas de [bmwDiesel]. */
     fun hasBmwMeasures(make: String?, diesel: Boolean) = diesel && make != null && make.startsWith("BMW")
