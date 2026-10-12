@@ -80,6 +80,19 @@ object Pids {
      */
     val BMW_INJECTOR_TIMES = listOf(0x1461, 0x1467, 0x146D).map { first -> (0..3).map { bmw(first + it) } }
 
+    /**
+     * Los fallos de calentadores que apunta su mando, cada uno con lo que significa. El valor
+     * lleva un bit por calentador; cero es que no hay ninguno.
+     */
+    val BMW_GLOW_FAULTS = listOf(
+        0x1600 to "resistencia alta en frío",
+        0x1601 to "resistencia alta en caliente",
+        0x1602 to "resistencia baja en frío",
+        0x1603 to "resistencia baja en caliente",
+        0x1604 to "salida cortada",
+        0x1605 to "salida siempre encendida",
+    ).map { (address, text) -> bmw(address) to text }
+
     const val BMW_TANK_ADDRESS = 0x0384
     const val BMW_ODOMETER_ADDRESS = 0x05DD
     const val BMW_TOTAL_FUEL_ADDRESS = 0x0939
@@ -355,7 +368,17 @@ object Pids {
         bmwDef(0x0C87, "Aire tras el compresor (calculada)", "°C", 0, PidGroup.AIR) { it * 0.009155 - 100.0 },
         bmwDef(0x0777, "EGR: gas tras su enfriador", "°C", 0, PidGroup.AIR) { it * 0.016022 - 50.0 },
         bmwDef(0x0C1C, "Presión ambiente (centralita)", "hPa", 0, PidGroup.AIR) { it * 0.030518 },
-    )
+        bmwDef(0x1609, "Calentadores: potencia", "W", 0, PidGroup.ENGINE) { it.toDouble() },
+        bmwDef(0x160B, "Calentadores: temperatura", "°C", 0, PidGroup.ENGINE) { it * 0.1 - 273.14 },
+        bmwDef(0x15FE, "Calentadores: estado (código)", "", 0, PidGroup.ENGINE) { it.toDouble() },
+        bmwDef(0x15FF, "Calentadores: testigo (1 = encendido)", "", 0, PidGroup.ENGINE, size = 1) { it.toDouble() },
+        bmwDef(0x012C, "Batería: tensión (centralita)", "V", 2, PidGroup.ELECTRIC) { it * 0.000389105 },
+        bmwDef(0x01B1, "Batería: margen para arrancar", "", 1, PidGroup.ELECTRIC) { it * 0.003052 },
+        bmwDef(0x01B8, "Batería: temperatura", "°C", 0, PidGroup.ELECTRIC) { it * 0.009237 - 50.0 },
+        bmwDef(0x01B9, "Batería: tensión en el borne", "V", 2, PidGroup.ELECTRIC) { it * 0.00025 + 6.0 },
+    ) + BMW_GLOW_FAULTS.map { (id, text) ->
+        PidDef(id, "Calentadores: $text (0 = no)", "", 1, 0, group = PidGroup.ENGINE) { it[0].toDouble() }
+    }
 
     /** Si a un coche se le pueden pedir las medidas de [bmwDiesel]. */
     fun hasBmwMeasures(make: String?, diesel: Boolean) = diesel && make != null && make.startsWith("BMW")

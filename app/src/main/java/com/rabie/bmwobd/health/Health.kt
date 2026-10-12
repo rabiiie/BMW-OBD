@@ -19,6 +19,7 @@ enum class HealthSystem(val title: String) {
     ELECTRIC("Batería y carga"),
     OIL("Aceite"),
     FAULTS("Averías guardadas"),
+    COLD_START("Arranque en frío"),
 }
 
 /**

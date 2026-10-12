@@ -28,6 +28,11 @@ enum class Case(val title: String, val watch: List<Int>, val also: List<Int>) {
         watch = listOf(0x01F4, 0x01F9, 0x0BEB, 0x0C86, 0x0709, 0x07A2, 0x0BB4, 0x07AD).map(Pids::bmw),
         also = listOf(0x079E, 0x0793, 0x0B1F, 0x0C87, 0x0777, 0x0C1C).map(Pids::bmw),
     ),
+    COLD_START(
+        "Arranque en frío",
+        watch = listOf(0x1609, 0x160B, 0x012C, 0x15FE).map(Pids::bmw),
+        also = Pids.BMW_GLOW_FAULTS.map { it.first } + listOf(0x15FF, 0x01B1, 0x01B8, 0x01B9).map(Pids::bmw),
+    ),
 }
 
 /** Lo que pasa ahora en lo que mira un caso, dicho sin jerga. */
@@ -52,6 +57,12 @@ object CaseCards {
     private val EGR_RATE = Pids.bmw(0x07AD)
     private val AFTER_COMPRESSOR = Pids.bmw(0x0C87)
     private val AFTER_INTERCOOLER = Pids.bmw(0x076F)
+    private val GLOW_POWER = Pids.bmw(0x1609)
+    private val GLOW_TEMP = Pids.bmw(0x160B)
+    private val BATTERY_VOLTS = Pids.bmw(0x012C)
+    private val BATTERY_MARGIN = Pids.bmw(0x01B1)
+    private const val GLOWING_FROM_W = 20.0
+    private const val WARM_ENGINE = 60.0
     private const val SEA_LEVEL_KPA = 100.0
     private const val BOOSTING_OVER_AMBIENT_KPA = 20.0
     private const val CORRECTION_WARN = 2.0
@@ -65,6 +76,45 @@ object CaseCards {
         Case.FILTER -> filter(values)
         Case.INJECTORS -> injectors(values)
         Case.TURBO -> turbo(values)
+        Case.COLD_START -> coldStart(values)
+    }
+
+    /**
+     * Los calentadores ayudan a encender el gasoleo con el motor frio y durante las
+     * regeneraciones. Su mando dice cuanto gastan y si ve mal alguno.
+     */
+    private fun coldStart(values: Map<Int, Double>): HealthCard {
+        val power = values[GLOW_POWER]
+        val coolant = values[Pids.COOLANT]
+        val faults = Pids.BMW_GLOW_FAULTS.mapNotNull { (id, text) -> values[id]?.takeIf { it > 0 }?.let { "$text (código ${n(it)})" } }
+        val glowing = power != null && power >= GLOWING_FROM_W
+        val facts = listOfNotNull(
+            if (glowing) {
+                "Gastan ${n(power!!)} W" + (values[GLOW_TEMP]?.takeIf { it > 100 }?.let { " y están a unos ${n(it)} °C." } ?: ".")
+            } else {
+                null
+            },
+            coolant?.let { "Motor a ${n(it)} °C." },
+            values[BATTERY_VOLTS]?.let { volts ->
+                "Batería: ${n(volts, 1)} V" + (values[BATTERY_MARGIN]?.let { "; margen para arrancar ${n(it)} (más alto, mejor)." } ?: ".")
+            },
+            if (faults.isEmpty() && Pids.BMW_GLOW_FAULTS.all { values[it.first] != null }) "Su mando no marca ningún fallo ahora." else null,
+        )
+        return when {
+            power == null -> HealthCard(HealthSystem.COLD_START, HealthLevel.UNKNOWN, "Esperando los datos de los calentadores.", facts)
+            faults.isNotEmpty() -> HealthCard(
+                HealthSystem.COLD_START, HealthLevel.WATCH,
+                "El mando de los calentadores ve un fallo: " + faults.joinToString(", ") + ".",
+                facts,
+                "El código dice en qué calentador. En verano casi no se nota; en invierno ese cilindro arranca peor. " +
+                    "En el taller: medir la resistencia de ese calentador y su cable.",
+            )
+            glowing -> HealthCard(HealthSystem.COLD_START, HealthLevel.OK, "Calentadores encendidos.", facts)
+            coolant != null && coolant >= WARM_ENGINE -> HealthCard(
+                HealthSystem.COLD_START, HealthLevel.OK, "Calentadores apagados: con el motor caliente no hacen falta.", facts,
+            )
+            else -> HealthCard(HealthSystem.COLD_START, HealthLevel.OK, "Calentadores apagados.", facts)
+        }
     }
 
     /**

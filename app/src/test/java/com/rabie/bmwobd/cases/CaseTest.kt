@@ -131,6 +131,38 @@ class CaseTest {
     }
 
     @Test
+    fun `la tarjeta del arranque en frio dice si los calentadores trabajan y si su mando ve un fallo`() {
+        // En el barrido del 11 de octubre, durante la regeneracion: 1609 = 1390 W y 160B contesto 31BB.
+        assertEquals(1000.0, Pids.byId.getValue(Pids.bmw(0x160B)).decodeOrNull(intArrayOf(0x31, 0xBB))!!, 0.05)
+        val clean = Pids.BMW_GLOW_FAULTS.associate { it.first to 0.0 }
+        val glowing = clean + mapOf(
+            Pids.bmw(0x1609) to 1390.0, Pids.bmw(0x160B) to 1000.0, Pids.COOLANT to 92.0,
+            Pids.bmw(0x012C) to 13.94, Pids.bmw(0x01B1) to 39.4,
+        )
+        val on = CaseCards.card(Case.COLD_START, glowing)!!
+        assertEquals("Calentadores encendidos.", on.headline)
+        assertEquals(
+            listOf(
+                "Gastan 1390 W y están a unos 1000 °C.",
+                "Motor a 92 °C.",
+                "Batería: 13,9 V; margen para arrancar 39 (más alto, mejor).",
+                "Su mando no marca ningún fallo ahora.",
+            ),
+            on.facts,
+        )
+
+        val off = glowing + (Pids.bmw(0x1609) to 0.0) + (Pids.bmw(0x160B) to -0.04)
+        assertEquals("Calentadores apagados: con el motor caliente no hacen falta.", CaseCards.card(Case.COLD_START, off)!!.headline)
+        assertEquals("Calentadores apagados.", CaseCards.card(Case.COLD_START, off + (Pids.COOLANT to 20.0))!!.headline)
+
+        val broken = CaseCards.card(Case.COLD_START, off + (Pids.bmw(0x1604) to 1.0))!!
+        assertEquals(HealthLevel.WATCH, broken.level)
+        assertEquals("El mando de los calentadores ve un fallo: salida cortada (código 1).", broken.headline)
+        assertFalse(broken.facts.any { it.startsWith("Su mando") })
+        assertEquals(HealthLevel.UNKNOWN, CaseCards.card(Case.COLD_START, emptyMap())!!.level)
+    }
+
+    @Test
     fun `las medidas de inyectores salen con la formula de la tabla`() {
         // 1462 contesto 81B2 en el barrido.
         assertEquals(0.62, Pids.byId.getValue(Pids.BMW_CYLINDER_CORRECTIONS[0]).decodeOrNull(intArrayOf(0x80, 0xCA))!!, 0.01)
