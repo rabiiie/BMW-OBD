@@ -16,8 +16,12 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import kotlin.math.cos
-import kotlin.math.sin
+import kotlin.math.abs
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -73,18 +77,26 @@ import kotlinx.coroutines.delay
 private const val ROTATE_MS = 8_000L
 private const val TOUCH_HOLD_MS = 20_000L
 private const val CENTER_SHARE = 0.27f
-private const val ARC_HALF_ANGLE = 48f
+private const val MARK_TEXT_FROM_MIDDLE = 0.15f
+private const val GLOW_ALPHA = 0.55f
+private const val PER_100_FULL = 20.0
+private const val PER_HOUR_FULL = 10.0
 private const val TANK_LITERS = 53.0
 private const val FUEL_LEVEL = 0x2F
 private const val OUTSIDE_TEMP = 0x46
 private val CENTER_MIN = 180.dp
 private val CENTER_MAX = 260.dp
-private val ARC_WIDTH = 118.dp
-private val ARC_STROKE = 5.dp
-private val ARC_PAD = 14.dp
-private val ARC_INSET = 4.dp
-private val ARC_LABEL_GAP = 6.dp
-private val ARC_CONTENT_SHIFT = 26.dp
+private val WING_WIDTH = 128.dp
+private val WING_STROKE = 2.5.dp
+private val WING_PAD = 12.dp
+private val WING_INSET = 4.dp
+private val WING_ARM = 44.dp
+private val WING_CAP = 14.dp
+private val WING_GAP = 4.dp
+private val WING_BAND = 14.dp
+private val WING_TICK = 5.dp
+private val WING_CONTENT_SHIFT = 36.dp
+private val CONSUMPTION_HEIGHT = 18.dp
 private val SWIPE_DISTANCE = 28.dp
 private val STRIP_HEIGHT = 38.dp
 private val INFO_HEIGHT = 24.dp
@@ -102,7 +114,7 @@ private fun nextGroup(index: Int, other: Int, pinned: Int?): Int {
 
 /**
  * El panel apaisado: arriba una franja con lo mas importante; en medio, la velocidad y las
- * revoluciones en dos arcos finos con unas tarjetas entre ellos; a los lados, dos grupos de datos
+ * revoluciones en dos marcadores en angulo con unas tarjetas entre ellos; a los lados, dos grupos de datos
  * que van rotando. Tocar una columna pasa al grupo siguiente. Con un aviso, la columna izquierda
  * se queda fija en el grupo al que toca.
  */
@@ -147,7 +159,20 @@ internal fun DashPanel(state: LiveState, onMenu: () -> Unit, onWatch: (List<Int>
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Strip(state, onMenu)
-        Row(Modifier.fillMaxWidth().weight(1f), verticalAlignment = Alignment.CenterVertically) {
+        val glow = Bmw.MBlueDark
+        Row(
+            Modifier.fillMaxWidth().weight(1f).drawBehind {
+                // El resplandor azul de detras del centro, como en el cuadro del coche.
+                drawRect(
+                    Brush.radialGradient(
+                        listOf(glow.copy(alpha = GLOW_ALPHA), Color.Transparent),
+                        center = Offset(size.width / 2, size.height * 0.62f),
+                        radius = size.height * 0.95f,
+                    ),
+                )
+            },
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             GroupColumn(
                 group = leftGroup,
                 tiles = Dashboard.tiles(leftGroup, values),
@@ -160,12 +185,12 @@ internal fun DashPanel(state: LiveState, onMenu: () -> Unit, onWatch: (List<Int>
                     }
                 },
             )
-            SideArc(
+            SideWing(
                 fraction = ((speed ?: 0.0) / SPEED_MAX).toFloat(),
                 mirrored = false,
                 redFrom = 1f,
-                labels = listOf("0", "120", "240"),
-                modifier = Modifier.width(ARC_WIDTH).fillMaxHeight(),
+                marks = listOf(0, 60, 120, 180, 240).map { (it / SPEED_MAX).toFloat() to it.toString() },
+                modifier = Modifier.width(WING_WIDTH).fillMaxHeight(),
             ) {
                 Text(speed?.let { formatValue(it, 0) } ?: "—", color = Bmw.Text, fontSize = 44.sp, fontWeight = FontWeight.Light, maxLines = 1)
                 Label("km/h")
@@ -186,7 +211,8 @@ internal fun DashPanel(state: LiveState, onMenu: () -> Unit, onWatch: (List<Int>
                             else -> Dashboard.CALCULATED + "${gear}ª"
                         },
                         color = Bmw.Text,
-                        fontSize = 22.sp,
+                        fontSize = 30.sp,
+                        fontWeight = FontWeight.Light,
                     )
                     // La recomendacion de cambio, tambien calculada: flecha arriba para subir, abajo para bajar.
                     when (state.shift) {
@@ -194,14 +220,15 @@ internal fun DashPanel(state: LiveState, onMenu: () -> Unit, onWatch: (List<Int>
                         ShiftHint.DOWN -> Text("▼", color = Bmw.Amber, fontSize = 22.sp)
                     }
                 }
+                Consumption(state)
                 CenterCards(state)
             }
-            SideArc(
+            SideWing(
                 fraction = ((rpm ?: 0.0) / vehicle.rpmMax).toFloat(),
                 mirrored = true,
                 redFrom = vehicle.rpmRedFrom,
-                labels = listOf("0", formatValue(vehicle.rpmMax / 2000, 0), formatValue(vehicle.rpmMax / 1000, 0)),
-                modifier = Modifier.width(ARC_WIDTH).fillMaxHeight(),
+                marks = (0..(vehicle.rpmMax / 1000).toInt()).map { (it * 1000 / vehicle.rpmMax).toFloat() to it.toString() },
+                modifier = Modifier.width(WING_WIDTH).fillMaxHeight(),
             ) {
                 Text(rpm?.let { formatValue(it, 0) } ?: "—", color = Bmw.Text, fontSize = 34.sp, fontWeight = FontWeight.Light, maxLines = 1)
                 Label("rpm")
@@ -222,60 +249,113 @@ internal fun DashPanel(state: LiveState, onMenu: () -> Unit, onWatch: (List<Int>
 }
 
 /**
- * Un reloj reducido a un arco fino en un lado, con su cifra dentro. El de la izquierda se abre
- * hacia la derecha y el de la derecha al reves; los dos se llenan de abajo arriba.
+ * Un reloj en angulo, como los del cuadro de un BMW actual: un trazo que hace pico hacia fuera y,
+ * por dentro, una banda que se llena de abajo arriba. El de la izquierda tiene el pico a la
+ * izquierda y el de la derecha al reves. La cifra va en el hueco que deja.
  */
 @Composable
-private fun SideArc(
+private fun SideWing(
     fraction: Float,
     mirrored: Boolean,
     redFrom: Float,
-    labels: List<String>,
+    marks: List<Pair<Float, String>>,
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val shown by animateFloatAsState(fraction.coerceIn(0f, 1f), tween(350, easing = LinearEasing), label = "arco")
+    val shown by animateFloatAsState(fraction.coerceIn(0f, 1f), tween(350, easing = LinearEasing), label = "marcador")
     val measurer = rememberTextMeasurer()
-    val track = Bmw.Line
-    val fill = Bmw.Accent
+    val outline = Bmw.Text
+    val dim = Bmw.TextDim
+    val track = Bmw.MBlueDark
+    val low = Bmw.Accent
+    val high = Bmw.MBlueLight
     val red = Bmw.MRed
-    val labelStyle = TextStyle(color = Bmw.TextDim, fontSize = 11.sp)
+    val labelStyle = TextStyle(color = dim, fontSize = 11.sp)
     Box(modifier, contentAlignment = Alignment.Center) {
         Canvas(Modifier.fillMaxSize()) {
-            val stroke = ARC_STROKE.toPx()
-            val pad = ARC_PAD.toPx()
-            val half = ARC_HALF_ANGLE
-            val radius = (size.height - 2 * pad) / (2 * sin(Math.toRadians(half.toDouble())).toFloat())
-            val edge = stroke / 2 + ARC_INSET.toPx()
-            val cx = if (mirrored) size.width - edge - radius else edge + radius
-            val box = Size(radius * 2, radius * 2)
-            val corner = Offset(cx - radius, size.height / 2 - radius)
-            // Los angulos van en el sentido de las agujas desde las tres: abajo es 90.
-            val start = if (mirrored) half else 180f - half
-            val turn = if (mirrored) -1f else 1f
-            val whole = 2 * half
-            val line = Stroke(stroke, cap = StrokeCap.Round)
-            drawArc(track, start, turn * whole, useCenter = false, topLeft = corner, size = box, style = line)
-            if (redFrom < 1f) {
-                drawArc(red, start + turn * whole * redFrom, turn * whole * (1 - redFrom), useCenter = false, topLeft = corner, size = box, style = line)
-            }
-            if (shown > 0.005f) drawArc(fill, start, turn * whole * shown, useCenter = false, topLeft = corner, size = box, style = line)
+            val top = WING_PAD.toPx()
+            val bottom = size.height - top
+            val mid = size.height / 2
+            val half = (bottom - top) / 2
+            val edge = WING_INSET.toPx()
+            val arm = WING_ARM.toPx()
+            val gap = WING_GAP.toPx()
+            val band = WING_BAND.toPx()
+            // Las medidas se cuentan desde el lado del pico; en el de la derecha se dan la vuelta.
+            fun x(fromPeak: Float) = if (mirrored) size.width - fromPeak else fromPeak
+            fun peakAt(y: Float) = edge + arm * abs(y - mid) / half
+            fun yAt(t: Float) = bottom - t * (bottom - top)
 
-            // Tres rotulos: abajo, en medio y arriba, por dentro del arco.
-            labels.forEachIndexed { index, text ->
-                val angle = Math.toRadians((start + turn * whole * index / (labels.size - 1)).toDouble())
-                val inner = radius - stroke - ARC_LABEL_GAP.toPx()
+            val trace = Path().apply {
+                moveTo(x(edge + arm + WING_CAP.toPx()), top)
+                lineTo(x(edge + arm), top)
+                lineTo(x(edge), mid)
+                lineTo(x(edge + arm), bottom)
+                lineTo(x(edge + arm + WING_CAP.toPx()), bottom)
+            }
+            val inside = Path().apply {
+                moveTo(x(edge + arm + gap), top)
+                lineTo(x(edge + gap), mid)
+                lineTo(x(edge + arm + gap), bottom)
+                lineTo(x(edge + arm + gap + band), bottom)
+                lineTo(x(edge + gap + band), mid)
+                lineTo(x(edge + arm + gap + band), top)
+                close()
+            }
+            drawPath(inside, Brush.verticalGradient(listOf(track.copy(alpha = 0.55f), track.copy(alpha = 0.2f)), top, bottom))
+            if (redFrom < 1f) clipRect(top = top, bottom = yAt(redFrom)) { drawPath(inside, red.copy(alpha = 0.45f)) }
+            if (shown > 0.005f) {
+                clipRect(top = yAt(shown), bottom = bottom) { drawPath(inside, Brush.verticalGradient(listOf(high, low), top, bottom)) }
+                if (shown > redFrom) clipRect(top = yAt(shown), bottom = yAt(redFrom)) { drawPath(inside, red) }
+            }
+            drawPath(trace, outline, style = Stroke(WING_STROKE.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
+
+            // La raya que marca por donde va, un poco mas larga que la banda.
+            val level = yAt(shown)
+            val from = peakAt(level) + gap
+            drawLine(outline, Offset(x(from), level), Offset(x(from + band + WING_TICK.toPx()), level), 2.dp.toPx(), StrokeCap.Round)
+
+            // Las marcas de la escala. La cifra de las del medio no se pinta: ahi va el numero grande.
+            for ((t, text) in marks) {
+                val y = yAt(t)
+                val start = peakAt(y) + gap + band + 2.dp.toPx()
+                drawLine(dim, Offset(x(start), y), Offset(x(start + WING_TICK.toPx()), y), 1.dp.toPx())
+                if (abs(t - 0.5f) < MARK_TEXT_FROM_MIDDLE) continue
                 val layout = measurer.measure(text, labelStyle)
-                val x = cx + inner * cos(angle).toFloat() - if (mirrored) layout.size.width.toFloat() else 0f
-                val y = size.height / 2 + inner * sin(angle).toFloat() - layout.size.height / 2f
-                drawText(layout, topLeft = Offset(x, y.coerceIn(0f, size.height - layout.size.height)))
+                val left = start + WING_TICK.toPx() + 3.dp.toPx()
+                val textX = if (mirrored) size.width - left - layout.size.width else left
+                drawText(layout, topLeft = Offset(textX, (y - layout.size.height / 2f).coerceIn(0f, size.height - layout.size.height)))
             }
         }
         Column(
-            Modifier.padding(start = if (mirrored) 0.dp else ARC_CONTENT_SHIFT, end = if (mirrored) ARC_CONTENT_SHIFT else 0.dp),
+            Modifier.padding(start = if (mirrored) 0.dp else WING_CONTENT_SHIFT, end = if (mirrored) WING_CONTENT_SHIFT else 0.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             content = content,
         )
+    }
+}
+
+/**
+ * El consumo de ahora en una barra fina, encima de las tarjetas. Es una cuenta de la app; parado
+ * va en litros por hora. Sin dato el hueco se queda, para que lo de debajo no salte.
+ */
+@Composable
+private fun Consumption(state: LiveState) {
+    val per100 = Pids.litersPer100Km(state.values, state.vehicle.diesel)
+    val perHour = Pids.fuelRate(state.values, state.vehicle.diesel)
+    val value = per100 ?: perHour
+    Row(
+        Modifier.fillMaxWidth().height(CONSUMPTION_HEIGHT).padding(horizontal = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        if (value == null) return@Row
+        val full = if (per100 != null) PER_100_FULL else PER_HOUR_FULL
+        Text(Dashboard.CALCULATED + formatValue(value, 1), color = Bmw.Text, fontSize = 13.sp, maxLines = 1)
+        Box(Modifier.weight(1f).height(3.dp).clip(RoundedCornerShape(2.dp)).background(Bmw.Line)) {
+            Box(Modifier.fillMaxWidth((value / full).toFloat().coerceIn(0f, 1f)).fillMaxHeight().background(Bmw.Text))
+        }
+        Text(if (per100 != null) "L/100" else "L/h", color = Bmw.TextDim, fontSize = 11.sp, maxLines = 1)
     }
 }
 
@@ -318,7 +398,7 @@ private fun CenterCards(state: LiveState) {
             Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(14.dp))
-                .background(Bmw.Surface)
+                .background(Bmw.Surface.copy(alpha = 0.72f))
                 .pointerInput(cards.size) {
                     detectHorizontalDragGestures(
                         onDragStart = { dragged = 0f },
