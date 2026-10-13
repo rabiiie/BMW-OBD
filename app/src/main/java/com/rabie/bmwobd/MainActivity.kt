@@ -196,7 +196,7 @@ private fun MainScreen(vm: ObdViewModel = viewModel()) {
                 )
             }
 
-            Tab.TRIPS -> TripsScreen(store = vm.trips, vehicles = vm.vehicles, modifier = content)
+            Tab.TRIPS -> TripsScreen(store = vm.trips, vehicles = vm.vehicles, fuelPrice = settings.fuelPrice, modifier = content)
 
             Tab.FAULTS -> {
                 val diagnostics by vm.diagnostics.collectAsStateWithLifecycle()

@@ -30,6 +30,8 @@ import com.rabie.bmwobd.scan.ScanProgress
 import com.rabie.bmwobd.scan.ScanRunner
 import com.rabie.bmwobd.scan.ScanSaved
 import com.rabie.bmwobd.scan.ScanStore
+import com.rabie.bmwobd.trips.FuelCounter
+import com.rabie.bmwobd.trips.TripFuel
 import com.rabie.bmwobd.trips.TripRecorder
 import com.rabie.bmwobd.trips.TripStore
 import com.rabie.bmwobd.vehicle.EngineProfile
@@ -72,6 +74,11 @@ data class LiveState(
     val averageL100: Double? = null,
     /** Kilometros de este trayecto, sumados de la velocidad. */
     val tripKm: Double = 0.0,
+    /** Litros gastados en este trayecto; con [tripLitersReal], los del contador de la centralita y no una estimacion. */
+    val tripLiters: Double? = null,
+    val tripLitersReal: Boolean = false,
+    /** El precio del litro puesto en los ajustes, para la cuenta en euros. */
+    val fuelPrice: Double? = null,
     /** La marcha de ahora, deducida de velocidad y revoluciones; 0 parado, null si no se sabe. */
     val gear: Int? = null,
     /** Recomendacion de cambio calculada por la app: [ShiftHint.UP], [ShiftHint.DOWN] o ninguna. */
@@ -448,6 +455,7 @@ class ObdController(
         val gears = GearGuess()
         val shifts = ShiftHint()
         val firstStart = FirstStart()
+        val fuelCounter = FuelCounter()
         var looked = emptyList<Int>()
         _state.update { it.copy(supported = turns.shown) }
 
@@ -511,7 +519,10 @@ class ObdController(
             lastSumNanos = now
             km += (snapshot[Pids.SPEED] ?: 0.0) * hours
             liters += (Pids.fuelRate(snapshot, _state.value.vehicle.diesel) ?: 0.0) * hours
-            val average = if (km >= MIN_AVERAGE_KM) liters / km * 100.0 else null
+            // Con el contador de la centralita, los litros son los suyos; sin el, la estimacion.
+            fuelCounter.add(snapshot[TripFuel.FUEL_SINCE_REGEN])
+            val spent = if (fuelCounter.seen) fuelCounter.liters else liters
+            val average = if (km >= MIN_AVERAGE_KM) spent / km * 100.0 else null
             if (turn.any { it.pid == Dashboard.GEAR }) {
                 snapshot[Dashboard.GEAR]?.let { gears.learn(it.toInt(), snapshot[Pids.SPEED], snapshot[Pids.RPM]) }
             }
@@ -524,7 +535,12 @@ class ObdController(
             val alerts = advice.filter { it.severity == Severity.ALERT }.map { it.id }.toSet()
             if ((alerts - soundedAlerts).isNotEmpty()) beep()
             soundedAlerts = alerts
-            _state.update { it.copy(values = snapshot, cyclesPerSecond = rate, advice = advice, averageL100 = average, tripKm = km, gear = gear, shift = shift) }
+            _state.update {
+                it.copy(
+                    values = snapshot, cyclesPerSecond = rate, advice = advice, averageL100 = average, tripKm = km, gear = gear, shift = shift,
+                    tripLiters = spent, tripLitersReal = fuelCounter.seen, fuelPrice = settings.state.value.fuelPrice,
+                )
+            }
             if (answered) withContext(Dispatchers.IO) { recorder.append(snapshot) }
         }
     }

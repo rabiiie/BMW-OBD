@@ -92,16 +92,26 @@ class DashboardTest {
             Pids.MAP to 167.0, Pids.BAROMETRIC to 93.0, 0x23 to 720.0,
         )
         val (trip, temperatures, engine) = Dashboard.cards(values, tripKm = 42.63, elapsedMs = 48 * 60_000L + 12_000, average = 5.42, diesel = true)
-        assertEquals(listOf(DashCell("42,6", "km"), DashCell("0:48", "h:min"), DashCell("≈ 5,4", "Ø L/100"), DashCell("≈ 5,2", "L/100")), trip)
+        assertEquals(listOf(DashCell("42,6", "km"), DashCell("0:48", "h:min"), DashCell("≈ 5,4", "Ø L/100"), DashCell("≈ 5,2", "L/100")), trip.take(4))
+        // Sin litros ni precio, esas dos casillas quedan con raya.
+        assertEquals(listOf(DashCell("—", "L"), DashCell("—", "€")), trip.drop(4))
         assertEquals(
             listOf(DashCell("91", "°C agua"), DashCell("440", "°C escape"), DashCell("33", "°C aire"), DashCell("56", "°C alternador")),
-            temperatures,
+            temperatures.take(4),
         )
-        assertEquals(listOf(DashCell("211", "Nm"), DashCell("≈ 59", "CV"), DashCell("0,74", "bar turbo"), DashCell("720", "bar raíl")), engine)
+        assertEquals(listOf("°C gasóleo", "°C fuera"), temperatures.drop(4).map { it.tag })
+        assertEquals(listOf(DashCell("211", "Nm"), DashCell("≈ 59", "CV"), DashCell("0,74", "bar turbo"), DashCell("720", "bar raíl")), engine.take(4))
+        assertEquals(listOf("% carga", "% EGR"), engine.drop(4).map { it.tag })
+
+        // Con el contador de la centralita los litros no son una cuenta: salen sin la marca, y el coste con ellos.
+        val counted = Dashboard.cards(values, 79.4, 69 * 60_000L, 4.52, true, liters = 3.59, real = true, price = 1.459)[0]
+        assertEquals(listOf(DashCell("4,5", "Ø L/100"), DashCell("3,6", "L"), DashCell("5,24", "€")), listOf(counted[2], counted[4], counted[5]))
+        val guessed = Dashboard.cards(values, 79.4, 69 * 60_000L, 4.52, true, liters = 3.59, real = false, price = 1.459)[0]
+        assertEquals(DashCell("≈ 5,24", "€"), guessed[5])
 
         // Parado el consumo sale por hora; sin datos, rayas; y pasada la hora, el tiempo con horas.
         val stopped = Dashboard.cards(values + (Pids.SPEED to 0.0) + (Pids.RPM to 800.0), 0.0, 75 * 60_000L, null, true)
-        assertEquals(listOf(DashCell("0,0", "km"), DashCell("1:15", "h:min"), DashCell("—", "Ø L/100"), DashCell("≈ 2,4", "L/h")), stopped[0])
+        assertEquals(listOf(DashCell("0,0", "km"), DashCell("1:15", "h:min"), DashCell("—", "Ø L/100"), DashCell("≈ 2,4", "L/h")), stopped[0].take(4))
         val empty = Dashboard.cards(emptyMap(), 0.0, 0L, null, true)
         assertEquals(3, empty.size)
         assertTrue(empty.drop(1).flatten().all { it.value == Dashboard.MISSING })

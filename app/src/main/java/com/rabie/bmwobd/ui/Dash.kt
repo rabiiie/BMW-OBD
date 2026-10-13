@@ -377,7 +377,7 @@ private fun Cruise(values: Map<Int, Double>) {
 
 /**
  * Las tarjetas del centro: trayecto, temperaturas y motor. Se pasan deslizando a un lado o a
- * otro, o tocando; no rotan solas. Cuatro numeros con su unidad debajo.
+ * otro, o tocando; no rotan solas. Seis numeros con su unidad debajo.
  */
 @Composable
 private fun CenterCards(state: LiveState) {
@@ -389,6 +389,7 @@ private fun CenterCards(state: LiveState) {
     }
     val cards = Dashboard.cards(
         state.values, state.tripKm, (now - state.liveSinceMillis).coerceAtLeast(0), state.averageL100, state.vehicle.diesel,
+        state.tripLiters, state.tripLitersReal, state.fuelPrice,
     )
     var page by rememberSaveable { mutableIntStateOf(0) }
     var dragged by remember { mutableFloatStateOf(0f) }
@@ -409,14 +410,14 @@ private fun CenterCards(state: LiveState) {
                     ) { _, amount -> dragged += amount }
                 }
                 .clickable { page = (page + 1) % cards.size }
-                .padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(5.dp),
         ) {
             for (pair in cards[page % cards.size].chunked(2)) {
                 Row(Modifier.fillMaxWidth()) {
                     for (cell in pair) {
                         Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(cell.value, color = Bmw.Text, fontSize = 24.sp, fontWeight = FontWeight.Light, maxLines = 1)
+                            Text(cell.value, color = Bmw.Text, fontSize = 22.sp, fontWeight = FontWeight.Light, maxLines = 1)
                             Text(cell.tag, color = Bmw.TextDim, fontSize = 11.sp, maxLines = 1)
                         }
                     }

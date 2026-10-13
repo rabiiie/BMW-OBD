@@ -47,6 +47,7 @@ import com.rabie.bmwobd.report.ReportSection
 import com.rabie.bmwobd.report.TripReport
 import com.rabie.bmwobd.trips.TripData
 import com.rabie.bmwobd.trips.TripEntry
+import com.rabie.bmwobd.trips.TripFuel
 import com.rabie.bmwobd.trips.TripHealth
 import com.rabie.bmwobd.trips.TripStats
 import com.rabie.bmwobd.trips.TripStore
@@ -59,7 +60,7 @@ import java.util.Date
 import java.util.Locale
 
 @Composable
-fun TripsScreen(store: TripStore, vehicles: VehicleStore, modifier: Modifier = Modifier) {
+fun TripsScreen(store: TripStore, vehicles: VehicleStore, fuelPrice: Double? = null, modifier: Modifier = Modifier) {
     var selected by remember { mutableStateOf<TripEntry?>(null) }
     var version by remember { mutableIntStateOf(0) }
     val trips by produceState<List<TripEntry>?>(initialValue = null, version) {
@@ -68,13 +69,14 @@ fun TripsScreen(store: TripStore, vehicles: VehicleStore, modifier: Modifier = M
 
     val current = selected
     if (current == null) {
-        TripList(trips, vehicles, onOpen = { selected = it }, modifier = modifier)
+        TripList(trips, vehicles, fuelPrice, onOpen = { selected = it }, modifier = modifier)
     } else {
         BackHandler { selected = null }
         TripDetail(
             store = store,
             vehicle = current.vehicleKey?.let(vehicles::byKey) ?: Vehicle.GENERIC,
             entry = current,
+            fuelPrice = fuelPrice,
             onBack = { selected = null },
             onDelete = {
                 store.delete(current.file)
@@ -90,6 +92,7 @@ fun TripsScreen(store: TripStore, vehicles: VehicleStore, modifier: Modifier = M
 private fun TripList(
     trips: List<TripEntry>?,
     vehicles: VehicleStore,
+    fuelPrice: Double?,
     onOpen: (TripEntry) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -112,6 +115,8 @@ private fun TripList(
                 val checked = trips.filter { !it.simulated && it.health != null }.take(TIMING_ROWS)
                 if (checked.isNotEmpty()) item(key = "salud") { HealthTable(checked) }
                 if (checked.isNotEmpty()) item(key = "salud2") { RunningTable(checked) }
+                val spent = trips.filter { !it.simulated && (it.fuel?.km ?: 0.0) >= 1.0 }.take(TIMING_ROWS)
+                if (spent.isNotEmpty()) item(key = "consumo") { FuelTable(spent, fuelPrice) }
                 items(trips, key = { it.file.name }) { trip ->
                     val name = remember(trip.vehicleKey) { trip.vehicleKey?.let(vehicles::byKey)?.name }
                     TripRow(trip, name, onOpen)
@@ -278,6 +283,44 @@ private fun RunningTable(trips: List<TripEntry>) {
     }
 }
 
+/** Lo que gasto cada trayecto. Con el signo de aproximado, los litros son una estimacion de la app. */
+@Composable
+private fun FuelTable(trips: List<TripEntry>, price: Double?) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(Bmw.Surface)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Label("Consumo por trayecto")
+        @Composable
+        fun cells(date: String, values: List<String>, color: Color) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(date, color = Bmw.TextDim, fontSize = 13.sp, modifier = Modifier.weight(1.1f), maxLines = 1)
+                for (value in values) Text(value, color = color, fontSize = 12.sp, modifier = Modifier.weight(1f), maxLines = 1)
+            }
+        }
+        cells("", listOf("km", "L", "L/100", "€"), Bmw.TextDim)
+        for (trip in trips) {
+            val fuel = trip.fuel ?: continue
+            val mark = if (fuel.real) "" else "≈"
+            fun text(value: Double?, decimals: Int) = value?.let { mark + "%.${decimals}f".format(it) } ?: "—"
+            cells(
+                formatDay(trip.startMillis),
+                listOf("%.0f".format(fuel.km), text(fuel.liters, 1), text(fuel.per100, 1), text(fuel.cost(price), 2)),
+                Bmw.Text,
+            )
+        }
+        Text(
+            if (price == null) "Para ver los euros, pon el precio del litro en Ajustes." else "Con el precio del litro que hay ahora en Ajustes.",
+            color = Bmw.TextDim,
+            fontSize = 12.sp,
+        )
+    }
+}
+
 private const val TIMING_ROWS = 12
 
 @Composable
@@ -311,6 +354,7 @@ private fun TripDetail(
     store: TripStore,
     vehicle: Vehicle,
     entry: TripEntry,
+    fuelPrice: Double?,
     onBack: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
@@ -358,6 +402,10 @@ private fun TripDetail(
             val car = remember(trip) { Health.carFacts(trip) }
             if (car.isNotEmpty()) {
                 ReportCard(ReportSection("Ficha del coche", car.map { (label, value) -> ReportLine(label, value) }))
+            }
+            val fuel = remember(trip, vehicle, fuelPrice) { TripFuel.of(trip, vehicle.diesel)?.facts(fuelPrice).orEmpty() }
+            if (fuel.isNotEmpty()) {
+                ReportCard(ReportSection("Consumo y coste", fuel.map { (label, value) -> ReportLine(label, value) }))
             }
             val regens = remember(trip) { Health.regenerationFacts(trip) }
             if (regens.isNotEmpty()) {

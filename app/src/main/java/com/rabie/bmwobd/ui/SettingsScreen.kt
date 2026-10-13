@@ -14,7 +14,15 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -59,6 +67,9 @@ fun SettingsScreen(
             checked = settings.autoConnect,
         ) { value -> onChange { it.copy(autoConnect = value) } }
 
+        Label("Gasóleo", Modifier.padding(top = 6.dp))
+        FuelPrice(settings.fuelPrice) { value -> onChange { it.copy(fuelPrice = value) } }
+
         Label("Avisos", Modifier.padding(top = 6.dp))
         Toggle(
             title = "Sonido de aviso",
@@ -85,6 +96,37 @@ fun SettingsScreen(
                 "Apagado, la consola solo acepta consultas.",
             checked = settings.expertConsole,
         ) { value -> onChange { it.copy(expertConsole = value) } }
+    }
+}
+
+/** El precio del litro. Vacio, no se hace la cuenta en euros. Acepta coma o punto. */
+@Composable
+private fun FuelPrice(price: Double?, onChange: (Double?) -> Unit) {
+    var text by remember { mutableStateOf(price?.toString()?.replace('.', ',') ?: "") }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(Bmw.Surface)
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text("Precio del litro", color = Bmw.Text, fontSize = 16.sp)
+            Text("Para ver en euros lo que cuesta cada trayecto. Cámbialo al repostar.", color = Bmw.TextDim, fontSize = 13.sp)
+        }
+        OutlinedTextField(
+            value = text,
+            onValueChange = { typed ->
+                text = typed.filter { it.isDigit() || it == ',' || it == '.' }.take(6)
+                onChange(text.replace(',', '.').toDoubleOrNull()?.takeIf { it > 0 })
+            },
+            singleLine = true,
+            suffix = { Text("€") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            modifier = Modifier.width(110.dp),
+        )
     }
 }
 

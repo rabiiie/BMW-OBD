@@ -41,6 +41,8 @@ object Dashboard {
     private val EGR_RATE = Pids.bmw(0x07AD)
     private val AFTER_INTERCOOLER = Pids.bmw(0x076F)
     private val TANK = Pids.bmw(Pids.BMW_TANK_ADDRESS)
+    private val FUEL_TEMP = Pids.bmw(0x0385)
+    private const val OUTSIDE_TEMP = 0x46
     private val ODOMETER = Pids.bmw(Pids.BMW_ODOMETER_ADDRESS)
     private val TOTAL_FUEL = Pids.bmw(Pids.BMW_TOTAL_FUEL_ADDRESS)
     private val RAIL = listOf(Moment.RAIL_ACTUAL, Moment.RAIL)
@@ -124,9 +126,20 @@ object Dashboard {
 
     /**
      * Las tarjetas del centro del panel, que se pasan deslizando: el trayecto, las temperaturas y
-     * el motor. Cuatro datos cada una, sin mas texto que la unidad.
+     * el motor. Seis datos cada una, sin mas texto que la unidad. Con [real] los litros y el
+     * consumo medio salen del contador de la centralita y no llevan la marca de calculado.
      */
-    fun cards(values: Map<Int, Double>, tripKm: Double, elapsedMs: Long, average: Double?, diesel: Boolean): List<List<DashCell>> {
+    fun cards(
+        values: Map<Int, Double>,
+        tripKm: Double,
+        elapsedMs: Long,
+        average: Double?,
+        diesel: Boolean,
+        liters: Double? = null,
+        real: Boolean = false,
+        price: Double? = null,
+    ): List<List<DashCell>> {
+        val mark = if (real) "" else CALCULATED
         val per100 = Pids.litersPer100Km(values, diesel)
         val perHour = Pids.fuelRate(values, diesel)
         val minutes = elapsedMs / 60_000
@@ -139,20 +152,26 @@ object Dashboard {
             listOf(
                 DashCell(n(tripKm, 1), "km"),
                 DashCell("%d:%02d".format(minutes / 60, minutes % 60), "h:min"),
-                DashCell(average?.let { CALCULATED + n(it, 1) } ?: MISSING, "Ø L/100"),
+                DashCell(average?.let { mark + n(it, 1) } ?: MISSING, "Ø L/100"),
                 now,
+                DashCell(liters?.let { mark + n(it, 1) } ?: MISSING, "L"),
+                DashCell(if (liters != null && price != null) mark + n(liters * price, 2) else MISSING, "€"),
             ),
             listOf(
                 cell(values[Pids.COOLANT], 0, "°C agua"),
                 cell(values[BEFORE_CATALYST] ?: Moment.EXHAUST_TEMPS.mapNotNull { values[it] }.maxOrNull(), 0, "°C escape"),
                 cell(values[AFTER_INTERCOOLER] ?: values[Moment.INTAKE_TEMP], 0, "°C aire"),
                 cell(values[ALTERNATOR_TEMP], 0, "°C alternador"),
+                cell(values[FUEL_TEMP], 0, "°C gasóleo"),
+                cell(values[OUTSIDE_TEMP], 0, "°C fuera"),
             ),
             listOf(
                 cell(values[TORQUE], 0, "Nm"),
                 DashCell(horsepower(values)?.let { CALCULATED + n(it) } ?: MISSING, "CV"),
                 cell(Pids.boostBar(values), 2, "bar turbo"),
                 cell(RAIL.firstNotNullOfOrNull { values[it] }, 0, "bar raíl"),
+                cell(values[Pids.LOAD], 0, "% carga"),
+                cell(values[EGR_RATE], 0, "% EGR"),
             ),
         )
     }

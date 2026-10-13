@@ -21,6 +21,8 @@ data class AppSettings(
     val autoConnect: Boolean = true,
     val lastAdapter: String? = null,
     val case: Case = Case.NORMAL,
+    /** Lo que cuesta el litro, para la cuenta en euros; null mientras no se ponga. */
+    val fuelPrice: Double? = null,
 )
 
 /** Los ajustes de la app, guardados en el movil. */
@@ -39,6 +41,7 @@ class SettingsStore(private val prefs: SharedPreferences) {
             .putBoolean(KEY_AUTO_CONNECT, next.autoConnect)
             .putString(KEY_LAST_ADAPTER, next.lastAdapter)
             .putString(KEY_CASE, next.case.name)
+            .putString(KEY_FUEL_PRICE, next.fuelPrice?.toString())
             .apply()
         _state.value = next
     }
@@ -53,6 +56,7 @@ class SettingsStore(private val prefs: SharedPreferences) {
             autoConnect = prefs.getBoolean(KEY_AUTO_CONNECT, defaults.autoConnect),
             lastAdapter = prefs.getString(KEY_LAST_ADAPTER, null),
             case = Case.entries.firstOrNull { it.name == prefs.getString(KEY_CASE, null) } ?: defaults.case,
+            fuelPrice = prefs.getString(KEY_FUEL_PRICE, null)?.toDoubleOrNull()?.takeIf { it > 0 },
         )
     }
 
@@ -64,5 +68,6 @@ class SettingsStore(private val prefs: SharedPreferences) {
         const val KEY_AUTO_CONNECT = "auto_connect"
         const val KEY_LAST_ADAPTER = "last_adapter"
         const val KEY_CASE = "case"
+        const val KEY_FUEL_PRICE = "fuel_price"
     }
 }
