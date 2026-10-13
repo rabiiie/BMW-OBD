@@ -103,6 +103,8 @@ private fun TripList(
                 color = Bmw.TextDim,
             )
             else -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                val timed = trips.filter { !it.simulated && it.timing != null }.take(TIMING_ROWS)
+                if (timed.isNotEmpty()) item(key = "distribucion") { TimingTable(timed) }
                 items(trips, key = { it.file.name }) { trip ->
                     val name = remember(trip.vehicleKey) { trip.vehicleKey?.let(vehicles::byKey)?.name }
                     TripRow(trip, name, onOpen)
@@ -111,6 +113,39 @@ private fun TripList(
         }
     }
 }
+
+/**
+ * El desfase de la distribucion trayecto a trayecto, del mas reciente al mas antiguo, con la
+ * temperatura a la que arranco el motor. Lo que importa es si crece con el tiempo.
+ */
+@Composable
+private fun TimingTable(trips: List<TripEntry>) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(Bmw.Surface)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Label("Cadena de distribución: desfase por trayecto")
+        for (trip in trips) {
+            val timing = trip.timing ?: continue
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(formatStart(trip.startMillis), color = Bmw.TextDim, fontSize = 13.sp, modifier = Modifier.weight(1f))
+                timing.startCoolant?.let { Text(formatValue(it, 0) + " °C", color = Bmw.TextDim, fontSize = 13.sp, modifier = Modifier.padding(end = 14.dp)) }
+                Text(
+                    "%.2f°".format(timing.median) + if (timing.steady) "" else " *",
+                    color = Bmw.Text,
+                    fontSize = 15.sp,
+                )
+            }
+        }
+        Text("Con asterisco, el valor se movió durante el trayecto: se enseña la mediana.", color = Bmw.TextDim, fontSize = 12.sp)
+    }
+}
+
+private const val TIMING_ROWS = 12
 
 @Composable
 private fun TripRow(trip: TripEntry, vehicleName: String?, onOpen: (TripEntry) -> Unit) {
@@ -190,6 +225,10 @@ private fun TripDetail(
             val car = remember(trip) { Health.carFacts(trip) }
             if (car.isNotEmpty()) {
                 ReportCard(ReportSection("Ficha del coche", car.map { (label, value) -> ReportLine(label, value) }))
+            }
+            val timing = remember(trip) { Health.timingFacts(trip) }
+            if (timing.isNotEmpty()) {
+                ReportCard(ReportSection("Cadena de distribución", timing.map { (label, value) -> ReportLine(label, value) }))
             }
 
             Label("Gráfica", Modifier.padding(top = 6.dp))

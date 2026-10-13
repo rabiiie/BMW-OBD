@@ -5,6 +5,7 @@ import com.rabie.bmwobd.advice.Moment
 import com.rabie.bmwobd.advice.Severity
 import com.rabie.bmwobd.advice.TripFinding
 import com.rabie.bmwobd.obd.Pids
+import com.rabie.bmwobd.trips.TripCsv
 import com.rabie.bmwobd.trips.TripData
 import com.rabie.bmwobd.trips.TripStats
 import java.util.Locale
@@ -134,8 +135,21 @@ object Health {
             data.last(Pids.bmw(FILTER_KM))?.let { "Km con este filtro de partículas, según el coche" to thousands(it) + " km" },
             data.last(Pids.bmw(FILTER_KM_LEFT))?.let { "Km que el coche le calcula todavía al filtro" to thousands(it) + " km" },
             data.last(Pids.bmw(FILTER_REGEN_HOURS))?.let { "Horas regenerando en toda su vida, según el coche" to thousands(it) + " h" },
-            // Vale por su tendencia de un trayecto a otro: si crece, la cadena se esta estirando.
-            data.last(Pids.bmw(Pids.BMW_TIMING_OFFSET_ADDRESS))?.let { "Desfase de la distribución (árbol de levas respecto al cigüeñal)" to n(it, 2) + "°" },
+        )
+    }
+
+    /**
+     * El desfase de la distribucion del trayecto y lo que se sabe para leerlo. El limite de BMW no
+     * esta confirmado: lo unico firme es que, mientras no salte su averia, la centralita lo da por bueno.
+     */
+    fun timingFacts(data: TripData): List<Pair<String, String>> {
+        val timing = TripCsv.timing(data) ?: return emptyList()
+        val value = n(timing.median, 2) + "°" + if (timing.steady) "" else " (entre ${n(timing.min, 2)}° y ${n(timing.max, 2)}°)"
+        return listOfNotNull(
+            "Desfase del árbol de levas respecto al cigüeñal" to value,
+            timing.startCoolant?.let { "Motor al arrancar" to n(it) + " °C" },
+            "Cómo leerlo" to "vale por su tendencia de un arranque a otro, en frío con frío y en caliente con caliente",
+            "Referencia sin confirmar" to "se habla de 3,5 a 5° para que salte la avería 42B5; mientras no salte, la centralita lo da por bueno",
         )
     }
 

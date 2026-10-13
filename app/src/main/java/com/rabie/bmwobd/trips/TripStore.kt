@@ -13,6 +13,7 @@ data class TripEntry(
     val simulated: Boolean,
     val vehicleKey: String?,
     val stats: TripStats,
+    val timing: TimingOffset? = null,
 )
 
 /** Los trayectos grabados: un CSV por trayecto en la carpeta privada de la app. */
@@ -30,12 +31,14 @@ class TripStore(private val dir: File, private val isDiesel: (vehicleKey: String
         val files = dir.listFiles { file -> file.name.endsWith(EXTENSION) } ?: return emptyList()
         return files.map { file ->
             val vehicleKey = file.name.removeSuffix(EXTENSION).split('_').getOrNull(3)
+            val data = load(file)
             TripEntry(
                 file = file,
                 startMillis = startOf(file),
                 simulated = file.name.startsWith(SIMULATED_PREFIX),
                 vehicleKey = vehicleKey,
-                stats = TripCsv.stats(load(file), isDiesel(vehicleKey)),
+                stats = TripCsv.stats(data, isDiesel(vehicleKey)),
+                timing = TripCsv.timing(data),
             )
         }.sortedByDescending { it.startMillis }
     }

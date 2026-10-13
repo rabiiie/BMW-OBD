@@ -4,6 +4,7 @@ import com.rabie.bmwobd.obd.Pids
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertFalse
 import org.junit.Test
 
 class TripCsvTest {
@@ -80,5 +81,35 @@ class TripCsvTest {
     fun `parado no hay consumo a los cien`() {
         val values = mapOf(Pids.SPEED to 0.0, Pids.FUEL_RATE to 0.7)
         assertNull(TripCsv.stats(TripCsv.parse(lines(600, values))).litersPer100Km)
+    }
+
+    @Test
+    fun `el desfase de la distribucion es la mediana y una lectura mala no cuenta`() {
+        val timing = Pids.bmw(Pids.BMW_TIMING_OFFSET_ADDRESS)
+        val columns = listOf(Pids.COOLANT, timing)
+        fun trip(values: List<Double?>) = TripCsv.parse(
+            sequence {
+                yield(TripCsv.header(columns))
+                values.forEachIndexed { i, value ->
+                    yield(TripCsv.row(i * 1000L, columns, listOfNotNull(Pids.COOLANT to 24.0 + i, value?.let { timing to it }).toMap()))
+                }
+            },
+        )
+        // Una sola lectura al conectar, como en los trayectos del 12 de octubre.
+        val once = TripCsv.timing(trip(List(20) { -0.08 }))!!
+        assertEquals(-0.08, once.median, 0.001)
+        assertTrue(once.steady)
+        assertEquals(24.0, once.startCoolant!!, 0.001)
+
+        // Muchas lecturas con una cruzada de otra medida (-94) y otra algo distinta.
+        val many = TripCsv.timing(trip(listOf(null, -0.13, -0.13, -0.13, -94.43, -0.13, -0.20, -0.13, -0.13)))!!
+        assertEquals(-0.13, many.median, 0.001)
+        assertEquals(-0.20, many.min, 0.001)
+        assertEquals(-0.13, many.max, 0.001)
+        assertFalse(many.steady)
+
+        // Sin esa medida, o solo con valores imposibles, no hay desfase que contar.
+        assertNull(TripCsv.timing(trip(List(5) { null })))
+        assertNull(TripCsv.timing(trip(listOf(-94.0, 80.0))))
     }
 }

@@ -34,7 +34,31 @@ data class TripStats(
  * Formato del fichero de un trayecto: cabecera `t_ms,0C,0D,...` con los PIDs en hexadecimal y
  * una fila por vuelta de lectura con los milisegundos desde el inicio y el ultimo valor de cada PID.
  */
+/**
+ * El desfase de la distribucion en un trayecto: la mediana de lo leido, entre que valores se
+ * movio y a que temperatura arranco el motor, para comparar frio con frio y caliente con caliente.
+ */
+data class TimingOffset(val median: Double, val min: Double, val max: Double, val startCoolant: Double?) {
+    /** Si todas las lecturas del trayecto dieron lo mismo, a la centesima. */
+    val steady: Boolean get() = max - min < 0.01
+}
+
 object TripCsv {
+
+    /**
+     * El desfase de la distribucion de un trayecto, o null si no se leyo. La mediana hace que una
+     * lectura suelta equivocada no cuente, y lo que no puede ser un desfase se descarta antes.
+     */
+    fun timing(data: TripData): TimingOffset? {
+        val read = data.series[TIMING_OFFSET]?.filter { !it.isNaN() && it > -MAX_TIMING_OFFSET && it < MAX_TIMING_OFFSET }.orEmpty()
+        if (read.isEmpty()) return null
+        val sorted = read.sorted()
+        val coolant = data.series[Pids.COOLANT]?.firstOrNull { !it.isNaN() }
+        return TimingOffset(sorted[sorted.size / 2], sorted.first(), sorted.last(), coolant)
+    }
+
+    private val TIMING_OFFSET = Pids.bmw(Pids.BMW_TIMING_OFFSET_ADDRESS)
+    private const val MAX_TIMING_OFFSET = 30.0
 
     private const val TIME_COLUMN = "t_ms"
     private const val MAX_GAP_MS = 5_000L
