@@ -16,7 +16,7 @@ enum class Case(val title: String, val watch: List<Int>, val also: List<Int>) {
     FILTER(
         "Filtro de partículas",
         watch = listOf(0x0404, 0x03EA, 0x03ED, 0x03F1, 0x0424, 0x0420, 0x041E, 0x0434).map(Pids::bmw),
-        also = listOf(0x0405, 0x0408, 0x03EC, 0x05AA, 0x03DE, 0x03E0).map(Pids::bmw),
+        also = listOf(0x0405, 0x0408, 0x03EC, 0x03EE, 0x05AA, 0x03DE, 0x03E0).map(Pids::bmw),
     ),
     INJECTORS(
         "Inyectores",

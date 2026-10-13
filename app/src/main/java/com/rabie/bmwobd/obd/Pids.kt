@@ -314,6 +314,11 @@ object Pids {
         bmwDef(0x09C4, "Ventilador", "%", 0, PidGroup.ENGINE) { it * 0.001526 },
         bmwDef(0x0839, "Control de crucero (1 = puesto)", "", 0, PidGroup.ENGINE, size = 1) { it.toDouble() },
         bmwDef(0x07C6, "Aire acondicionado (1 = puesto)", "", 0, PidGroup.ENGINE, size = 1) { it.toDouble() },
+        // Lo que el arbol de levas va desfasado del cigueñal, en grados de cigueñal. Crece si la
+        // cadena se estira. Cambia de un arranque a otro, asi que se lee durante todo el trayecto.
+        bmwDef(BMW_TIMING_OFFSET_ADDRESS, "Distribución: desfase del árbol de levas", "°", 2, PidGroup.ENGINE) {
+            it * 0.003052 - 100.0
+        },
 
         // Lo que no cambia durante un trayecto se lee una vez al conectar.
         bmwDef(BMW_ODOMETER_ADDRESS, "Cuentakilómetros", "km", 0, PidGroup.COUNTERS, Tier.ONCE, size = 4) { it.toDouble() },
@@ -333,10 +338,6 @@ object Pids {
         bmwDef(0x042E, "Escape antes del filtro (sensor)", "°C", 0, PidGroup.EXHAUST, Tier.ONCE) { it * 0.031281 - 50.0 },
         bmwDef(0x03DF, "Filtro: horas regenerando en total", "h", 0, PidGroup.EXHAUST, Tier.ONCE) { it * 23.002976 / 3600.0 },
         bmwDef(0x0BA4, "Filtro: km que le calcula el coche", "km", 0, PidGroup.EXHAUST, Tier.ONCE) { it * 10.0 },
-        // Lo que el arbol de levas va desfasado del cigueñal, en grados de cigueñal. Crece si la cadena se estira.
-        bmwDef(BMW_TIMING_OFFSET_ADDRESS, "Distribución: desfase del árbol de levas", "°", 2, PidGroup.ENGINE, Tier.ONCE) {
-            it * 0.003052 - 100.0
-        },
     ) + BMW_REGENERATION_ADDRESSES.mapIndexed { index, address ->
         bmwDef(address, "Filtro: km en la regeneración ${index + 1} hacia atrás", "km", 0, PidGroup.EXHAUST, Tier.ONCE, size = 4) {
             it / 1000.0
@@ -358,6 +359,7 @@ object Pids {
         bmwDef(0x03EC, "Filtro: código de interrupción", "", 0, PidGroup.EXHAUST) { it.toDouble() },
         bmwDef(0x05AA, "Motor: modo de funcionamiento (código)", "", 0, PidGroup.EXHAUST, size = 4) { it.toDouble() },
         bmwDef(0x03DE, "Filtro: velocidad media desde la regeneración", "km/h", 0, PidGroup.EXHAUST) { it * 0.003815 },
+        bmwDef(0x03EE, "Filtro: regeneración bloqueada (0 = no)", "", 0, PidGroup.EXHAUST, size = 1) { it.toDouble() },
     ) + BMW_CYLINDER_CORRECTIONS.mapIndexed { cylinder, id ->
         PidDef(id, "Inyector ${cylinder + 1}: corrección de cantidad", "mg", 2, 2, group = PidGroup.FUEL) {
             word(it) * 0.003052 - 100.0
