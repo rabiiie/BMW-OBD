@@ -47,6 +47,7 @@ import com.rabie.bmwobd.report.ReportSection
 import com.rabie.bmwobd.report.TripReport
 import com.rabie.bmwobd.trips.TripData
 import com.rabie.bmwobd.trips.TripEntry
+import com.rabie.bmwobd.trips.TripHealth
 import com.rabie.bmwobd.trips.TripStats
 import com.rabie.bmwobd.trips.TripStore
 import com.rabie.bmwobd.vehicle.Vehicle
@@ -108,6 +109,8 @@ private fun TripList(
                 if (timed.isNotEmpty()) item(key = "distribucion") { TimingTable(timed) }
                 val worn = trips.filter { !it.simulated && it.wear != null }.take(TIMING_ROWS)
                 if (worn.isNotEmpty()) item(key = "desgaste") { WearTable(worn) }
+                val checked = trips.filter { !it.simulated && it.health != null }.take(TIMING_ROWS)
+                if (checked.isNotEmpty()) item(key = "salud") { HealthTable(checked) }
                 items(trips, key = { it.file.name }) { trip ->
                     val name = remember(trip.vehicleKey) { trip.vehicleKey?.let(vehicles::byKey)?.name }
                     TripRow(trip, name, onOpen)
@@ -182,6 +185,50 @@ private fun WearTable(trips: List<TripEntry>) {
         }
         Text(
             "Raíl, lambda y EGR en %. Enfriador: rendimiento de 0 a 1. Filtro en hPa. Iny.: el mayor tiempo aprendido de un inyector, en µs.",
+            color = Bmw.TextDim,
+            fontSize = 12.sp,
+        )
+    }
+}
+
+/**
+ * Lo que cada trayecto dice del calentamiento, el arranque y el turbo. No hay limites de fabrica:
+ * lo que delata un fallo es que una columna cambie respecto a los trayectos de antes.
+ */
+@Composable
+private fun HealthTable(trips: List<TripEntry>) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(Bmw.Surface)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Label("Salud por trayecto")
+        @Composable
+        fun cells(date: String, values: List<String>, color: Color) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(date, color = Bmw.TextDim, fontSize = 13.sp, modifier = Modifier.weight(1.1f), maxLines = 1)
+                for (value in values) Text(value, color = color, fontSize = 12.sp, modifier = Modifier.weight(1f), maxLines = 1)
+            }
+        }
+        cells("", listOf("A 80 °C", "Caliente", "Arranq.", "Batería", "Turbo"), Bmw.TextDim)
+        for (trip in trips) {
+            val health = trip.health ?: continue
+            fun text(value: Double?, decimals: Int) = value?.let { "%.${decimals}f".format(it) } ?: "—"
+            cells(
+                formatDay(trip.startMillis),
+                listOf(
+                    text(health.warmUp?.minutesTo80, 1), text(health.warmUp?.steady, 0), text(health.start?.seconds, 1),
+                    text(health.start?.restVolts, 1), text(health.boost?.median, 1),
+                ),
+                Bmw.Text,
+            )
+        }
+        Text(
+            "A 80 °C: minutos desde un arranque en frío. Caliente: °C ya en marcha. Arranque: segundos de parado a ralentí. " +
+                "Batería: V antes de arrancar. Turbo: kPa de más o de menos sobre lo pedido. Con raya, ese trayecto no lo pudo medir.",
             color = Bmw.TextDim,
             fontSize = 12.sp,
         )
@@ -268,6 +315,10 @@ private fun TripDetail(
             val car = remember(trip) { Health.carFacts(trip) }
             if (car.isNotEmpty()) {
                 ReportCard(ReportSection("Ficha del coche", car.map { (label, value) -> ReportLine(label, value) }))
+            }
+            val checks = remember(trip) { TripHealth.of(trip)?.facts().orEmpty() }
+            if (checks.isNotEmpty()) {
+                ReportCard(ReportSection("Salud del trayecto", checks.map { (label, value) -> ReportLine(label, value) }))
             }
             val wear = remember(trip) { Health.wearFacts(trip) }
             if (wear.isNotEmpty()) {
