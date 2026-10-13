@@ -15,7 +15,7 @@ class TripHealthTest {
 
     @Test
     fun `el trayecto del 12 de octubre, calienta en ocho minutos y medio y el turbo da lo pedido`() {
-        val health = TripHealth.of(real("trayecto_real_calentamiento_y_turbo.csv"))!!
+        val health = TripHealth.of(real("trayecto_real_12oct_ida.csv"))!!
 
         val warmUp = health.warmUp!!
         assertEquals(24.0, warmUp.startCoolant, 0.001)
@@ -27,6 +27,25 @@ class TripHealthTest {
         assertEquals(241, boost.samples)
         assertEquals(-3.2, boost.median, 0.05)
         assertEquals(-14.4, boost.low, 0.05)
+
+        val rail = health.rail!!
+        assertEquals(2438, rail.samples)
+        assertEquals(-2.75, rail.median, 0.01)
+
+        val egr = health.egr!!
+        assertEquals(3302, egr.samples)
+        assertEquals(-1.56, egr.median, 0.01)
+
+        val idle = health.idle!!
+        assertEquals(201, idle.samples)
+        assertEquals(841.0, idle.rpm, 0.001)
+        assertEquals(15.0, idle.spread, 0.001)
+
+        assertEquals(13.84, health.charge!!.volts, 0.001)
+        assertEquals(13.78, health.charge!!.low, 0.001)
+
+        assertEquals(14.97, health.filter!!.idlePressure!!, 0.01)
+        assertEquals(114.89, health.filter!!.lastInterval!!, 0.01)
 
         // Se conecto con el motor ya en marcha: no hay arranque que medir.
         assertNull(health.start)
@@ -42,9 +61,15 @@ class TripHealthTest {
         assertEquals(12.16, start.restVolts!!, 0.001)
         assertEquals(43.0, start.coolant!!, 0.001)
 
-        // Dos minutos a ralenti: ni llega a calentarse ni sopla el turbo.
+        // Dos minutos a ralenti con el motor a 43 grados: ni llega a calentarse ni sopla el turbo,
+        // y el ralenti y el filtro solo se miran en caliente.
         assertNull(health.warmUp)
         assertNull(health.boost)
+        assertNull(health.idle)
+        assertNull(health.filter!!.idlePressure)
+        assertEquals(-3.68, health.rail!!.median, 0.01)
+        // La tension de los primeros noventa segundos no cuenta: todavia salia la de parado, 12,16 V.
+        assertTrue(health.charge == null || health.charge!!.low > 14.0)
     }
 
     @Test

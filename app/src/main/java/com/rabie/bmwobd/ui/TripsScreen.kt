@@ -111,6 +111,7 @@ private fun TripList(
                 if (worn.isNotEmpty()) item(key = "desgaste") { WearTable(worn) }
                 val checked = trips.filter { !it.simulated && it.health != null }.take(TIMING_ROWS)
                 if (checked.isNotEmpty()) item(key = "salud") { HealthTable(checked) }
+                if (checked.isNotEmpty()) item(key = "salud2") { RunningTable(checked) }
                 items(trips, key = { it.file.name }) { trip ->
                     val name = remember(trip.vehicleKey) { trip.vehicleKey?.let(vehicles::byKey)?.name }
                     TripRow(trip, name, onOpen)
@@ -229,6 +230,47 @@ private fun HealthTable(trips: List<TripEntry>) {
         Text(
             "A 80 °C: minutos desde un arranque en frío. Caliente: °C ya en marcha. Arranque: segundos de parado a ralentí. " +
                 "Batería: V antes de arrancar. Turbo: kPa de más o de menos sobre lo pedido. Con raya, ese trayecto no lo pudo medir.",
+            color = Bmw.TextDim,
+            fontSize = 12.sp,
+        )
+    }
+}
+
+/** La segunda mitad de la salud por trayecto: inyeccion, EGR, ralenti, carga y filtro. */
+@Composable
+private fun RunningTable(trips: List<TripEntry>) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(Bmw.Surface)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Label("Salud por trayecto: en marcha")
+        @Composable
+        fun cells(date: String, values: List<String>, color: Color) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(date, color = Bmw.TextDim, fontSize = 13.sp, modifier = Modifier.weight(1.1f), maxLines = 1)
+                for (value in values) Text(value, color = color, fontSize = 12.sp, modifier = Modifier.weight(1f), maxLines = 1)
+            }
+        }
+        cells("", listOf("Raíl", "EGR", "Ralentí", "Carga", "Filtro", "Regen."), Bmw.TextDim)
+        for (trip in trips) {
+            val health = trip.health ?: continue
+            fun text(value: Double?, decimals: Int) = value?.let { "%.${decimals}f".format(it) } ?: "—"
+            cells(
+                formatDay(trip.startMillis),
+                listOf(
+                    text(health.rail?.median, 1), text(health.egr?.median, 1), text(health.idle?.spread, 0),
+                    text(health.charge?.volts, 1), text(health.filter?.idlePressure, 0), text(health.filter?.lastInterval, 0),
+                ),
+                Bmw.Text,
+            )
+        }
+        Text(
+            "Raíl: bar de más o de menos sobre lo pedido. EGR: % de más o de menos sobre lo mandado. Ralentí: rpm que baila en caliente. " +
+                "Carga: V en marcha. Filtro: hPa a ralentí en caliente. Regen.: km entre las dos últimas regeneraciones.",
             color = Bmw.TextDim,
             fontSize = 12.sp,
         )
