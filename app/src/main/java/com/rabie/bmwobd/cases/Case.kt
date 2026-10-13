@@ -30,9 +30,17 @@ enum class Case(val title: String, val watch: List<Int>, val also: List<Int>) {
     ),
     COLD_START(
         "Arranque en frío",
-        watch = listOf(0x069A, 0x02DC, 0x0674, 0x0641, 0x1609, 0x160B, 0x012C).map(Pids::bmw),
+        // Un arranque dura un par de segundos y cabe una medida por vuelta: el desfase de la
+        // distribucion va una vuelta si y otra no, y la presion de gasoleo de baja una de cada
+        // cuatro. Lo que cambia despacio, como los calentadores, va con lo lento.
+        watch = listOf(
+            Pids.BMW_TIMING_OFFSET_ADDRESS, 0x02DC, Pids.BMW_TIMING_OFFSET_ADDRESS, 0x0674,
+            Pids.BMW_TIMING_OFFSET_ADDRESS, 0x02DC, Pids.BMW_TIMING_OFFSET_ADDRESS, 0x069A,
+        ).map(Pids::bmw),
         also = Pids.BMW_GLOW_FAULTS.map { it.first } +
-            listOf(0x15FE, 0x15FF, 0x01B1, 0x01B8, 0x01B9, 0x0327, 0x0324, 0x05DF, 0x05DE, 0x0644, 0x0D8E).map(Pids::bmw),
+            listOf(
+                0x1609, 0x160B, 0x012C, 0x15FE, 0x15FF, 0x01B1, 0x01B8, 0x01B9, 0x0327, 0x0324, 0x05DF, 0x05DE, 0x0644, 0x0D8E,
+            ).map(Pids::bmw),
     ),
     DRIVING(
         "Conducción",

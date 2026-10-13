@@ -307,4 +307,17 @@ class CaseTest {
         for (s in 91..180) advice = advisor.update(s * 1000L, cruising + (Pids.BMW_REGEN_REQUEST to 5.0))
         assertEquals("El filtro está regenerando", advice.first { it.id == "regeneration" }.title)
     }
+
+    @Test
+    fun `en el arranque el desfase de la distribucion se lee una vuelta si y otra no`() {
+        val timing = Pids.bmw(Pids.BMW_TIMING_OFFSET_ADDRESS)
+        val lowFuel = Pids.bmw(0x02DC)
+        val turns = Turns(Pids.all.filter { it.pid != Pids.ADAPTER_PID } + Pids.bmwDiesel, Pids.bmwCases)
+        turns.use(Case.COLD_START)
+        val read = (1..16).map { turns.next().flatMap { request -> request.defs.map { it.id } } }
+        assertEquals(8, read.count { timing in it })
+        assertEquals(4, read.count { lowFuel in it })
+        // Y nunca dos vueltas seguidas sin el.
+        assertTrue(read.zipWithNext().all { (a, b) -> timing in a || timing in b })
+    }
 }

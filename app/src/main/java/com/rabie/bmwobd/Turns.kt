@@ -84,7 +84,10 @@ internal class Turns(defs: List<PidDef>, extras: List<PidDef>, background: Colle
      */
     fun use(wanted: Case, focus: Collection<Int> = emptyList()): Set<Int> {
         case = wanted
-        watch = (wanted.watch + focus).mapNotNull { requestOf[it] }.distinct() - fast.toSet()
+        // Lo del caso va en su orden y con sus repeticiones: una medida puesta varias veces se
+        // lee mas seguido. Lo que enseña la pantalla se añade detras, una vez y sin repetir.
+        val ofCase = wanted.watch.mapNotNull { requestOf[it] }
+        watch = (ofCase + (focus.mapNotNull { requestOf[it] }.distinct() - ofCase.toSet())) - fast.toSet()
         val also = (always + wanted.also).mapNotNull { requestOf[it] }.distinct()
         mediumNow = medium - watch.toSet()
         slowNow = (slow - watch.toSet()).let { kept -> kept + (also - kept.toSet() - watch.toSet()) }
