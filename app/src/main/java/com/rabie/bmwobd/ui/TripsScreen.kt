@@ -46,6 +46,7 @@ import com.rabie.bmwobd.report.ReportLine
 import com.rabie.bmwobd.report.ReportSection
 import com.rabie.bmwobd.report.TripReport
 import com.rabie.bmwobd.trips.TripData
+import com.rabie.bmwobd.trips.TimingOffset
 import com.rabie.bmwobd.trips.TripEntry
 import com.rabie.bmwobd.trips.TripFuel
 import com.rabie.bmwobd.trips.TripHealth
@@ -154,6 +155,20 @@ private fun TimingTable(trips: List<TripEntry>) {
             }
         }
         Text("Con asterisco, el valor se movió durante el trayecto: se enseña la mediana.", color = Bmw.TextDim, fontSize = 12.sp)
+        val farthest = trips.mapNotNull { it.timing?.farthest }.maxByOrNull { kotlin.math.abs(it) }
+        if (farthest != null) {
+            val far = kotlin.math.abs(farthest) >= TimingOffset.ATTENTION_DEGREES
+            Text(
+                "Lo más lejos de cero en estos arranques: " + "%.2f°".format(farthest) + ". " +
+                    if (far) {
+                        "Pasa de 2°: conviene que un mecánico escuche la cadena con el motor frío."
+                    } else {
+                        "Por debajo de 2°, que es donde conviene empezar a prestar atención. No es un límite de BMW."
+                    },
+                color = if (far) Bmw.Amber else Bmw.TextDim,
+                fontSize = 12.sp,
+            )
+        }
     }
 }
 

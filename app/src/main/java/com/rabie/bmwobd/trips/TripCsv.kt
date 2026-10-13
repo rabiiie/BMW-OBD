@@ -41,6 +41,18 @@ data class TripStats(
 data class TimingOffset(val median: Double, val min: Double, val max: Double, val startCoolant: Double?) {
     /** Si todas las lecturas del trayecto dieron lo mismo, a la centesima. */
     val steady: Boolean get() = max - min < 0.01
+
+    /** Lo mas lejos de cero que llego en el trayecto, con su signo. */
+    val farthest: Double get() = if (kotlin.math.abs(min) >= kotlin.math.abs(max)) min else max
+
+    companion object {
+        /**
+         * A partir de aqui conviene prestar atencion. No es un limite de BMW: es la cifra que
+         * circula entre quien repara este motor, sin confirmar. La lectura cambia de un arranque a
+         * otro mas de un grado, asi que una sola no dice si la cadena esta estirada.
+         */
+        const val ATTENTION_DEGREES = 2.0
+    }
 }
 
 /**

@@ -105,6 +105,7 @@ class TripCsvTest {
         val many = TripCsv.timing(trip(listOf(null, -0.13, -0.13, -0.13, -94.43, -0.13, -0.20, -0.13, -0.13)))!!
         assertEquals(-0.13, many.median, 0.001)
         assertEquals(-0.20, many.min, 0.001)
+        assertEquals(-0.20, many.farthest, 0.001)
         assertEquals(-0.13, many.max, 0.001)
         assertFalse(many.steady)
 

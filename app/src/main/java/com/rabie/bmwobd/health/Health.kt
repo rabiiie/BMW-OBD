@@ -176,7 +176,9 @@ object Health {
             "Desfase del árbol de levas respecto al cigüeñal" to value,
             timing.startCoolant?.let { "Motor al arrancar" to n(it) + " °C" },
             "Cómo leerlo" to "vale por su tendencia de un arranque a otro, en frío con frío y en caliente con caliente",
-            "Referencia sin confirmar" to "se habla de 3,5 a 5° para que salte la avería 42B5; mientras no salte, la centralita lo da por bueno",
+            "Referencias sin confirmar" to "se habla de 2° como señal para prestar atención, y de 3,5 a 5° para que salte la avería 42B5",
+            "Qué no dice" to "no mide el estiramiento de la cadena: cambia más de un grado de un arranque a otro. " +
+                "Sirve para estar atento si los arranques se van alejando de cero; quien decide es un mecánico escuchándola en frío",
         )
     }
 
