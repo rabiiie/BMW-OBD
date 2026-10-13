@@ -173,6 +173,16 @@ class ObdController(
                     } finally {
                         logBuffer.unpin()
                     }
+                    // A un fichero: el registro vive en memoria y se pierde si la app se cierra.
+                    val answered = logBuffer.pinned()
+                    withContext(Dispatchers.IO) {
+                        runCatching {
+                            val file = java.io.File(context.filesDir, PROBE_FILE)
+                            file.parentFile?.mkdirs()
+                            val stamp = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.US).format(java.util.Date())
+                            file.writeText((listOf("## Prueba guardada de la conexión del $stamp") + answered).joinToString("\n"))
+                        }
+                    }
                 }
                 if (blind.isNotEmpty()) appendLog("## Aceite: el sensor de nivel tiene una avería presente; no se enseñan su nivel ni su temperatura")
                 val defs = (standard + own).filterNot { it.id in blind }
@@ -591,16 +601,24 @@ class ObdController(
         _log.value = logBuffer.add(line)
     }
 
-    private companion object {
-        const val IDLE_DELAY_MS = 200L
-        const val SCAN_PER_TURN = 3
-        const val SCAN_SLOW_QUERY_NANOS = 700_000_000L
-        const val BEEP_MS = 600
-        const val SILENCE_LIMIT_NANOS = 10_000_000_000L
-        const val RATE_WINDOW_NANOS = 2_000_000_000L
-        const val MAX_SUM_GAP_NANOS = 5_000_000_000L
-        const val NANOS_PER_HOUR = 3.6e12
-        const val MIN_AVERAGE_KM = 2.0
-        const val PROFILE_ATTEMPTS = 2
+    companion object {
+        /** Donde queda la ultima respuesta a la prueba de la memoria de averias. */
+        const val PROBE_FILE = "logs/prueba_averias.txt"
+        private const val PROBE_END = "## Prueba: fin"
+
+        /** [lines] con la ultima prueba guardada detras, si no la llevan ya. */
+        fun withSavedProbe(lines: List<String>, saved: List<String>): List<String> =
+            if (saved.isEmpty() || lines.any { it.startsWith(PROBE_END) }) lines else lines + saved
+
+        private const val IDLE_DELAY_MS = 200L
+        private const val SCAN_PER_TURN = 3
+        private const val SCAN_SLOW_QUERY_NANOS = 700_000_000L
+        private const val BEEP_MS = 600
+        private const val SILENCE_LIMIT_NANOS = 10_000_000_000L
+        private const val RATE_WINDOW_NANOS = 2_000_000_000L
+        private const val MAX_SUM_GAP_NANOS = 5_000_000_000L
+        private const val NANOS_PER_HOUR = 3.6e12
+        private const val MIN_AVERAGE_KM = 2.0
+        private const val PROFILE_ATTEMPTS = 2
     }
 }

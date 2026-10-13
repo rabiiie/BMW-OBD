@@ -65,7 +65,6 @@ fun LogScreen(
             }
             OutlinedButton(
                 onClick = { shareLog(context, lines) },
-                enabled = lines.isNotEmpty(),
             ) { Text("Compartir") }
         }
         ScanRow(scan, canScan, onResetScan, scanFile)

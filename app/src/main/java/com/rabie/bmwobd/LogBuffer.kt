@@ -40,6 +40,10 @@ class LogBuffer(private val headLines: Int = HEAD_LINES, private val tailLines: 
         pinning = false
     }
 
+    /** El ultimo bloque fijado. */
+    @Synchronized
+    fun pinned(): List<String> = pinned.toList()
+
     @Synchronized
     fun clear() {
         head.clear()

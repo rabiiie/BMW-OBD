@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.core.content.FileProvider
+import com.rabie.bmwobd.ObdController
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -53,7 +54,8 @@ fun shareFile(context: Context, file: File, mimeType: String, displayName: Strin
 fun shareLog(context: Context, lines: List<String>) {
     val dir = File(context.filesDir, "logs").apply { mkdirs() }
     val file = File(dir, "registro.txt")
-    file.writeText(LogExport.withoutVin(lines).joinToString("\n"))
+    val saved = File(context.filesDir, ObdController.PROBE_FILE).takeIf { it.exists() }?.readLines().orEmpty()
+    file.writeText(LogExport.withoutVin(ObdController.withSavedProbe(lines, saved)).joinToString("\n"))
     val stamp = SimpleDateFormat("yyyyMMdd_HHmm", Locale.US).format(Date())
     shareFile(context, file, "text/plain", "registro_bmwobd_$stamp.txt")
 }
