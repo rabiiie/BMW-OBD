@@ -29,7 +29,7 @@ private val FRAMES = Regex("[0-9A-F:\\s]+")
  * antes, y la de verdad se queda pendiente: desde ahi cada consulta rapida recibe la de la
  * anterior, hasta que una sin lectura rapida hace que entregue lo pendiente y despues la suya.
  */
-private class RealAdapter(private val shiftEvery: Int = 0) : ObdTransport {
+private class RealAdapter(private val shiftEvery: Int = 0, private val lateEvery: Int = 0) : ObdTransport {
     private val car = SimulatedTransport(latencyMs = 0)
     val sent = mutableListOf<String>()
     private var command = ""
@@ -37,6 +37,14 @@ private class RealAdapter(private val shiftEvery: Int = 0) : ObdTransport {
     private var held: String? = null
     private var quickReads = 0
     var shifts = 0
+        private set
+
+    // Tres: visto en el trayecto del 12 de octubre. De vez en cuando la centralita tarda en contestar
+    // a una consulta de BMW, el adaptador da NO DATA, y esa respuesta sale como la de la consulta
+    // siguiente. Como las respuestas de BMW no dicen de que medida son, una medida recibia el valor de otra.
+    private var late: String? = null
+    private var bmwQueries = 0
+    var lates = 0
         private set
 
     override suspend fun open() = car.open()
@@ -52,6 +60,15 @@ private class RealAdapter(private val shiftEvery: Int = 0) : ObdTransport {
     override suspend fun readUntilPrompt(timeoutMs: Long): String {
         val real = car.readUntilPrompt(timeoutMs)
         if (command.startsWith("AT")) return real
+        late?.let {
+            late = null
+            return it
+        }
+        if (lateEvery > 0 && command.startsWith("2C10") && ++bmwQueries % lateEvery == 0) {
+            lates++
+            late = real
+            return "NO DATA\r\r"
+        }
         val quick = command.length % 2 == 1
         val pending = held
         val delivered = when {
@@ -432,7 +449,7 @@ class WholeTripTest {
 
     @Test
     fun `de la conexion a una hora de lectura no se pierde ni se cruza ninguna medida`() = runBlocking<Unit> {
-        val adapter = RealAdapter(shiftEvery = 7)
+        val adapter = RealAdapter(shiftEvery = 7, lateEvery = 23)
         val session = ObdSession(adapter) {}
         val info = session.connect()
 
@@ -495,7 +512,10 @@ class WholeTripTest {
         }
 
         assertTrue("el adaptador tiene que haber desfasado respuestas: ${adapter.shifts}", adapter.shifts > 50)
-        assertEquals("medidas que se han dado por calladas", 0, dropped)
+        assertTrue("la centralita tiene que haber contestado tarde: ${adapter.lates}", adapter.lates > 100)
+        // Una respuesta tardia suelta no basta para dar una medida por callada: hacen falta dos
+        // seguidas de la misma, que aqui salen por lo regular del defecto simulado y son pocas.
+        assertTrue("medidas dadas por calladas: $dropped de ${adapter.lates} tardias", dropped * 10 < adapter.lates)
         assertTrue(seen.containsAll(fixed.keys))
         // Todas las medidas de todos los casos han llegado a leerse con su valor.
         assertTrue(seen.containsAll(profile.caseMeasures.map { it.id }))

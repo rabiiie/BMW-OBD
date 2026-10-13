@@ -33,7 +33,14 @@ data class PidDef(
     val pid: Int = id,
     val decode: (IntArray) -> Double?,
 ) {
-    fun decodeOrNull(data: IntArray): Double? = if (data.size >= bytes) decode(data) else null
+    /**
+     * Una medida de BMW tiene que traer justo sus bytes: su respuesta no dice de que medida es, y
+     * una de otro tamaño es la de otra medida que ha llegado cruzada.
+     */
+    fun decodeOrNull(data: IntArray): Double? {
+        val fits = if (Pids.isBmw(pid)) data.size == bytes else data.size >= bytes
+        return if (fits) decode(data) else null
+    }
 }
 
 object Pids {
@@ -68,8 +75,15 @@ object Pids {
     val BMW_SOOT_MEASURED = bmw(0x03EA)
     val BMW_SOOT_MODEL = bmw(0x03ED)
 
-    /** Mayor que cero mientras la centralita pide regenerar el filtro; en el coche marco 5. */
+    /**
+     * Lo que la centralita quiere hacer con el filtro. Visto en el coche: 0 nada, 1 tiene una
+     * regeneracion pendiente y 5 esta regenerando. Con el 1 estuvo veinte minutos sin empezar y
+     * con el 1 se quedo despues de una que no dio por completa.
+     */
     val BMW_REGEN_REQUEST = bmw(0x0404)
+
+    /** A partir de este valor de [BMW_REGEN_REQUEST] la regeneracion esta en marcha. */
+    const val BMW_REGEN_ACTIVE = 2.0
 
     /** Lo que la centralita suma o quita a cada inyector para igualar los cilindros, del 1 al 4. */
     val BMW_CYLINDER_CORRECTIONS = listOf(0x14B4, 0x14B5, 0x14B6, 0x14B7).map(::bmw)

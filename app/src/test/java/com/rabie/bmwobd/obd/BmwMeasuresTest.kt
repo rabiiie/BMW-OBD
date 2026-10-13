@@ -47,6 +47,19 @@ class BmwMeasuresTest {
     }
 
     @Test
+    fun `una respuesta de otro tamaño no vale para una medida de BMW`() {
+        // Trayecto del 12 de octubre: el crucero (un byte) recibio 6172, que era la presion del filtro.
+        val cruise = Pids.byId.getValue(Pids.bmw(0x0839))
+        assertNull(cruise.decodeOrNull(intArrayOf(0x61, 0x72)))
+        assertEquals(1.0, cruise.decodeOrNull(intArrayOf(0x01))!!, 0.0)
+        // Y el aire del intercooler (dos bytes) recibio los cuatro de la distancia desde regenerar.
+        val air = Pids.byId.getValue(Pids.bmw(0x076F))
+        assertNull(air.decodeOrNull(intArrayOf(0x00, 0x01, 0xC2, 0x40)))
+        // Las del OBD normal siguen aceptando respuestas mas largas que su dato.
+        assertEquals(90.0, Pids.byId.getValue(Pids.COOLANT).decodeOrNull(intArrayOf(130, 0, 0))!!, 0.0)
+    }
+
+    @Test
     fun `el desfase de la distribucion sale con lo que contesto el coche`() {
         // Barrido del 11 de octubre: 2C1015E5 contesto 7FD3 en las siete lecturas.
         val def = Pids.byId.getValue(Pids.bmw(Pids.BMW_TIMING_OFFSET_ADDRESS))

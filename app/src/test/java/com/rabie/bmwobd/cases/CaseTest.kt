@@ -257,8 +257,9 @@ class CaseTest {
 
         val after = during + (Pids.BMW_REGEN_REQUEST to 0.0) + (Pids.bmw(0x05AA) to 0x00100001.toDouble())
         assertEquals("No está regenerando.", CaseCards.card(Case.FILTER, after)!!.headline)
-        val waiting = during + (Pids.bmw(0x05AA) to 0x00100001.toDouble())
-        assertEquals("La centralita quiere regenerar y todavía no ha empezado.", CaseCards.card(Case.FILTER, waiting)!!.headline)
+        // Con un 1 la tiene pendiente pero no ha empezado: asi estuvo veinte minutos el 12 de octubre.
+        val waiting = during + (Pids.BMW_REGEN_REQUEST to 1.0)
+        assertEquals("La centralita tiene una regeneración pendiente.", CaseCards.card(Case.FILTER, waiting)!!.headline)
 
         assertEquals(HealthLevel.UNKNOWN, CaseCards.card(Case.FILTER, emptyMap())!!.level)
         assertNull(CaseCards.card(Case.NORMAL, during))

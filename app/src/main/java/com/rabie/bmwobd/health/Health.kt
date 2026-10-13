@@ -35,8 +35,12 @@ data class HealthCard(
     val advice: String? = null,
 )
 
-/** Una regeneracion del filtro vista en un trayecto. [finished] es null si no se puede saber. */
-data class Regeneration(val startMs: Long, val seconds: Long, val finished: Boolean?)
+/**
+ * Una regeneracion del filtro vista en un trayecto. [finished] es null si no se puede saber.
+ * [incomplete] dice que acabo sin que la centralita la diera por buena: no puso a cero la
+ * distancia desde la ultima y se quedo con otra pendiente.
+ */
+data class Regeneration(val startMs: Long, val seconds: Long, val finished: Boolean?, val incomplete: Boolean = false)
 
 object Health {
 
@@ -187,7 +191,9 @@ object Health {
 
         regeneration(data)?.let { regen ->
             val length = "durante unos ${(regen.seconds + 30) / 60} min"
-            lines += when (regen.finished) {
+            lines += if (regen.incomplete) {
+                "El filtro de partículas regeneró $length, pero la centralita no la dio por completa."
+            } else when (regen.finished) {
                 true -> "El filtro de partículas regeneró $length y terminó."
                 false -> "El filtro de partículas estaba regenerando al apagar y no había terminado."
                 null -> "Parece que el filtro de partículas regeneró $length."
@@ -264,24 +270,31 @@ object Health {
         var activeMs = 0L
         var reset = false
         var previousDistance: Double? = null
+        var pendingAfter = false
         for (i in 0 until data.size) {
-            if ((rows.at(Pids.BMW_REGEN_REQUEST, i) ?: 0.0) > 0) {
+            val asked = rows.at(Pids.BMW_REGEN_REQUEST, i) ?: 0.0
+            if (asked >= Pids.BMW_REGEN_ACTIVE) {
                 if (first < 0) first = i
                 last = i
                 activeMs += rows.dt(i)
+                pendingAfter = false
+            } else if (first >= 0 && asked > 0) {
+                pendingAfter = true
             }
             val distance = rows.at(Pids.bmw(FILTER_DISTANCE), i)
             if (first >= 0 && distance != null && previousDistance != null && previousDistance - distance > REGEN_RESET_KM) reset = true
             if (distance != null) previousDistance = distance
         }
         if (first < 0) return null
-        // Que deje de pedirla sin que la distancia vuelva a cero no dice si termino o se corto.
+        val running = last >= data.size - 1
+        // Acabo y sigue con otra pendiente, sin poner a cero la distancia: no la dio por buena.
+        val incomplete = !reset && !running && pendingAfter
         val finished = when {
             reset -> true
-            last >= data.size - 1 -> false
+            running -> false
             else -> null
         }
-        return Regeneration(data.tMs[first], activeMs / 1000, finished)
+        return Regeneration(data.tMs[first], activeMs / 1000, finished, incomplete)
     }
 
     private fun filter(data: TripData): HealthCard {
@@ -312,7 +325,9 @@ object Health {
             },
             distance?.let { "Última regeneración: hace ${n(it, if (it < 10) 1 else 0)} km." },
             regen?.let {
-                when (it.finished) {
+                if (it.incomplete) {
+                    "Regeneró unos ${(it.seconds + 30) / 60} min, pero la centralita no la dio por completa y se quedó con otra pendiente."
+                } else when (it.finished) {
                     true -> "Regeneró en este trayecto, unos ${(it.seconds + 30) / 60} min, y terminó."
                     false -> "Estaba regenerando al apagar el motor."
                     null -> "Parece que regeneró en este trayecto, unos ${(it.seconds + 30) / 60} min."
@@ -348,6 +363,13 @@ object Health {
                 "Se llena más deprisa de lo que calcula la centralita.",
                 facts + "Durante el trayecto la presión veía ${n(medianGap)} g más de hollín que el cálculo.",
                 ashAdvice,
+            )
+            regen?.incomplete == true -> HealthCard(
+                HealthSystem.FILTER, HealthLevel.WATCH,
+                "Una regeneración no se dio por completa.",
+                facts,
+                "La centralita volverá a intentarlo pronto. Si se repite trayecto tras trayecto, el filtro no se está " +
+                    "limpiando: que lean en el taller la masa de ceniza y el sensor de presión del filtro.",
             )
             regen?.finished == false -> HealthCard(
                 HealthSystem.FILTER, HealthLevel.WATCH,

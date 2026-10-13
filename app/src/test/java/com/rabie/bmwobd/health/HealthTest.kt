@@ -142,6 +142,35 @@ class HealthTest {
     }
 
     @Test
+    fun `en el trayecto del 12 de octubre regenero once minutos y la centralita no lo dio por bueno`() {
+        // Grabado en el coche. La peticion paso a 1 en el minuto 11, a 5 en el 20 y volvio a 1 en
+        // el 31; la distancia desde la ultima regeneracion no volvio a cero.
+        val data = real("trayecto_real_regeneracion_incompleta.csv")
+        val regen = Health.regeneration(data)!!
+        assertTrue("empieza en el minuto ${regen.startMs / 60_000}", regen.startMs / 60_000 in 19..20)
+        assertTrue("dura ${regen.seconds / 60} min", regen.seconds in 10 * 60L..13 * 60L)
+        assertTrue(regen.incomplete)
+        assertNull(regen.finished)
+
+        val card = Health.cards(data, emptyList()).of(HealthSystem.FILTER)
+        assertEquals(HealthLevel.WATCH, card.level)
+        assertTrue(card.facts.any { it.startsWith("Regeneró unos 1") && it.contains("no la dio por completa") })
+
+        // En directo no dice que regenera mientras solo la tiene pendiente.
+        val advisor = Advisor()
+        val seen = HashMap<Long, Boolean>()
+        for (i in 0 until data.size) {
+            val values = data.series.mapNotNull { (id, series) -> series[i].takeIf { !it.isNaN() }?.let { id to it } }.toMap()
+            val active = advisor.update(data.tMs[i], values, bmw).any { it.id == "regeneration" }
+            seen[data.tMs[i] / 60_000] = active
+        }
+        assertEquals(false, seen[15])
+        assertEquals(true, seen[25])
+        assertEquals(false, seen[40])
+        assertEquals(false, seen[65])
+    }
+
+    @Test
     fun `apagar a media regeneracion se dice`() {
         val data = trip(600) { s ->
             val regenerating = s >= 300

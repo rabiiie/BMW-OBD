@@ -55,7 +55,6 @@ object CaseCards {
     private val FILTER_RESISTANCE = Pids.bmw(0x03F1)
     private val BEFORE_CATALYST = Pids.bmw(0x041E)
     private val BEFORE_FILTER = Pids.bmw(0x0434)
-    private val ENGINE_MODE = Pids.bmw(0x05AA)
     private val GENERAL_CORRECTION = Pids.bmw(0x14D3)
     private val BOOST_ASKED = Pids.bmw(0x01F4)
     private val BOOST_DEVIATION = Pids.bmw(0x01F9)
@@ -97,9 +96,6 @@ object CaseCards {
     private const val BOOSTING_OVER_AMBIENT_KPA = 20.0
     private const val CORRECTION_WARN = 2.0
     private const val CORRECTION_BAD = 4.0
-
-    // Lo que marcaba el modo del motor en el coche fuera de una regeneracion. Regenerando marco 0x02010002.
-    private const val MODE_NORMAL = 0x00100001.toDouble()
 
     fun card(case: Case, values: Map<Int, Double>): HealthCard? = when (case) {
         Case.NORMAL -> null
@@ -324,20 +320,19 @@ object CaseCards {
                     (values[FILTER_RESISTANCE]?.let { "; resistencia ${n(it, 1)}." } ?: ".")
             },
         )
-        val waiting = values[ENGINE_MODE] == MODE_NORMAL
         return when {
             asked == null -> HealthCard(HealthSystem.FILTER, HealthLevel.UNKNOWN, "Esperando los datos del filtro.", facts)
-            asked > 0 && waiting -> HealthCard(
-                HealthSystem.FILTER, HealthLevel.WATCH,
-                "La centralita quiere regenerar y todavía no ha empezado.",
-                facts,
-                "Ayuda circular unos minutos seguidos por carretera, sin parar el motor.",
-            )
-            asked > 0 -> HealthCard(
+            asked >= Pids.BMW_REGEN_ACTIVE -> HealthCard(
                 HealthSystem.FILTER, HealthLevel.WATCH,
                 "Está regenerando.",
                 facts,
                 "Si puedes, no apagues el motor hasta que termine. Al acabar, la distancia desde la última regeneración vuelve a cero.",
+            )
+            asked > 0 -> HealthCard(
+                HealthSystem.FILTER, HealthLevel.WATCH,
+                "La centralita tiene una regeneración pendiente.",
+                facts,
+                "La hará cuando lleves unos minutos seguidos por carretera, sin parar el motor.",
             )
             else -> HealthCard(HealthSystem.FILTER, HealthLevel.OK, "No está regenerando.", facts)
         }

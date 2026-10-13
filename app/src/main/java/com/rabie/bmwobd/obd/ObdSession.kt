@@ -115,7 +115,9 @@ class ObdSession(
         if (!bmwAnswers()) return emptyList()
         val found = mutableListOf<PidDef>()
         for (def in candidates) {
-            val value = readFirst(def.pid)?.let(def::decodeOrNull) ?: continue
+            // Una respuesta que llega tarde no es una medida que no exista: se pregunta otra vez
+            // antes de dejarla fuera de todo el trayecto.
+            val value = (readFirst(def.pid) ?: readFirst(def.pid))?.let(def::decodeOrNull) ?: continue
             log("## BMW: %s = %.2f %s".format(java.util.Locale.US, def.name, value, def.unit))
             found += def
         }
@@ -130,7 +132,7 @@ class ObdSession(
     suspend fun readBmw(defs: List<PidDef>): Map<Int, Double>? {
         attempt(BMW_IDENT)
         if (!bmwAnswers()) return null
-        return defs.mapNotNull { def -> readFirst(def.pid)?.let(def::decodeOrNull)?.let { def.id to it } }.toMap()
+        return defs.mapNotNull { def -> (readFirst(def.pid) ?: readFirst(def.pid))?.let(def::decodeOrNull)?.let { def.id to it } }.toMap()
     }
 
     /**
@@ -154,6 +156,10 @@ class ObdSession(
         return false
     }
 
+    // Una consulta de BMW se quedo sin respuesta y puede llegar tarde.
+    private var bmwLate = false
+    private var lateFlushes = 0
+
     private suspend fun applyWait() {
         if (fixedWait) for (command in FIXED_WAIT) attempt(command)
     }
@@ -167,14 +173,39 @@ class ObdSession(
 
     /** Envia la consulta de una medida. Devuelve null si el adaptador no contesta a tiempo. */
     private suspend fun request(pid: Int, quickly: Boolean): String? {
+        val own = Pids.isBmw(pid)
+        if (own) flushLate()
         val response = try {
             elm.send(queryOf(pid) + if (quickly) QUICK_SUFFIX else "", READ_TIMEOUT_MS)
         } catch (e: SocketTimeoutException) {
+            if (own) bmwLate = true
             if (++timeouts > MAX_TIMEOUTS) throw IOException("El adaptador ha dejado de responder.")
             return null
         }
         timeouts = 0
+        if (own && dataOf(response, pid) == null) bmwLate = true
         return response
+    }
+
+    /**
+     * Las respuestas de BMW no dicen de que medida son. Si la centralita tarda y el adaptador da
+     * la consulta por perdida, esa respuesta sale despues como si fuera la de la consulta
+     * siguiente: una medida recibia el valor de otra (visto en el coche el 12 de octubre). Por eso,
+     * tras una consulta de BMW sin respuesta, antes de la siguiente se pide algo por el OBD normal
+     * sin lectura rapida: el adaptador entrega ahi lo que tuviera atrasado y queda limpio.
+     */
+    private suspend fun flushLate() {
+        if (!bmwLate) return
+        bmwLate = false
+        lateFlushes++
+        if (lateFlushes <= LOGGED_FLUSHES || lateFlushes % FLUSH_LOG_EVERY == 0) {
+            log("## BMW: una consulta quedó sin respuesta; se vacía el adaptador antes de la siguiente ($lateFlushes veces)")
+        }
+        try {
+            elm.send(FLUSH_QUERY, READ_TIMEOUT_MS, quiet = true)
+        } catch (e: SocketTimeoutException) {
+            // Si tampoco contesta a esto, la lectura normal notara el silencio.
+        }
     }
 
     /**
@@ -225,8 +256,13 @@ class ObdSession(
         // cuatro bytes, este adaptador manda la direccion sin su ultimo byte y la centralita contesta
         // por otra medida: visto en el coche, todo un bloque de 256 direcciones daba el mismo valor.
         // Si traia pendiente la respuesta de una consulta anterior, la de esta es la ultima.
-        val response = scanSend(query) ?: return null
-        return ObdParser.payloads(response, answerPrefix).lastOrNull()
+        val own = query.startsWith(BMW_QUERY)
+        if (own) flushLate()
+        val response = scanSend(query)
+        val payload = response?.let { ObdParser.payloads(it, answerPrefix).lastOrNull() }
+        // Una direccion que no existe contesta sin dato, y eso es una respuesta: solo cuenta el silencio.
+        if (own && payload == null) bmwLate = true
+        return payload
     }
 
     /**
@@ -395,6 +431,9 @@ class ObdSession(
         // La primera consulta incluye la busqueda de protocolo del adaptador, que tarda varios segundos.
         const val FIRST_QUERY_TIMEOUT_MS = 15_000L
         const val READ_TIMEOUT_MS = 3_000L
+        const val FLUSH_QUERY = "010C"
+        const val LOGGED_FLUSHES = 5
+        const val FLUSH_LOG_EVERY = 50
         const val LAST_SUPPORT_BLOCK = 0xC0
         const val MAX_TIMEOUTS = 3
         const val LAST_MONITOR_BLOCK = 0xE0
