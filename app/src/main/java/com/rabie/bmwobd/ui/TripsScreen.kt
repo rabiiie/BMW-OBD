@@ -358,6 +358,10 @@ private fun TripDetail(
             if (car.isNotEmpty()) {
                 ReportCard(ReportSection("Ficha del coche", car.map { (label, value) -> ReportLine(label, value) }))
             }
+            val regens = remember(trip) { Health.regenerationFacts(trip) }
+            if (regens.isNotEmpty()) {
+                ReportCard(ReportSection("Regeneraciones del filtro", regens.map { (label, value) -> ReportLine(label, value) }))
+            }
             val checks = remember(trip) { TripHealth.of(trip)?.facts().orEmpty() }
             if (checks.isNotEmpty()) {
                 ReportCard(ReportSection("Salud del trayecto", checks.map { (label, value) -> ReportLine(label, value) }))

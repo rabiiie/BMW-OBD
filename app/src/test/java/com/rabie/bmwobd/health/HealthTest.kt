@@ -171,6 +171,31 @@ class HealthTest {
     }
 
     @Test
+    fun `las regeneraciones del 12 de octubre, una que no conto a la ida y una pendiente toda la vuelta`() {
+        val out = Health.regenerations(real("trayecto_real_regeneracion_incompleta.csv"))!!
+        val episode = out.episodes.single()
+        assertEquals(19, episode.startMs / 60_000)
+        assertTrue("dura ${episode.seconds} s", episode.seconds in 11 * 60L..13 * 60L)
+        assertTrue("espera ${episode.waitedSeconds} s", episode.waitedSeconds in 8 * 60L..9 * 60L)
+        assertTrue("recorre ${episode.km} km", episode.km!! in 15.0..18.0)
+        assertTrue("escape a ${episode.maxExhaust}", episode.maxExhaust!! in 600.0..640.0)
+        assertEquals(30.4, episode.sootBefore!!, 0.3)
+        assertEquals(6.35, episode.sootAfter!!, 0.3)
+        assertEquals(RegenOutcome.NOT_COUNTED, episode.outcome)
+        assertTrue("pendiente al final ${out.pendingSecondsAtEnd} s", out.pendingSecondsAtEnd in 36 * 60L..38 * 60L)
+
+        val back = Health.regenerations(real("trayecto_real_regeneracion_pendiente.csv"))!!
+        assertTrue(back.episodes.isEmpty())
+        assertTrue("pendiente ${back.pendingSecondsAtEnd} s", back.pendingSecondsAtEnd in 50 * 60L..52 * 60L)
+        assertEquals(
+            listOf("Al acabar el trayecto" to "Llevaba 51 min con una regeneración pendiente sin empezar."),
+            Health.regenerationFacts(real("trayecto_real_regeneracion_pendiente.csv")),
+        )
+        // Una grabacion sin la peticion de la centralita no da tabla.
+        assertNull(Health.regenerations(real("trayecto_real_corto.csv")))
+    }
+
+    @Test
     fun `apagar a media regeneracion se dice`() {
         val data = trip(600) { s ->
             val regenerating = s >= 300

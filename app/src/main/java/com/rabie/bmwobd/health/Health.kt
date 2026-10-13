@@ -43,6 +43,33 @@ data class HealthCard(
  */
 data class Regeneration(val startMs: Long, val seconds: Long, val finished: Boolean?, val incomplete: Boolean = false)
 
+/** Como acabo una regeneracion, segun lo que hizo despues la centralita. */
+enum class RegenOutcome(val text: String) {
+    COMPLETE("La centralita la dio por completa: puso a cero la distancia desde la última."),
+    NOT_COUNTED("La centralita no la dio por completa: no puso a cero la distancia y se quedó con otra pendiente."),
+    CUT_SHORT("El trayecto acabó con la regeneración a medias."),
+    ENDED("Terminó y la centralita no dejó otra pendiente, pero tampoco puso a cero la distancia."),
+}
+
+/**
+ * Una regeneracion del filtro, con lo que paso en ella: cuanto espero pendiente antes de empezar,
+ * cuanto duro, los kilometros que se hicieron mientras, hasta donde subio el escape y el hollin
+ * medido antes y despues.
+ */
+data class RegenEpisode(
+    val startMs: Long,
+    val seconds: Long,
+    val waitedSeconds: Long,
+    val km: Double?,
+    val maxExhaust: Double?,
+    val sootBefore: Double?,
+    val sootAfter: Double?,
+    val outcome: RegenOutcome,
+)
+
+/** Las regeneraciones de un trayecto y, si acabo con una pendiente sin empezar, cuanto llevaba esperando. */
+data class RegenLog(val episodes: List<RegenEpisode>, val pendingSecondsAtEnd: Long)
+
 object Health {
 
     private const val MAX_GAP_MS = 5_000L
@@ -307,6 +334,103 @@ object Health {
      * La regeneracion que anuncia la propia centralita: el rato en que pide regenerar. Termino si
      * la distancia desde la ultima vuelve a cero.
      */
+    /**
+     * Todas las regeneraciones del trayecto, una a una. Solo con la peticion de regeneracion de la
+     * centralita grabada; sin ella no se sabe con certeza cuando empieza y acaba cada una.
+     */
+    fun regenerations(data: TripData): RegenLog? {
+        val asked = data.series[Pids.BMW_REGEN_REQUEST]?.takeIf { series -> series.any { !it.isNaN() } } ?: return null
+        val rows = Rows(data)
+        fun active(i: Int) = asked[i] >= Pids.BMW_REGEN_ACTIVE
+        fun pending(i: Int) = asked[i] > 0 && asked[i] < Pids.BMW_REGEN_ACTIVE
+
+        // Tramos seguidos regenerando; dos separados por poco rato son la misma regeneracion.
+        val spans = ArrayList<IntArray>()
+        for (i in 0 until data.size) {
+            if (!active(i)) continue
+            val last = spans.lastOrNull()
+            if (last != null && data.tMs[i] - data.tMs[last[1]] <= REGEN_PAUSE_MS) last[1] = i else spans += intArrayOf(i, i)
+        }
+        val distanceId = Pids.bmw(FILTER_DISTANCE)
+        val episodes = spans.mapIndexed { index, (first, last) ->
+            val until = spans.getOrNull(index + 1)?.get(0) ?: data.size
+            var activeMs = 0L
+            var km = 0.0
+            var hottest: Double? = null
+            for (i in first..last) {
+                if (active(i)) activeMs += rows.dt(i)
+                km += (rows.at(Pids.SPEED, i) ?: 0.0) * rows.dt(i) / MS_PER_HOUR
+                val exhaust = listOfNotNull(rows.exhaust(i), rows.at(BEFORE_CATALYST, i)).maxOrNull()
+                if (exhaust != null && (hottest == null || exhaust > hottest)) hottest = exhaust
+            }
+            var waitedMs = 0L
+            var before = first - 1
+            while (before >= 0 && (pending(before) || asked[before].isNaN())) {
+                waitedMs += rows.dt(before + 1)
+                before--
+            }
+            var reset = false
+            var previous: Double? = null
+            for (i in first until until) {
+                val distance = rows.at(distanceId, i) ?: continue
+                if (previous != null && previous - distance > REGEN_RESET_KM) reset = true
+                previous = distance
+            }
+            val after = (last + 1 until until).firstOrNull { !asked[it].isNaN() }
+            val outcome = when {
+                reset -> RegenOutcome.COMPLETE
+                after == null -> RegenOutcome.CUT_SHORT
+                pending(after) -> RegenOutcome.NOT_COUNTED
+                else -> RegenOutcome.ENDED
+            }
+            RegenEpisode(
+                startMs = data.tMs[first],
+                seconds = activeMs / 1000,
+                waitedSeconds = waitedMs / 1000,
+                km = km.takeIf { data.series[Pids.SPEED] != null },
+                maxExhaust = hottest,
+                sootBefore = (first downTo 0).firstNotNullOfOrNull { rows.at(Pids.BMW_SOOT_MEASURED, it) },
+                sootAfter = after?.let { rows.at(Pids.BMW_SOOT_MEASURED, it) },
+                outcome = outcome,
+            )
+        }
+        var pendingMs = 0L
+        var i = data.size - 1
+        while (i >= 1 && pending(i)) {
+            pendingMs += rows.dt(i)
+            i--
+        }
+        return RegenLog(episodes, pendingMs / 1000)
+    }
+
+    /** Las regeneraciones del trayecto, ya en texto, para su ficha. */
+    fun regenerationFacts(data: TripData): List<Pair<String, String>> {
+        val log = regenerations(data) ?: return emptyList()
+        val lines = ArrayList<Pair<String, String>>()
+        log.episodes.forEachIndexed { index, episode ->
+            val parts = listOfNotNull(
+                "Duró ${minutes(episode.seconds)} min" + (episode.km?.let { " en ${n(it)} km" } ?: "") +
+                    if (episode.waitedSeconds >= 60) ", después de ${minutes(episode.waitedSeconds)} min pendiente." else ".",
+                episode.maxExhaust?.let { "Escape hasta ${n(it)} °C." },
+                episode.sootBefore?.let { before ->
+                    "Hollín medido: de ${n(before, 1)} g" + (episode.sootAfter?.let { " a ${n(it, 1)} g." } ?: ".")
+                },
+            )
+            lines += "Regeneración ${index + 1}, en el minuto ${episode.startMs / 60_000}" to parts.joinToString(" ")
+            lines += "Resultado de la regeneración ${index + 1}" to episode.outcome.text
+        }
+        if (log.pendingSecondsAtEnd >= 60) {
+            lines += "Al acabar el trayecto" to "Llevaba ${minutes(log.pendingSecondsAtEnd)} min con una regeneración pendiente sin empezar."
+        }
+        if (lines.isEmpty()) lines += "En este trayecto" to "No regeneró ni tenía ninguna pendiente."
+        return lines
+    }
+
+    private fun minutes(seconds: Long) = (seconds + 30) / 60
+
+    private val BEFORE_CATALYST = Pids.bmw(0x041E)
+    private const val MS_PER_HOUR = 3_600_000.0
+
     private fun announced(data: TripData, rows: Rows): Regeneration? {
         var first = -1
         var last = -1
