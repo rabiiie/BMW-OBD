@@ -61,10 +61,12 @@ data class TripHealth(
     /** Segundos pidiendole fuerza con el motor frio; null si arranco ya caliente. */
     val coldPushSeconds: Long? = null,
     val performance: Performance? = null,
+    /** Segundos con el motor ahogado: mucha carga a pocas vueltas, lo mismo que avisa el panel. */
+    val luggingSeconds: Long? = null,
 ) {
 
     private val empty: Boolean
-        get() = listOf(warmUp, start, boost, rail, egr, idle, charge, filter, coldPushSeconds, performance).all { it == null }
+        get() = listOf(warmUp, start, boost, rail, egr, idle, charge, filter, coldPushSeconds, performance, luggingSeconds).all { it == null }
 
     /** Los datos, ya en texto, para la ficha del trayecto. */
     fun facts(): List<Pair<String, String>> = listOfNotNull(
@@ -92,6 +94,10 @@ data class TripHealth(
         coldPushSeconds?.let {
             "Motor frío exigido" to if (it == 0L) "nada: no se le pidió fuerza por debajo de ${n(Limits.COLD_OIL)} °C" else
                 "$it s pidiéndole fuerza o muchas vueltas por debajo de ${n(Limits.COLD_OIL)} °C"
+        },
+        luggingSeconds?.let {
+            "Motor ahogado" to if (it == 0L) "nada" else
+                "$it s con mucha carga por debajo de ${n(Limits.LUGGING_MAX_RPM)} rpm. Castiga la cadena y el volante bimasa: una marcha menos"
         },
         performance?.let {
             "Lo más que dio el motor" to "${n(it.torque)} Nm a ${n(it.torqueRpm)} rpm y ≈ ${n(it.horsepower)} CV a ${n(it.horsepowerRpm)} rpm, " +
@@ -128,6 +134,7 @@ data class TripHealth(
                 filter = filter(data),
                 coldPushSeconds = coldPush(data),
                 performance = performance(data),
+                luggingSeconds = lugging(data),
             )
             return health.takeUnless { it.empty }
         }
@@ -151,6 +158,33 @@ data class TripHealth(
                 if (rpm[i - 1] >= Limits.COLD_MAX_RPM || demanding) pushedMs += (data.tMs[i] - data.tMs[i - 1]).coerceIn(0L, MAX_GAP_MS)
             }
             return if (cold) pushedMs / 1000 else null
+        }
+
+        /** Los ratos de mas de tres segundos con carga alta a pocas vueltas y el coche andando. */
+        private fun lugging(data: TripData): Long? {
+            val rpm = data.series[Pids.RPM] ?: return null
+            val load = data.series[Pids.LOAD] ?: return null
+            val speed = data.series[Pids.SPEED]
+            val egr = data.series[Moment.EGR_COMMANDED]
+            var totalMs = 0L
+            var runMs = 0L
+            fun close() {
+                if (runMs >= Limits.LUGGING_HOLD_MS) totalMs += runMs
+                runMs = 0L
+            }
+            for (i in 1 until data.size) {
+                val turning = rpm[i - 1]
+                val idle = turning < Limits.IDLE_MAX_RPM && (speed == null || speed[i - 1].isNaN() || speed[i - 1] < Limits.IDLE_MAX_SPEED)
+                val demanding = load[i - 1] >= Limits.PULL_MIN_LOAD &&
+                    (egr == null || egr[i - 1].isNaN() || egr[i - 1] < Limits.EGR_MIN_COMMANDED)
+                if (turning >= RUNNING_RPM && turning <= Limits.LUGGING_MAX_RPM && demanding && !idle) {
+                    runMs += (data.tMs[i] - data.tMs[i - 1]).coerceIn(0L, MAX_GAP_MS)
+                } else {
+                    close()
+                }
+            }
+            close()
+            return totalMs / 1000
         }
 
         private fun performance(data: TripData): Performance? {

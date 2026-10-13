@@ -107,6 +107,7 @@ object Limits {
     const val SOOT_GAP_HOLD_MS = 300_000L
 
     const val LUGGING_MAX_RPM = 1300.0
+    const val LUGGING_HOLD_MS = 3_000L
     const val COLD_OIL = 60.0
     const val COLD_MAX_RPM = 3000.0
     const val HOT_STOP_AVG_LOAD = 50.0
@@ -571,11 +572,11 @@ class Advisor {
                         "Puede ser el caudalímetro sucio, la EGR abierta o una fuga.",
                 )
             },
-            Rule("lugging", 3_000) { m ->
+            Rule("lugging", Limits.LUGGING_HOLD_MS) { m ->
                 val rpm = m.rpm ?: return@Rule null
                 if (!m.demanding || rpm > Limits.LUGGING_MAX_RPM || m.idle) return@Rule null
                 Advice(
-                    "lugging", Severity.INFO, "Motor ahogado",
+                    "lugging", Severity.WARN, "Motor ahogado",
                     "Mucha carga a ${n(rpm)} rpm. Reduce una marcha: castiga el volante bimasa y la cadena.",
                 )
             },

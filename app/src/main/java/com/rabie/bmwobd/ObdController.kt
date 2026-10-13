@@ -532,7 +532,8 @@ class ObdController(
                 now / 1_000_000, snapshot[Pids.SPEED], snapshot[Pids.RPM], snapshot[Pids.COOLANT], gear, nextRpm,
                 Moment(snapshot, 0L, null, _state.value.vehicle).demanding,
             )
-            val alerts = advice.filter { it.severity == Severity.ALERT }.map { it.id }.toSet()
+            // Suenan los rojos y, aunque no lo sea, ir con el motor ahogado: se corrige en el momento o no sirve.
+            val alerts = advice.filter { it.severity == Severity.ALERT || it.id in SOUNDING }.map { it.id }.toSet()
             if ((alerts - soundedAlerts).isNotEmpty()) beep()
             soundedAlerts = alerts
             _state.update {
@@ -626,6 +627,7 @@ class ObdController(
         fun withSavedProbe(lines: List<String>, saved: List<String>): List<String> =
             if (saved.isEmpty() || lines.any { it.startsWith(PROBE_END) }) lines else lines + saved
 
+        private val SOUNDING = setOf("lugging")
         private const val IDLE_DELAY_MS = 200L
         private const val SCAN_PER_TURN = 3
         private const val SCAN_SLOW_QUERY_NANOS = 700_000_000L

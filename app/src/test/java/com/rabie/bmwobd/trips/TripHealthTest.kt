@@ -49,6 +49,8 @@ class TripHealthTest {
 
         // Arranco a 24 grados y no se le pidio fuerza hasta pasar de 60.
         assertEquals(0L, health.coldPushSeconds)
+        // Ni se llevo ahogado: ningun rato de tres segundos con carga alta por debajo de 1.300 vueltas.
+        assertEquals(0L, health.luggingSeconds)
         val performance = health.performance!!
         assertEquals(258.08, performance.torque, 0.01)
         assertEquals(111.0, performance.horsepower, 0.5)
