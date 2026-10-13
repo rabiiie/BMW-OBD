@@ -160,6 +160,16 @@ class CaseTest {
         assertEquals("El mando de los calentadores ve un fallo: salida cortada (código 1).", broken.headline)
         assertFalse(broken.facts.any { it.startsWith("Su mando") })
         assertEquals(HealthLevel.UNKNOWN, CaseCards.card(Case.COLD_START, emptyMap())!!.level)
+
+        // Con el gasoleo: lo que dio el coche en marcha el 11 de octubre, 02DC = 0EDA y la bomba a 4,1 A.
+        assertEquals(3.802, Pids.byId.getValue(Pids.bmw(0x02DC)).decodeOrNull(intArrayOf(0x0E, 0xDA))!!, 0.0005)
+        assertEquals(4.1, Pids.byId.getValue(Pids.bmw(0x0327)).decodeOrNull(intArrayOf(41))!!, 0.0001)
+        val fuel = CaseCards.card(
+            Case.COLD_START,
+            glowing + mapOf(Pids.bmw(0x02DC) to 3.80, Pids.bmw(0x0327) to 4.1, Pids.bmw(0x0674) to 914.0, Pids.bmw(0x0641) to 857.0),
+        )!!
+        assertEquals("Gasóleo: 3,80 bar de baja, con la bomba del depósito gastando 4,1 A.", fuel.facts[2])
+        assertEquals("Raíl: 914 bar y pide 857.", fuel.facts[3])
     }
 
     @Test

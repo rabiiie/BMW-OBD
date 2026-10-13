@@ -30,8 +30,9 @@ enum class Case(val title: String, val watch: List<Int>, val also: List<Int>) {
     ),
     COLD_START(
         "Arranque en frío",
-        watch = listOf(0x1609, 0x160B, 0x012C, 0x15FE).map(Pids::bmw),
-        also = Pids.BMW_GLOW_FAULTS.map { it.first } + listOf(0x15FF, 0x01B1, 0x01B8, 0x01B9).map(Pids::bmw),
+        watch = listOf(0x02DC, 0x0674, 0x0641, 0x1609, 0x160B, 0x012C).map(Pids::bmw),
+        also = Pids.BMW_GLOW_FAULTS.map { it.first } +
+            listOf(0x15FE, 0x15FF, 0x01B1, 0x01B8, 0x01B9, 0x0327, 0x0324, 0x05DF, 0x05DE, 0x0644).map(Pids::bmw),
     ),
     DRIVING(
         "Conducción",
@@ -66,6 +67,10 @@ object CaseCards {
     private val EGR_RATE = Pids.bmw(0x07AD)
     private val AFTER_COMPRESSOR = Pids.bmw(0x0C87)
     private val AFTER_INTERCOOLER = Pids.bmw(0x076F)
+    private val FUEL_LOW_PRESSURE = Pids.bmw(0x02DC)
+    private val PUMP_CURRENT = Pids.bmw(0x0327)
+    private val RAIL_REAL = Pids.bmw(0x0674)
+    private val RAIL_ASKED = Pids.bmw(0x0641)
     private val GLOW_POWER = Pids.bmw(0x1609)
     private val GLOW_TEMP = Pids.bmw(0x160B)
     private val BATTERY_VOLTS = Pids.bmw(0x012C)
@@ -198,6 +203,13 @@ object CaseCards {
                 null
             },
             coolant?.let { "Motor a ${n(it)} °C." },
+            // La presion de baja es la que da la bomba del deposito; en marcha, en el coche, estuvo en 3,8 bar.
+            values[FUEL_LOW_PRESSURE]?.let { low ->
+                "Gasóleo: ${n(low, 2)} bar de baja" + (values[PUMP_CURRENT]?.let { ", con la bomba del depósito gastando ${n(it, 1)} A." } ?: ".")
+            },
+            values[RAIL_REAL]?.let { rail ->
+                "Raíl: ${n(rail)} bar" + (values[RAIL_ASKED]?.let { " y pide ${n(it)}." } ?: ".")
+            },
             values[BATTERY_VOLTS]?.let { volts ->
                 "Batería: ${n(volts, 1)} V" + (values[BATTERY_MARGIN]?.let { "; margen para arrancar ${n(it)} (más alto, mejor)." } ?: ".")
             },
