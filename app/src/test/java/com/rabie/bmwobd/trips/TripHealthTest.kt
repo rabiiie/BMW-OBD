@@ -60,6 +60,8 @@ class TripHealthTest {
         assertEquals(1.1, start.seconds, 0.05)
         assertEquals(12.16, start.restVolts!!, 0.001)
         assertEquals(43.0, start.coolant!!, 0.001)
+        // Esa grabacion es de antes de leer el tiempo aparcado.
+        assertNull(start.parkedMinutes)
 
         // Dos minutos a ralenti con el motor a 43 grados: ni llega a calentarse ni sopla el turbo,
         // y el ralenti y el filtro solo se miran en caliente.
@@ -70,6 +72,24 @@ class TripHealthTest {
         assertEquals(-3.68, health.rail!!.median, 0.01)
         // La tension de los primeros noventa segundos no cuenta: todavia salia la de parado, 12,16 V.
         assertTrue(health.charge == null || health.charge!!.low > 14.0)
+    }
+
+    @Test
+    fun `el tiempo aparcado es el que da la centralita tras el arranque`() {
+        val columns = listOf(Pids.RPM, Pids.BMW_PARKED_MINUTES)
+        val data = TripCsv.parse(
+            sequence {
+                yield(TripCsv.header(columns))
+                for (i in 0 until 40) {
+                    // Parado diez segundos con el dato del arranque anterior, y al arrancar el nuevo: 617 min vio el coche.
+                    val running = i >= 10
+                    yield(TripCsv.row(i * 1000L, columns, mapOf(Pids.RPM to if (running) 850.0 else 0.0, Pids.BMW_PARKED_MINUTES to if (running) 2890.0 else 617.0)))
+                }
+            },
+        )
+        val health = TripHealth.of(data)!!
+        assertEquals(2890.0, health.start!!.parkedMinutes!!, 0.001)
+        assertTrue(health.facts().any { it == ("Tiempo parado antes de este arranque" to "2,0 días") })
     }
 
     @Test

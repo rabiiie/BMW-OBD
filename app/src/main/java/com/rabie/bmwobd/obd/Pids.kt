@@ -82,6 +82,9 @@ object Pids {
      */
     val BMW_REGEN_REQUEST = bmw(0x0404)
 
+    /** Los minutos que llevaba el coche parado antes de este arranque, segun la centralita. */
+    val BMW_PARKED_MINUTES = bmw(0x10CE)
+
     /** A partir de este valor de [BMW_REGEN_REQUEST] la regeneracion esta en marcha. */
     const val BMW_REGEN_ACTIVE = 2.0
 
@@ -312,6 +315,8 @@ object Pids {
     }
 
     val bmwDiesel: List<PidDef> = bmwInjectorTimes + listOf(
+        // Se lee siempre: dice cuanto llevaba parado el coche, que es de lo que depende un arranque.
+        bmwDef(0x10CE, "Tiempo aparcado antes de arrancar", "min", 0, PidGroup.ELECTRIC) { it.toDouble() },
         bmwDef(0x0500, "Cantidad inyectada", "mg/emb", 1, PidGroup.FUEL, Tier.MEDIUM) { it * 0.003052 - 100.0 },
         bmwDef(0x01F4, "Presión turbo pedida", "kPa", 0, PidGroup.AIR, Tier.MEDIUM) { it * 0.0091554 },
         bmwDef(0x0641, "Presión raíl pedida", "bar", 0, PidGroup.FUEL, Tier.MEDIUM) { it * 0.045777 },
@@ -436,7 +441,6 @@ object Pids {
         bmwDef(0x0186, "Alternador: carga", "%", 0, PidGroup.ELECTRIC) { it * 0.003052 },
         bmwDef(0x0E43, "Alternador: temperatura", "°C", 0, PidGroup.ELECTRIC) { it * 0.1 },
         bmwDef(0x10D5, "Energía recuperada en retenciones", "Ah", 2, PidGroup.ELECTRIC) { it * 0.018204 },
-        bmwDef(0x10CE, "Tiempo aparcado antes de arrancar", "min", 0, PidGroup.ELECTRIC) { it.toDouble() },
         bmwDef(0x0EA6, "Marcha (0 = punto muerto)", "", 0, PidGroup.ENGINE, size = 1) { it.toDouble() },
         bmwDef(0x07D1, "Par motor", "Nm", 0, PidGroup.ENGINE) { it * 0.114443 - 2500.0 },
         bmwDef(0x0578, "Par: parte del máximo", "%", 0, PidGroup.ENGINE) { it * 0.001526 },

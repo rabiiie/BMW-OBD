@@ -13,7 +13,7 @@ data class WarmUp(val startCoolant: Double, val outside: Double?, val minutesTo8
  * El primer arranque grabado. [seconds] va de la ultima lectura con el motor parado a la primera
  * ya a ralenti: con dos lecturas por segundo, tiene medio segundo de margen.
  */
-data class EngineStart(val seconds: Double, val restVolts: Double?, val coolant: Double?)
+data class EngineStart(val seconds: Double, val restVolts: Double?, val coolant: Double?, val parkedMinutes: Double? = null)
 
 /**
  * Lo que da el coche frente a lo que pide la centralita, en los ratos en que las dos cosas estan
@@ -56,6 +56,7 @@ data class TripHealth(
         },
         warmUp?.steady?.let { "Temperatura del motor ya caliente (mediana)" to n(it) + " °C" },
         start?.let { "Arranque: de parado a ralentí" to "≈ " + n(it.seconds, 1) + " s" + (it.coolant?.let { c -> ", motor a ${n(c)} °C" } ?: "") },
+        start?.parkedMinutes?.let { "Tiempo parado antes de este arranque" to parked(it) },
         start?.restVolts?.let { "Batería antes de arrancar, con el contacto puesto" to n(it, 1) + " V" },
         boost?.let {
             "Turbo: presión real menos la pedida" to
@@ -74,6 +75,12 @@ data class TripHealth(
             it to "no hay límites de fábrica: vale por comparación con los trayectos anteriores de este mismo coche"
         },
     )
+
+    private fun parked(minutes: Double) = when {
+        minutes < 120 -> n(minutes) + " min"
+        minutes < 48 * 60 -> n(minutes / 60, 1) + " h"
+        else -> n(minutes / 1440, 1) + " días"
+    }
 
     private fun n(value: Double, decimals: Int = 0) = String.format(Locale.US, "%.${decimals}f", value).replace('.', ',')
 
@@ -213,7 +220,12 @@ data class TripHealth(
             if (seconds > MAX_START_SECONDS) return null
             val volts = (data.series[MODULE_VOLTS] ?: data.series[Pids.ADAPTER_VOLTAGE])?.get(stopped)?.takeIf { !it.isNaN() }
             val coolant = data.series[Pids.COOLANT]?.get(stopped)?.takeIf { !it.isNaN() }
-            return EngineStart(seconds, volts, coolant)
+            // Lo que diga la centralita en los minutos siguientes al arranque, por si con el motor
+            // parado todavia daba el del arranque anterior.
+            val parked = data.series[Pids.BMW_PARKED_MINUTES]?.let { series ->
+                (0 until data.size).lastOrNull { !series[it].isNaN() && data.tMs[it] - data.tMs[idling] <= PARKED_WITHIN_MS }?.let { series[it] }
+            }
+            return EngineStart(seconds, volts, coolant, parked)
         }
 
         /**
@@ -259,6 +271,7 @@ data class TripHealth(
         private const val RUNNING_RPM = 400.0
         private const val IDLE_RPM = 800.0
         private const val MAX_START_SECONDS = 15.0
+        private const val PARKED_WITHIN_MS = 180_000L
         private const val COLD_BELOW = 60.0
         private const val HOT = 80.0
         private const val STEADY_AFTER_MS = 15 * 60_000L

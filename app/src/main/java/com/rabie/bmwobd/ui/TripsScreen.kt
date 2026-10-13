@@ -214,21 +214,22 @@ private fun HealthTable(trips: List<TripEntry>) {
                 for (value in values) Text(value, color = color, fontSize = 12.sp, modifier = Modifier.weight(1f), maxLines = 1)
             }
         }
-        cells("", listOf("A 80 °C", "Caliente", "Arranq.", "Batería", "Turbo"), Bmw.TextDim)
+        cells("", listOf("A 80 °C", "Caliente", "Parado", "Arranq.", "Batería", "Turbo"), Bmw.TextDim)
         for (trip in trips) {
             val health = trip.health ?: continue
             fun text(value: Double?, decimals: Int) = value?.let { "%.${decimals}f".format(it) } ?: "—"
             cells(
                 formatDay(trip.startMillis),
                 listOf(
-                    text(health.warmUp?.minutesTo80, 1), text(health.warmUp?.steady, 0), text(health.start?.seconds, 1),
+                    text(health.warmUp?.minutesTo80, 1), text(health.warmUp?.steady, 0),
+                    text(health.start?.parkedMinutes?.let { it / 60 }, 0), text(health.start?.seconds, 1),
                     text(health.start?.restVolts, 1), text(health.boost?.median, 1),
                 ),
                 Bmw.Text,
             )
         }
         Text(
-            "A 80 °C: minutos desde un arranque en frío. Caliente: °C ya en marcha. Arranque: segundos de parado a ralentí. " +
+            "A 80 °C: minutos desde un arranque en frío. Caliente: °C ya en marcha. Parado: horas sin moverse antes de arrancar. Arranque: segundos de parado a ralentí. " +
                 "Batería: V antes de arrancar. Turbo: kPa de más o de menos sobre lo pedido. Con raya, ese trayecto no lo pudo medir.",
             color = Bmw.TextDim,
             fontSize = 12.sp,
