@@ -301,7 +301,17 @@ object Pids {
      * del sensor de aceite: no se leen. Tampoco hay sensor de presion diferencial: la del filtro
      * sale del sensor de presion absoluta que lleva delante.
      */
-    val bmwDiesel: List<PidDef> = listOf(
+    // Lo aprendido de cada inyector cambia muy despacio: se lee una vez al conectar, como el
+    // resto del desgaste, y con el caso de los inyectores puesto se sigue leyendo.
+    private val bmwInjectorTimes: List<PidDef> = BMW_INJECTOR_TIMES.flatMapIndexed { point, ids ->
+        ids.mapIndexed { cylinder, id ->
+            PidDef(id, "Inyector ${cylinder + 1}: tiempo aprendido (punto ${point + 1})", "µs", 2, 1, Tier.ONCE, PidGroup.FUEL) {
+                word(it) * 0.15259 - 5000.0
+            }
+        }
+    }
+
+    val bmwDiesel: List<PidDef> = bmwInjectorTimes + listOf(
         bmwDef(0x0500, "Cantidad inyectada", "mg/emb", 1, PidGroup.FUEL, Tier.MEDIUM) { it * 0.003052 - 100.0 },
         bmwDef(0x01F4, "Presión turbo pedida", "kPa", 0, PidGroup.AIR, Tier.MEDIUM) { it * 0.0091554 },
         bmwDef(0x0641, "Presión raíl pedida", "bar", 0, PidGroup.FUEL, Tier.MEDIUM) { it * 0.045777 },
@@ -388,13 +398,7 @@ object Pids {
         bmwDef(0x04B1, "Inyección principal: duración", "µs", 0, PidGroup.FUEL) { it * 0.038148 },
         bmwDef(0x04B0, "Preinyección: volumen", "mm³", 2, PidGroup.FUEL) { it * 0.003052 - 100.0 },
         bmwDef(0x1964, "Calibración de cantidad mínima: estado", "", 0, PidGroup.FUEL, size = 1) { it.toDouble() },
-    ) + BMW_INJECTOR_TIMES.flatMapIndexed { point, ids ->
-        ids.mapIndexed { cylinder, id ->
-            PidDef(id, "Inyector ${cylinder + 1}: tiempo aprendido (punto ${point + 1})", "µs", 2, 1, group = PidGroup.FUEL) {
-                word(it) * 0.15259 - 5000.0
-            }
-        }
-    } + (0..2).map { point ->
+    ) + (0..2).map { point ->
         bmwDef(0x145E + point, "Calibración de inyectores: ciclos (punto ${point + 1})", "", 0, PidGroup.FUEL) { it.toDouble() }
     } + listOf(
         bmwDef(0x01F9, "Turbo: desviación que ve la centralita", "hPa", 0, PidGroup.AIR) { it.toDouble() },

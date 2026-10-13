@@ -138,6 +138,15 @@ class TripCsvTest {
         assertEquals(-4.05, wear.filterZero!!, 0.001)
         assertEquals(0.83, wear.egrCooler!!, 0.001)
         assertNull(wear.lambda)
+        assertNull(wear.largestInjectorTime)
+
+        // Los tiempos de los inyectores, con lo que dio el coche en el barrido del 11 de octubre.
+        val times = Pids.BMW_INJECTOR_TIMES.flatten()
+        val seen = listOf(35.0, 66.3, 63.4, 65.1, 26.6, 31.5, 32.3, 20.7, 13.0, 24.2, 18.2, 10.3)
+        val learned = TripCsv.wear(TripCsv.parse(sequenceOf(TripCsv.header(times), TripCsv.row(0, times, times.zip(seen).toMap()))))!!
+        assertEquals(listOf(35.0, 26.6, 13.0), learned.injectorTimes[0])
+        assertEquals(listOf(65.1, 20.7, 10.3), learned.injectorTimes[3])
+        assertEquals(66.3, learned.largestInjectorTime!!, 0.001)
         assertNull(TripCsv.wear(TripCsv.parse(sequenceOf(TripCsv.header(listOf(Pids.RPM)), TripCsv.row(0, listOf(Pids.RPM), mapOf(Pids.RPM to 800.0))))))
     }
 

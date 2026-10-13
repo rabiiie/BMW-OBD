@@ -47,8 +47,19 @@ data class TimingOffset(val median: Double, val min: Double, val max: Double, va
  * Lo que la centralita llevaba aprendido en un trayecto para compensar el desgaste. Todo en
  * desviacion respecto a una pieza nueva, salvo el enfriador, que es su rendimiento.
  */
-data class Wear(val railValve: Double?, val lambda: Double?, val egrZero: Double?, val filterZero: Double?, val egrCooler: Double?) {
-    val empty: Boolean get() = listOf(railValve, lambda, egrZero, filterZero, egrCooler).all { it == null }
+data class Wear(
+    val railValve: Double?,
+    val lambda: Double?,
+    val egrZero: Double?,
+    val filterZero: Double?,
+    val egrCooler: Double?,
+    /** El tiempo de mas aprendido para cada inyector: una lista por cilindro, con sus tres puntos de presion. */
+    val injectorTimes: List<List<Double?>> = emptyList(),
+) {
+    val empty: Boolean get() = listOf(railValve, lambda, egrZero, filterZero, egrCooler).all { it == null } && largestInjectorTime == null
+
+    /** El mayor tiempo aprendido de un inyector, sin signo: el que mas ha habido que corregir. */
+    val largestInjectorTime: Double? get() = injectorTimes.flatten().filterNotNull().maxOfOrNull { kotlin.math.abs(it) }
 }
 
 object TripCsv {
@@ -63,6 +74,7 @@ object TripCsv {
             egrZero = last(Pids.BMW_EGR_ZERO_LAST),
             filterZero = last(Pids.BMW_FILTER_ZERO),
             egrCooler = cooler.takeIf { it.isNotEmpty() }?.let { it[it.size / 2] },
+            injectorTimes = (0..3).map { cylinder -> Pids.BMW_INJECTOR_TIMES.map { point -> last(point[cylinder]) } },
         )
         return wear.takeUnless { it.empty }
     }

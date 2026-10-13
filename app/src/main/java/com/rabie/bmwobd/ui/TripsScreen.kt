@@ -164,20 +164,27 @@ private fun WearTable(trips: List<TripEntry>) {
         fun cells(date: String, values: List<String>, color: Color) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(date, color = Bmw.TextDim, fontSize = 13.sp, modifier = Modifier.weight(1.1f), maxLines = 1)
-                for (value in values) Text(value, color = color, fontSize = 13.sp, modifier = Modifier.weight(1f), maxLines = 1)
+                for (value in values) Text(value, color = color, fontSize = 12.sp, modifier = Modifier.weight(1f), maxLines = 1)
             }
         }
-        cells("", listOf("Raíl", "Lambda", "EGR", "Enfr.", "Filtro"), Bmw.TextDim)
+        cells("", listOf("Raíl", "Lambda", "EGR", "Enfr.", "Filtro", "Iny."), Bmw.TextDim)
         for (trip in trips) {
             val wear = trip.wear ?: continue
             fun text(value: Double?, decimals: Int) = value?.let { "%.${decimals}f".format(it) } ?: "—"
             cells(
                 formatDay(trip.startMillis),
-                listOf(text(wear.railValve, 1), text(wear.lambda, 1), text(wear.egrZero, 2), text(wear.egrCooler, 2), text(wear.filterZero, 1)),
+                listOf(
+                    text(wear.railValve, 1), text(wear.lambda, 1), text(wear.egrZero, 2), text(wear.egrCooler, 2),
+                    text(wear.filterZero, 1), text(wear.largestInjectorTime, 0),
+                ),
                 Bmw.Text,
             )
         }
-        Text("Raíl, lambda y EGR en %. Enfriador: rendimiento de 0 a 1. Filtro en hPa.", color = Bmw.TextDim, fontSize = 12.sp)
+        Text(
+            "Raíl, lambda y EGR en %. Enfriador: rendimiento de 0 a 1. Filtro en hPa. Iny.: el mayor tiempo aprendido de un inyector, en µs.",
+            color = Bmw.TextDim,
+            fontSize = 12.sp,
+        )
     }
 }
 

@@ -160,12 +160,18 @@ object Health {
      */
     fun wearFacts(data: TripData): List<Pair<String, String>> {
         val wear = TripCsv.wear(data) ?: return emptyList()
+        val injectors = wear.injectorTimes.mapIndexedNotNull { cylinder, points ->
+            if (points.all { it == null }) return@mapIndexedNotNull null
+            "Inyector ${cylinder + 1}, tiempo de más aprendido en sus tres puntos de presión" to
+                points.joinToString(" / ") { it?.let { time -> n(time) } ?: "—" } + " µs"
+        }
         return listOfNotNull(
             wear.railValve?.let { "Válvula de presión del raíl, corrección aprendida" to signed(it, 1) + " %" },
             wear.lambda?.let { "Sonda lambda, corrección aprendida" to signed(it, 1) + " %" },
             wear.egrZero?.let { "Válvula EGR, cuánto se ha movido su posición de cerrada" to n(it, 2) + " %" },
             wear.egrCooler?.let { "Enfriador de la EGR, rendimiento (mediana del trayecto)" to n(it, 2) },
             wear.filterZero?.let { "Sensor de presión del filtro, corrección de cero aprendida" to signed(it, 1) + " hPa" },
+        ) + injectors + listOf(
             "Cómo leerlo" to "son correcciones respecto a la pieza nueva; cerca de cero es bueno y lo que importa es si crecen",
         )
     }
