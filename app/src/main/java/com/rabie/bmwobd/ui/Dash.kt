@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
@@ -466,9 +467,42 @@ private fun Strip(state: LiveState, onMenu: () -> Unit) {
             modifier = Modifier.weight(1f),
         )
         Text("REC " + formatDuration((now - state.liveSinceMillis).coerceAtLeast(0)), color = soft, fontSize = 12.sp, maxLines = 1)
+        NavigatorButton()
         Text("Menú", color = if (top == null) Bmw.Accent else Bmw.Background, fontSize = 14.sp, modifier = Modifier.clickable(onClick = onMenu).padding(6.dp))
     }
 }
+
+/**
+ * Abre el navegador, Waze, en la otra mitad de la pantalla. Va en la franja para no tener que
+ * salir del panel a buscarlo conduciendo. Es un boton dibujado, una flecha de rumbo en un circulo
+ * azul claro; si Waze no esta instalado no hace nada.
+ */
+@Composable
+private fun NavigatorButton() {
+    val context = LocalContext.current
+    Box(
+        Modifier
+            .size(NAVIGATOR_SIZE)
+            .clip(CircleShape)
+            .background(NAVIGATOR_BLUE)
+            .clickable { openWaze(context) },
+        contentAlignment = Alignment.Center,
+    ) {
+        Canvas(Modifier.size(NAVIGATOR_SIZE * 0.5f)) {
+            val arrow = Path().apply {
+                moveTo(size.width * 0.5f, 0f)
+                lineTo(size.width, size.height)
+                lineTo(size.width * 0.5f, size.height * 0.72f)
+                lineTo(0f, size.height)
+                close()
+            }
+            drawPath(arrow, Color.White)
+        }
+    }
+}
+
+private val NAVIGATOR_SIZE = 32.dp
+private val NAVIGATOR_BLUE = Color(0xFF33CCFF)
 
 /** La linea de abajo: el deposito con lo que queda, que es una cuenta, la hora y la temperatura de fuera. */
 @Composable
