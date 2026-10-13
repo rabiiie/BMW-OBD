@@ -1,5 +1,7 @@
 package com.rabie.bmwobd.trips
 
+import com.rabie.bmwobd.advice.Limits
+import com.rabie.bmwobd.advice.Moment
 import com.rabie.bmwobd.obd.Pids
 import java.util.Locale
 
@@ -33,6 +35,19 @@ data class Charge(val volts: Double, val low: Double)
  */
 data class FilterCheck(val idlePressure: Double?, val lastInterval: Double?)
 
+/**
+ * Lo mas que dio el motor en el trayecto, segun el par que calcula la centralita, y la mejor
+ * recuperacion de 80 a 120 hecha con el pedal a fondo. El par se lee cada varios segundos, asi
+ * que el maximo de verdad puede haber sido algo mayor.
+ */
+data class Performance(
+    val torque: Double,
+    val torqueRpm: Double,
+    val horsepower: Double,
+    val horsepowerRpm: Double,
+    val from80To120: Double?,
+)
+
 /** Lo que un trayecto dice de la salud del coche. Lo que no se pudo medir queda en null. */
 data class TripHealth(
     val warmUp: WarmUp?,
@@ -43,10 +58,13 @@ data class TripHealth(
     val idle: Idle? = null,
     val charge: Charge? = null,
     val filter: FilterCheck? = null,
+    /** Segundos pidiendole fuerza con el motor frio; null si arranco ya caliente. */
+    val coldPushSeconds: Long? = null,
+    val performance: Performance? = null,
 ) {
 
     private val empty: Boolean
-        get() = listOf(warmUp, start, boost, rail, egr, idle, charge, filter).all { it == null }
+        get() = listOf(warmUp, start, boost, rail, egr, idle, charge, filter, coldPushSeconds, performance).all { it == null }
 
     /** Los datos, ya en texto, para la ficha del trayecto. */
     fun facts(): List<Pair<String, String>> = listOfNotNull(
@@ -71,6 +89,15 @@ data class TripHealth(
         charge?.let { "Tensión con el motor en marcha" to "${n(it.volts, 1)} V de mediana, ${n(it.low, 1)} V en el décimo más bajo" },
         filter?.idlePressure?.let { "Filtro de partículas: presión a ralentí en caliente" to n(it) + " hPa" },
         filter?.lastInterval?.let { "Filtro de partículas: entre las dos últimas regeneraciones" to n(it) + " km" },
+        coldPushSeconds?.let {
+            "Motor frío exigido" to if (it == 0L) "nada: no se le pidió fuerza por debajo de ${n(Limits.COLD_OIL)} °C" else
+                "$it s pidiéndole fuerza o muchas vueltas por debajo de ${n(Limits.COLD_OIL)} °C"
+        },
+        performance?.let {
+            "Lo más que dio el motor" to "${n(it.torque)} Nm a ${n(it.torqueRpm)} rpm y ≈ ${n(it.horsepower)} CV a ${n(it.horsepowerRpm)} rpm, " +
+                "según la centralita. De fábrica son 300 Nm y 143 CV; solo se acerca si se le pisa a fondo."
+        },
+        performance?.from80To120?.let { "De 80 a 120 con el pedal a fondo" to "≈ " + n(it, 1) + " s, la mejor del trayecto" },
         "Cómo leerlo".takeIf { !empty }?.let {
             it to "no hay límites de fábrica: vale por comparación con los trayectos anteriores de este mismo coche"
         },
@@ -99,8 +126,82 @@ data class TripHealth(
                 idle = idle(data),
                 charge = charge(data),
                 filter = filter(data),
+                coldPushSeconds = coldPush(data),
+                performance = performance(data),
             )
             return health.takeUnless { it.empty }
+        }
+
+        /**
+         * Lo mismo que avisa el panel en marcha: por debajo de 60 grados, muchas vueltas o carga
+         * alta con la EGR cerrada, que es cuando de verdad se le pide fuerza.
+         */
+        private fun coldPush(data: TripData): Long? {
+            val coolant = data.series[Pids.COOLANT] ?: return null
+            val rpm = data.series[Pids.RPM] ?: return null
+            val load = data.series[Pids.LOAD]
+            val egr = data.series[Moment.EGR_COMMANDED]
+            var cold = false
+            var pushedMs = 0L
+            for (i in 1 until data.size) {
+                if (!(rpm[i - 1] >= RUNNING_RPM) || !(coolant[i - 1] < Limits.COLD_OIL)) continue
+                cold = true
+                val demanding = load != null && load[i - 1] >= Limits.PULL_MIN_LOAD &&
+                    (egr == null || egr[i - 1].isNaN() || egr[i - 1] < Limits.EGR_MIN_COMMANDED)
+                if (rpm[i - 1] >= Limits.COLD_MAX_RPM || demanding) pushedMs += (data.tMs[i] - data.tMs[i - 1]).coerceIn(0L, MAX_GAP_MS)
+            }
+            return if (cold) pushedMs / 1000 else null
+        }
+
+        private fun performance(data: TripData): Performance? {
+            val torque = data.series[TORQUE] ?: return null
+            val rpm = data.series[Pids.RPM] ?: return null
+            var bestTorque = -1
+            var bestPower = -1
+            fun power(i: Int) = torque[i] * rpm[i] / RPM_NM_PER_KW * HP_PER_KW
+            for (i in 0 until data.size) {
+                if (torque[i].isNaN() || rpm[i].isNaN() || torque[i] <= 0) continue
+                if (bestTorque < 0 || torque[i] > torque[bestTorque]) bestTorque = i
+                if (bestPower < 0 || power(i) > power(bestPower)) bestPower = i
+            }
+            if (bestTorque < 0) return null
+            return Performance(torque[bestTorque], rpm[bestTorque], power(bestPower), rpm[bestPower], sprint(data))
+        }
+
+        /** La mejor subida de 80 a 120 km/h sin soltar el pedal: de media, por encima de [FLOORED]. */
+        private fun sprint(data: TripData): Double? {
+            val speed = data.series[Pids.SPEED] ?: return null
+            val pedal = data.series[Pids.PEDAL] ?: return null
+            var best: Double? = null
+            var startMs = -1.0
+            var pedalSum = 0.0
+            var rows = 0
+            for (i in 1 until data.size) {
+                val before = speed[i - 1]
+                val now = speed[i]
+                if (before.isNaN() || now.isNaN()) continue
+                fun crossing(at: Double) = data.tMs[i - 1] + (at - before) / (now - before) * (data.tMs[i] - data.tMs[i - 1])
+                if (before < SPRINT_FROM && now >= SPRINT_FROM) {
+                    startMs = crossing(SPRINT_FROM)
+                    pedalSum = 0.0
+                    rows = 0
+                }
+                if (startMs < 0) continue
+                if (now < SPRINT_FROM) {
+                    startMs = -1.0
+                    continue
+                }
+                if (!pedal[i].isNaN()) {
+                    pedalSum += pedal[i]
+                    rows++
+                }
+                if (before < SPRINT_TO && now >= SPRINT_TO) {
+                    val seconds = (crossing(SPRINT_TO) - startMs) / 1000.0
+                    if (rows > 0 && pedalSum / rows >= FLOORED && (best == null || seconds < best)) best = seconds
+                    startMs = -1.0
+                }
+            }
+            return best
         }
 
         /** Las filas con el coche parado desde hace unos segundos, el motor caliente a ralenti y sin regenerar. */
@@ -265,6 +366,13 @@ data class TripHealth(
         }
 
         private const val OUTSIDE = 0x46
+        private val TORQUE = Pids.bmw(0x07D1)
+        private const val RPM_NM_PER_KW = 9549.0
+        private const val HP_PER_KW = 1.36
+        private const val SPRINT_FROM = 80.0
+        private const val SPRINT_TO = 120.0
+        private const val FLOORED = 80.0
+        private const val MAX_GAP_MS = 5_000L
         private const val MODULE_VOLTS = 0x42
         private const val MAP = 0x0B
         private val BOOST_ASKED = Pids.bmw(0x01F4)

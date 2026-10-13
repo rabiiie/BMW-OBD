@@ -71,6 +71,7 @@ import com.rabie.bmwobd.dash.DashGroup
 import com.rabie.bmwobd.dash.DashTile
 import com.rabie.bmwobd.dash.Dashboard
 import com.rabie.bmwobd.dash.ShiftHint
+import com.rabie.bmwobd.dash.Shutdown
 import com.rabie.bmwobd.obd.Pids
 import kotlinx.coroutines.delay
 
@@ -495,6 +496,7 @@ private fun Bottom(state: LiveState, modifier: Modifier = Modifier) {
         } else {
             Spacer(Modifier.weight(1f))
         }
+        ShutdownLight(values)
         MStripe()
         Text(
             listOfNotNull(clock, values[OUTSIDE_TEMP]?.let { formatValue(it, 0) + " °C" }).joinToString("  ·  "),
@@ -504,6 +506,28 @@ private fun Bottom(state: LiveState, modifier: Modifier = Modifier) {
         )
     }
 }
+
+/**
+ * La luz de apagado: roja con "ESPERA" si el escape esta muy caliente o el filtro regenera, ambar
+ * mientras se enfria y verde cuando ya se puede apagar. En marcha solo se ve el punto; el rotulo
+ * sale con el coche parado, que es cuando hace falta.
+ */
+@Composable
+private fun ShutdownLight(values: Map<Int, Double>) {
+    val state = Dashboard.shutdown(values) ?: return
+    val color = when (state) {
+        Shutdown.WAIT -> Bmw.MRed
+        Shutdown.COOLING -> Bmw.Amber
+        Shutdown.OK -> SHUTDOWN_OK
+    }
+    val stopped = (values[Pids.SPEED] ?: 1.0) < 1.0
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+        Box(Modifier.size(10.dp).clip(CircleShape).background(color))
+        if (stopped) Text(state.label, color = color, fontSize = 13.sp, fontWeight = FontWeight.Medium, maxLines = 1)
+    }
+}
+
+private val SHUTDOWN_OK = Color(0xFF3DBE6B)
 
 private fun clockText(): String = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
 

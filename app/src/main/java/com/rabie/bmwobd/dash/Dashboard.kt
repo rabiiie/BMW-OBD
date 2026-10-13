@@ -1,6 +1,7 @@
 package com.rabie.bmwobd.dash
 
 import com.rabie.bmwobd.advice.Advice
+import com.rabie.bmwobd.advice.Limits
 import com.rabie.bmwobd.advice.Moment
 import com.rabie.bmwobd.cases.Case
 import com.rabie.bmwobd.obd.Pids
@@ -25,7 +26,27 @@ enum class DashGroup(val title: String, val case: Case) {
     AIR("Aire", Case.TURBO),
 }
 
+/** Si se puede apagar ya el motor sin castigar el turbo, o conviene esperar a que baje el escape. */
+enum class Shutdown(val label: String) { OK("OK"), COOLING("ENFRIANDO"), WAIT("ESPERA") }
+
 object Dashboard {
+
+    /**
+     * Si conviene esperar antes de apagar. Sale de la temperatura del escape, con el mismo limite
+     * que el aviso de dejar enfriar el turbo, y de si el filtro esta regenerando. No hay cifra de
+     * fabrica: es un criterio de la app. Sin temperatura de escape no se dice nada.
+     */
+    fun shutdown(values: Map<Int, Double>): Shutdown? {
+        if ((values[Pids.BMW_REGEN_REQUEST] ?: 0.0) >= Pids.BMW_REGEN_ACTIVE) return Shutdown.WAIT
+        val exhaust = (Moment.EXHAUST_TEMPS.mapNotNull { values[it] } + listOfNotNull(values[BEFORE_CATALYST])).maxOrNull() ?: return null
+        return when {
+            exhaust >= Limits.HOT_STOP_EXHAUST -> Shutdown.WAIT
+            exhaust >= COOLING_EXHAUST -> Shutdown.COOLING
+            else -> Shutdown.OK
+        }
+    }
+
+    private const val COOLING_EXHAUST = 250.0
 
     private val SOOT = Pids.BMW_SOOT_MEASURED
     private val SINCE_REGEN = Pids.bmw(0x03EB)

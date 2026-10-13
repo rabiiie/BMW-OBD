@@ -178,4 +178,19 @@ class DashboardTest {
         assertNull(Dashboard.rangeKm(mapOf(tank), null))
         assertNull(Dashboard.rangeKm(emptyMap(), 5.2))
     }
+
+    @Test
+    fun `la luz de apagado sale del escape y de la regeneracion`() {
+        val exhaust = Pids.bmw(0x041E)
+        // Al acabar los dos trayectos del 12 de octubre el escape estaba a unos 200 grados.
+        assertEquals(Shutdown.OK, Dashboard.shutdown(mapOf(exhaust to 198.75)))
+        assertEquals(Shutdown.COOLING, Dashboard.shutdown(mapOf(exhaust to 300.0)))
+        // Y a 541 justo al terminar la regeneracion de la ida.
+        assertEquals(Shutdown.WAIT, Dashboard.shutdown(mapOf(exhaust to 541.55)))
+        // Regenerando hay que esperar aunque el escape todavia no haya subido.
+        assertEquals(Shutdown.WAIT, Dashboard.shutdown(mapOf(exhaust to 180.0, Pids.BMW_REGEN_REQUEST to 5.0)))
+        assertEquals(Shutdown.OK, Dashboard.shutdown(mapOf(exhaust to 180.0, Pids.BMW_REGEN_REQUEST to 1.0)))
+        // Sin temperatura de escape no se dice nada.
+        assertNull(Dashboard.shutdown(mapOf(Pids.RPM to 850.0)))
+    }
 }

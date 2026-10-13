@@ -47,6 +47,14 @@ class TripHealthTest {
         assertEquals(14.97, health.filter!!.idlePressure!!, 0.01)
         assertEquals(114.89, health.filter!!.lastInterval!!, 0.01)
 
+        // Arranco a 24 grados y no se le pidio fuerza hasta pasar de 60.
+        assertEquals(0L, health.coldPushSeconds)
+        val performance = health.performance!!
+        assertEquals(258.08, performance.torque, 0.01)
+        assertEquals(111.0, performance.horsepower, 0.5)
+        // Ninguna subida de 80 a 120 fue con el pedal a fondo.
+        assertNull(performance.from80To120)
+
         // Se conecto con el motor ya en marcha: no hay arranque que medir.
         assertNull(health.start)
         assertTrue(health.facts().first().first.startsWith("Calentamiento: de 24 °C a 80 °C"))

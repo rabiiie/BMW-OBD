@@ -302,19 +302,23 @@ private fun FuelTable(trips: List<TripEntry>, price: Double?) {
                 for (value in values) Text(value, color = color, fontSize = 12.sp, modifier = Modifier.weight(1f), maxLines = 1)
             }
         }
-        cells("", listOf("km", "L", "L/100", "€"), Bmw.TextDim)
+        cells("", listOf("km", "L", "L/100", "€", "Frío"), Bmw.TextDim)
         for (trip in trips) {
             val fuel = trip.fuel ?: continue
             val mark = if (fuel.real) "" else "≈"
             fun text(value: Double?, decimals: Int) = value?.let { mark + "%.${decimals}f".format(it) } ?: "—"
             cells(
                 formatDay(trip.startMillis),
-                listOf("%.0f".format(fuel.km), text(fuel.liters, 1), text(fuel.per100, 1), text(fuel.cost(price), 2)),
+                listOf(
+                    "%.0f".format(fuel.km), text(fuel.liters, 1), text(fuel.per100, 1), text(fuel.cost(price), 2),
+                    trip.health?.coldPushSeconds?.let { "$it s" } ?: "—",
+                ),
                 Bmw.Text,
             )
         }
         Text(
-            if (price == null) "Para ver los euros, pon el precio del litro en Ajustes." else "Con el precio del litro que hay ahora en Ajustes.",
+            (if (price == null) "Para ver los euros, pon el precio del litro en Ajustes." else "Con el precio del litro que hay ahora en Ajustes.") +
+                " Frío: segundos pidiéndole fuerza al motor por debajo de 60 °C; con raya, arrancó ya caliente.",
             color = Bmw.TextDim,
             fontSize = 12.sp,
         )
