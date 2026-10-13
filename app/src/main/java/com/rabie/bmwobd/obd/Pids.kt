@@ -115,6 +115,14 @@ object Pids {
     const val BMW_OIL_LEVEL_ADDRESS = 0x044D
     const val BMW_TIMING_OFFSET_ADDRESS = 0x15E5
 
+    // Lo que la centralita ha aprendido para compensar el desgaste de cada pieza.
+    val BMW_RAIL_VALVE_LEARNED = bmw(0x0258)
+    val BMW_LAMBDA_LEARNED = bmw(0x0A40)
+    val BMW_EGR_ZERO_FIRST = bmw(0x0BBD)
+    val BMW_EGR_ZERO_LAST = bmw(0x0BBE)
+    val BMW_FILTER_ZERO = bmw(0x0428)
+    val BMW_EGR_COOLER = bmw(0x0C99)
+
     /** Lo que marcaba la distancia total en cada una de las cinco ultimas regeneraciones, de la mas reciente a la mas antigua. */
     val BMW_REGENERATION_ADDRESSES = listOf(0x03FD, 0x03FE, 0x03FF, 0x0400, 0x0401)
 
@@ -320,6 +328,9 @@ object Pids {
             it * 0.003052 - 100.0
         },
 
+        // El enfriador de la EGR: cuanto enfria respecto a lo que deberia. Se mueve con la marcha.
+        bmwDef(0x0C99, "EGR: rendimiento del enfriador", "", 2, PidGroup.AIR) { it * 0.000122 },
+
         // Lo que no cambia durante un trayecto se lee una vez al conectar.
         bmwDef(BMW_ODOMETER_ADDRESS, "Cuentakilómetros", "km", 0, PidGroup.COUNTERS, Tier.ONCE, size = 4) { it.toDouble() },
         bmwDef(0x0AF0, "Horas de motor", "h", 0, PidGroup.COUNTERS, Tier.ONCE, size = 4) { it / 3600.0 },
@@ -338,6 +349,14 @@ object Pids {
         bmwDef(0x042E, "Escape antes del filtro (sensor)", "°C", 0, PidGroup.EXHAUST, Tier.ONCE) { it * 0.031281 - 50.0 },
         bmwDef(0x03DF, "Filtro: horas regenerando en total", "h", 0, PidGroup.EXHAUST, Tier.ONCE) { it * 23.002976 / 3600.0 },
         bmwDef(0x0BA4, "Filtro: km que le calcula el coche", "km", 0, PidGroup.EXHAUST, Tier.ONCE) { it * 10.0 },
+        // Valores aprendidos. Los factores van como desviacion en tanto por ciento de su valor de nuevo.
+        bmwDef(0x0258, "Raíl: corrección aprendida de la válvula de presión", "%", 2, PidGroup.FUEL, Tier.ONCE) {
+            (it * 0.000031 - 1.0) * 100.0
+        },
+        bmwDef(0x0A40, "Sonda lambda: corrección aprendida", "%", 2, PidGroup.FUEL, Tier.ONCE) { (it * 0.001526 - 50.0 - 1.0) * 100.0 },
+        bmwDef(0x0BBD, "EGR: cero aprendido, el primero", "%", 2, PidGroup.AIR, Tier.ONCE) { it * 0.003052 - 100.0 },
+        bmwDef(0x0BBE, "EGR: cero aprendido, el último", "%", 2, PidGroup.AIR, Tier.ONCE) { it * 0.003052 - 100.0 },
+        bmwDef(0x0428, "Filtro: cero aprendido del sensor de presión", "hPa", 1, PidGroup.EXHAUST, Tier.ONCE) { it * 0.030518 - 1000.0 },
     ) + BMW_REGENERATION_ADDRESSES.mapIndexed { index, address ->
         bmwDef(address, "Filtro: km en la regeneración ${index + 1} hacia atrás", "km", 0, PidGroup.EXHAUST, Tier.ONCE, size = 4) {
             it / 1000.0

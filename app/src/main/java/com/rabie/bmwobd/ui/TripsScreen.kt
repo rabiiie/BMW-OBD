@@ -31,6 +31,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -105,6 +106,8 @@ private fun TripList(
             else -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 val timed = trips.filter { !it.simulated && it.timing != null }.take(TIMING_ROWS)
                 if (timed.isNotEmpty()) item(key = "distribucion") { TimingTable(timed) }
+                val worn = trips.filter { !it.simulated && it.wear != null }.take(TIMING_ROWS)
+                if (worn.isNotEmpty()) item(key = "desgaste") { WearTable(worn) }
                 items(trips, key = { it.file.name }) { trip ->
                     val name = remember(trip.vehicleKey) { trip.vehicleKey?.let(vehicles::byKey)?.name }
                     TripRow(trip, name, onOpen)
@@ -142,6 +145,38 @@ private fun TimingTable(trips: List<TripEntry>) {
             }
         }
         Text("Con asterisco, el valor se movió durante el trayecto: se enseña la mediana.", color = Bmw.TextDim, fontSize = 12.sp)
+    }
+}
+
+/** El desgaste aprendido trayecto a trayecto: lo que importa es si alguna columna va creciendo. */
+@Composable
+private fun WearTable(trips: List<TripEntry>) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(Bmw.Surface)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Label("Desgaste aprendido por trayecto")
+        @Composable
+        fun cells(date: String, values: List<String>, color: Color) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(date, color = Bmw.TextDim, fontSize = 13.sp, modifier = Modifier.weight(1.6f), maxLines = 1)
+                for (value in values) Text(value, color = color, fontSize = 13.sp, modifier = Modifier.weight(1f), maxLines = 1)
+            }
+        }
+        cells("", listOf("Raíl %", "Lambda %", "EGR %", "Enfr.", "Filtro hPa"), Bmw.TextDim)
+        for (trip in trips) {
+            val wear = trip.wear ?: continue
+            fun text(value: Double?, decimals: Int) = value?.let { "%.${decimals}f".format(it) } ?: "—"
+            cells(
+                formatStart(trip.startMillis),
+                listOf(text(wear.railValve, 1), text(wear.lambda, 1), text(wear.egrZero, 2), text(wear.egrCooler, 2), text(wear.filterZero, 1)),
+                Bmw.Text,
+            )
+        }
     }
 }
 
@@ -225,6 +260,10 @@ private fun TripDetail(
             val car = remember(trip) { Health.carFacts(trip) }
             if (car.isNotEmpty()) {
                 ReportCard(ReportSection("Ficha del coche", car.map { (label, value) -> ReportLine(label, value) }))
+            }
+            val wear = remember(trip) { Health.wearFacts(trip) }
+            if (wear.isNotEmpty()) {
+                ReportCard(ReportSection("Desgaste aprendido por la centralita", wear.map { (label, value) -> ReportLine(label, value) }))
             }
             val timing = remember(trip) { Health.timingFacts(trip) }
             if (timing.isNotEmpty()) {

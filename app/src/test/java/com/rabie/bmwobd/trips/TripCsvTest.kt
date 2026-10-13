@@ -112,4 +112,32 @@ class TripCsvTest {
         assertNull(TripCsv.timing(trip(List(5) { null })))
         assertNull(TripCsv.timing(trip(listOf(-94.0, 80.0))))
     }
+
+    @Test
+    fun `el desgaste aprendido sale con lo que contesto el coche`() {
+        // Barrido del 11 de octubre: 0258 = 82F3, 0A40 = 828B, 0BBE = 7FFF, 0428 = 7F7B, 0C99 = 1AB5.
+        fun value(address: Int, vararg bytes: Int) = Pids.byId.getValue(Pids.bmw(address)).decodeOrNull(bytes)!!
+        assertEquals(3.92, value(0x0258, 0x82, 0xF3), 0.01)
+        assertEquals(-0.26, value(0x0A40, 0x82, 0x8B), 0.01)
+        assertEquals(0.0, value(0x0BBE, 0x7F, 0xFF), 0.01)
+        assertEquals(-4.05, value(0x0428, 0x7F, 0x7B), 0.01)
+        assertEquals(0.83, value(0x0C99, 0x1A, 0xB5), 0.01)
+
+        val columns = listOf(Pids.BMW_RAIL_VALVE_LEARNED, Pids.BMW_FILTER_ZERO, Pids.BMW_EGR_COOLER)
+        val coolers = listOf(0.70, 0.83, 0.87, 0.83, 0.71)
+        val data = TripCsv.parse(
+            sequence {
+                yield(TripCsv.header(columns))
+                coolers.forEachIndexed { i, cooler ->
+                    yield(TripCsv.row(i * 1000L, columns, mapOf(columns[0] to 3.92, columns[1] to -4.05, columns[2] to cooler)))
+                }
+            },
+        )
+        val wear = TripCsv.wear(data)!!
+        assertEquals(3.92, wear.railValve!!, 0.001)
+        assertEquals(-4.05, wear.filterZero!!, 0.001)
+        assertEquals(0.83, wear.egrCooler!!, 0.001)
+        assertNull(wear.lambda)
+        assertNull(TripCsv.wear(TripCsv.parse(sequenceOf(TripCsv.header(listOf(Pids.RPM)), TripCsv.row(0, listOf(Pids.RPM), mapOf(Pids.RPM to 800.0))))))
+    }
 }

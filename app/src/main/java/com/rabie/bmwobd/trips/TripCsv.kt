@@ -43,7 +43,29 @@ data class TimingOffset(val median: Double, val min: Double, val max: Double, va
     val steady: Boolean get() = max - min < 0.01
 }
 
+/**
+ * Lo que la centralita llevaba aprendido en un trayecto para compensar el desgaste. Todo en
+ * desviacion respecto a una pieza nueva, salvo el enfriador, que es su rendimiento.
+ */
+data class Wear(val railValve: Double?, val lambda: Double?, val egrZero: Double?, val filterZero: Double?, val egrCooler: Double?) {
+    val empty: Boolean get() = listOf(railValve, lambda, egrZero, filterZero, egrCooler).all { it == null }
+}
+
 object TripCsv {
+
+    /** El desgaste aprendido que quedo grabado en un trayecto; el enfriador, por su mediana. */
+    fun wear(data: TripData): Wear? {
+        fun last(id: Int) = data.series[id]?.lastOrNull { !it.isNaN() }
+        val cooler = data.series[Pids.BMW_EGR_COOLER]?.filter { !it.isNaN() && it > 0.0 && it < 2.0 }?.sorted()
+        val wear = Wear(
+            railValve = last(Pids.BMW_RAIL_VALVE_LEARNED),
+            lambda = last(Pids.BMW_LAMBDA_LEARNED),
+            egrZero = last(Pids.BMW_EGR_ZERO_LAST),
+            filterZero = last(Pids.BMW_FILTER_ZERO),
+            egrCooler = cooler?.takeIf { it.isNotEmpty() }?.let { it[it.size / 2] },
+        )
+        return wear.takeUnless { it.empty }
+    }
 
     /**
      * El desfase de la distribucion de un trayecto, o null si no se leyo. La mediana hace que una

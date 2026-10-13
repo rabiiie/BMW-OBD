@@ -339,6 +339,13 @@ class ObdSession(
         )
     }
 
+    /** Las averias de la memoria propia de BMW, o null si la centralita no las da. */
+    suspend fun ownFaults(): List<BmwFault>? = try {
+        bmwFaults()
+    } catch (e: SocketTimeoutException) {
+        null
+    }
+
     private suspend fun bmwFaults(): List<BmwFault>? =
         ObdParser.payloads(elm.send(BmwFault.QUERY, READ_TIMEOUT_MS), BmwFault.ANSWER).lastOrNull()?.let(BmwFault::parse)
 

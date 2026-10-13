@@ -29,6 +29,20 @@ class BmwFaultsTest {
     }
 
     @Test
+    fun `con el sensor de nivel de aceite averiado no se leen ni el nivel ni la temperatura de aceite`() {
+        val level = Pids.bmw(Pids.BMW_OIL_LEVEL_ADDRESS)
+        // Lo que tenia el coche el 11 de octubre: las dos del sensor de aceite presentes.
+        val present = BmwFault.parse(ObdParser.payloads("58" + "04498E614A6E613EFC61480A21", "58").first())
+        assertEquals(setOf(level, Pids.OIL), BmwFault.unreadable(present))
+        // Solo guardadas, o con otras averias, el nivel se sigue leyendo.
+        val stored = BmwFault.parse(ObdParser.payloads("58" + "02498E213EFC21", "58").first())
+        assertTrue(BmwFault.unreadable(stored).isEmpty())
+        assertTrue(BmwFault.unreadable(listOf(BmwFault(0x4A6E, 0x61))).isEmpty())
+        assertTrue(BmwFault.unreadable(null).isEmpty())
+        assertTrue(BmwFault.unreadable(emptyList()).isEmpty())
+    }
+
+    @Test
     fun `una respuesta corta o vacia no rompe nada`() {
         assertTrue(BmwFault.parse(IntArray(0)).isEmpty())
         assertTrue(BmwFault.parse(intArrayOf(0)).isEmpty())

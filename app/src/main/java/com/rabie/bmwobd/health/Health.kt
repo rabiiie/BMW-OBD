@@ -153,6 +153,25 @@ object Health {
         )
     }
 
+    /**
+     * Lo que la centralita ha aprendido para compensar el desgaste, con lo que significa cada
+     * valor. No hay limites de BMW: cerca de cero es una pieza que no ha hecho falta corregir, y
+     * lo que cuenta es si crece de un trayecto a otro.
+     */
+    fun wearFacts(data: TripData): List<Pair<String, String>> {
+        val wear = TripCsv.wear(data) ?: return emptyList()
+        return listOfNotNull(
+            wear.railValve?.let { "Válvula de presión del raíl, corrección aprendida" to signed(it, 1) + " %" },
+            wear.lambda?.let { "Sonda lambda, corrección aprendida" to signed(it, 1) + " %" },
+            wear.egrZero?.let { "Válvula EGR, cuánto se ha movido su posición de cerrada" to n(it, 2) + " %" },
+            wear.egrCooler?.let { "Enfriador de la EGR, rendimiento (mediana del trayecto)" to n(it, 2) },
+            wear.filterZero?.let { "Sensor de presión del filtro, corrección de cero aprendida" to signed(it, 1) + " hPa" },
+            "Cómo leerlo" to "son correcciones respecto a la pieza nueva; cerca de cero es bueno y lo que importa es si crecen",
+        )
+    }
+
+    private fun signed(value: Double, decimals: Int) = n(value, decimals).let { if (value > 0 && it.any { c -> c in '1'..'9' }) "+$it" else it }
+
     private fun TripData.last(id: Int): Double? = series[id]?.lastOrNull { !it.isNaN() }
 
     /** Los kilometros entre cada regeneracion y la anterior, de la mas reciente a la mas antigua. */
@@ -169,7 +188,11 @@ object Health {
         if (km == null && level == null) return null
         val facts = listOfNotNull(
             km?.let { "Lleva ${thousands(it)} km desde el cambio." },
-            level?.let { "Nivel que mide el coche: ${n(it)} mm." },
+            if (level != null) {
+                "Nivel que mide el coche: ${n(level)} mm."
+            } else {
+                "El nivel no se enseña: el sensor de nivel de aceite tiene una avería presente y lo que da la centralita no es una medida. Míralo con la varilla."
+            },
             "La temperatura de aceite que publica la centralita repite la del refrigerante: no vale como medida.",
         )
         return if (km != null && km >= OIL_CHANGE_KM) {

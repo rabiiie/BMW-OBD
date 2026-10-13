@@ -22,6 +22,17 @@ data class BmwFault(val code: Int, val status: Int) {
         private const val PRESENT = 0x60
         private const val BYTES_PER_FAULT = 3
 
+        /**
+         * Las medidas que no se pueden leer de verdad con estas averias presentes: con el sensor
+         * de nivel de aceite averiado, el nivel que da la centralita es un valor viejo, y la
+         * temperatura de aceite que publica es la del refrigerante.
+         */
+        fun unreadable(faults: List<BmwFault>?): Set<Int> =
+            if (faults.orEmpty().any { it.active && it.code in OIL_SENSOR }) OIL_MEASURES else emptySet()
+
+        private val OIL_SENSOR = setOf(0x498E, 0x3EFC)
+        private val OIL_MEASURES = setOf(Pids.bmw(Pids.BMW_OIL_LEVEL_ADDRESS), Pids.OIL)
+
         /** La consulta que las pide todas, con cualquier estado. */
         const val QUERY = "1802FFFF"
         const val ANSWER = "58"

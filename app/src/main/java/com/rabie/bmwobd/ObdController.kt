@@ -16,6 +16,7 @@ import com.rabie.bmwobd.dash.Dashboard
 import com.rabie.bmwobd.advice.Moment
 import com.rabie.bmwobd.dash.GearGuess
 import com.rabie.bmwobd.dash.ShiftHint
+import com.rabie.bmwobd.obd.BmwFault
 import com.rabie.bmwobd.obd.Commands
 import com.rabie.bmwobd.obd.DiagnosticsReport
 import com.rabie.bmwobd.obd.MonitorTest
@@ -152,7 +153,10 @@ class ObdController(
                 val standard = Pids.all.filter { it.pid == Pids.ADAPTER_PID || it.pid in info.supportedPids }
                 val taken = standard.map { it.id }.toSet()
                 val own = if (profile.measures.isEmpty()) emptyList() else session.discoverBmw(profile.measures.filter { it.id !in taken })
-                val defs = standard + own
+                // Lo que una averia presente deja sin lectura de verdad no se enseña ni se graba.
+                val blind = if (profile.ownDiagnostics) BmwFault.unreadable(session.ownFaults()) else emptySet()
+                if (blind.isNotEmpty()) appendLog("## Aceite: el sensor de nivel tiene una avería presente; no se enseñan su nivel ni su temperatura")
+                val defs = (standard + own).filterNot { it.id in blind }
                 // Las medidas de los casos tienen su columna desde el principio, aunque no se pidan.
                 val extras = if (own.isEmpty()) emptyList() else profile.caseMeasures
                 appendLog("## Coche: ${vehicle.name} · ${if (vehicle.diesel) "diésel" else "gasolina"} · bastidor ${info.vin ?: "no leído"}")

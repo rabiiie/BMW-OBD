@@ -14,6 +14,7 @@ data class TripEntry(
     val vehicleKey: String?,
     val stats: TripStats,
     val timing: TimingOffset? = null,
+    val wear: Wear? = null,
 )
 
 /** Los trayectos grabados: un CSV por trayecto en la carpeta privada de la app. */
@@ -39,6 +40,7 @@ class TripStore(private val dir: File, private val isDiesel: (vehicleKey: String
                 vehicleKey = vehicleKey,
                 stats = TripCsv.stats(data, isDiesel(vehicleKey)),
                 timing = TripCsv.timing(data),
+                wear = TripCsv.wear(data),
             )
         }.sortedByDescending { it.startMillis }
     }
