@@ -154,7 +154,9 @@ class ObdController(
                 val taken = standard.map { it.id }.toSet()
                 val own = if (profile.measures.isEmpty()) emptyList() else session.discoverBmw(profile.measures.filter { it.id !in taken })
                 // Lo que una averia presente deja sin lectura de verdad no se enseña ni se graba.
-                val blind = if (profile.ownDiagnostics) BmwFault.unreadable(session.ownFaults()) else emptySet()
+                val ownFaults = if (profile.ownDiagnostics) session.ownFaults() else null
+                val blind = BmwFault.unreadable(ownFaults)
+                if (ownFaults != null) session.probeFaultMemory(ownFaults)
                 if (blind.isNotEmpty()) appendLog("## Aceite: el sensor de nivel tiene una avería presente; no se enseñan su nivel ni su temperatura")
                 val defs = (standard + own).filterNot { it.id in blind }
                 // Las medidas de los casos tienen su columna desde el principio, aunque no se pidan.
