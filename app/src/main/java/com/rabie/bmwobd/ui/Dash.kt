@@ -473,35 +473,49 @@ private fun Strip(state: LiveState, onMenu: () -> Unit) {
 }
 
 /**
- * Abre el navegador, Waze, en la otra mitad de la pantalla. Va en la franja para no tener que
- * salir del panel a buscarlo conduciendo. Es un boton dibujado, una flecha de rumbo en un circulo
- * azul claro; si Waze no esta instalado no hace nada.
+ * Abre Waze en la otra mitad de la pantalla. Va en la franja para no tener que salir del panel a
+ * buscarlo conduciendo. El emblema esta dibujado, como el de BMW: el muñeco blanco con sus dos
+ * ojos, la sonrisa y las ruedas sobre fondo azul claro. Si Waze no esta instalado no hace nada.
  */
 @Composable
 private fun NavigatorButton() {
     val context = LocalContext.current
-    Box(
+    Canvas(
         Modifier
             .size(NAVIGATOR_SIZE)
-            .clip(CircleShape)
+            .clip(RoundedCornerShape(9.dp))
             .background(NAVIGATOR_BLUE)
             .clickable { openWaze(context) },
-        contentAlignment = Alignment.Center,
     ) {
-        Canvas(Modifier.size(NAVIGATOR_SIZE * 0.5f)) {
-            val arrow = Path().apply {
-                moveTo(size.width * 0.5f, 0f)
-                lineTo(size.width, size.height)
-                lineTo(size.width * 0.5f, size.height * 0.72f)
-                lineTo(0f, size.height)
-                close()
-            }
-            drawPath(arrow, Color.White)
+        val w = size.width
+        val h = size.height
+        val ink = Color(0xFF1B1B1B)
+        val line = Stroke(w * 0.06f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+        // El cuerpo: un bocadillo redondo con el pico abajo a la izquierda.
+        val body = Path().apply {
+            moveTo(w * 0.30f, h * 0.70f)
+            cubicTo(w * 0.10f, h * 0.70f, w * 0.14f, h * 0.52f, w * 0.20f, h * 0.50f)
+            cubicTo(w * 0.16f, h * 0.22f, w * 0.40f, h * 0.14f, w * 0.54f, h * 0.14f)
+            cubicTo(w * 0.78f, h * 0.14f, w * 0.88f, h * 0.30f, w * 0.88f, h * 0.44f)
+            cubicTo(w * 0.88f, h * 0.60f, w * 0.74f, h * 0.70f, w * 0.58f, h * 0.70f)
+            close()
         }
+        drawPath(body, Color.White)
+        drawPath(body, ink, style = line)
+        // Los ojos y la sonrisa.
+        drawCircle(ink, w * 0.04f, Offset(w * 0.46f, h * 0.36f))
+        drawCircle(ink, w * 0.04f, Offset(w * 0.68f, h * 0.36f))
+        drawArc(
+            ink, 20f, 140f, useCenter = false,
+            topLeft = Offset(w * 0.45f, h * 0.36f), size = Size(w * 0.24f, h * 0.20f), style = Stroke(w * 0.05f, cap = StrokeCap.Round),
+        )
+        // Las ruedas.
+        drawCircle(ink, w * 0.075f, Offset(w * 0.36f, h * 0.80f))
+        drawCircle(ink, w * 0.075f, Offset(w * 0.64f, h * 0.80f))
     }
 }
 
-private val NAVIGATOR_SIZE = 32.dp
+private val NAVIGATOR_SIZE = 34.dp
 private val NAVIGATOR_BLUE = Color(0xFF33CCFF)
 
 /** La linea de abajo: el deposito con lo que queda, que es una cuenta, la hora y la temperatura de fuera. */
