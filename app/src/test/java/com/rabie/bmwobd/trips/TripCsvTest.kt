@@ -140,4 +140,36 @@ class TripCsvTest {
         assertNull(wear.lambda)
         assertNull(TripCsv.wear(TripCsv.parse(sequenceOf(TripCsv.header(listOf(Pids.RPM)), TripCsv.row(0, listOf(Pids.RPM), mapOf(Pids.RPM to 800.0))))))
     }
+
+    @Test
+    fun `lo leido con el motor parado no cuenta para el desfase ni para el enfriador`() {
+        // Como el 13 de octubre: contacto puesto once segundos, arranque, y la primera lectura
+        // de verdad llega un rato despues; hasta entonces las filas repiten la de motor parado.
+        val timing = Pids.bmw(Pids.BMW_TIMING_OFFSET_ADDRESS)
+        val columns = listOf(Pids.RPM, Pids.COOLANT, timing, Pids.BMW_EGR_COOLER)
+        val data = TripCsv.parse(
+            sequence {
+                yield(TripCsv.header(columns))
+                for (i in 0 until 120) {
+                    val running = i >= 11
+                    val fresh = i >= 27
+                    yield(
+                        TripCsv.row(
+                            i * 1000L, columns,
+                            mapOf(
+                                Pids.RPM to if (running) 850.0 else 0.0,
+                                Pids.COOLANT to 43.0,
+                                timing to if (fresh) -0.81 else 0.0,
+                                Pids.BMW_EGR_COOLER to if (fresh) 0.81 else 1.0,
+                            ),
+                        ),
+                    )
+                }
+            },
+        )
+        val offset = TripCsv.timing(data)!!
+        assertEquals(-0.81, offset.median, 0.001)
+        assertTrue(offset.steady)
+        assertEquals(0.81, TripCsv.wear(data)!!.egrCooler!!, 0.001)
+    }
 }

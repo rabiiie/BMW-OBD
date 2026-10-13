@@ -56,13 +56,13 @@ object TripCsv {
     /** El desgaste aprendido que quedo grabado en un trayecto; el enfriador, por su mediana. */
     fun wear(data: TripData): Wear? {
         fun last(id: Int) = data.series[id]?.lastOrNull { !it.isNaN() }
-        val cooler = data.series[Pids.BMW_EGR_COOLER]?.filter { !it.isNaN() && it > 0.0 && it < 2.0 }?.sorted()
+        val cooler = whileRunning(data, Pids.BMW_EGR_COOLER).filter { it > 0.0 && it < 2.0 }.sorted()
         val wear = Wear(
             railValve = last(Pids.BMW_RAIL_VALVE_LEARNED),
             lambda = last(Pids.BMW_LAMBDA_LEARNED),
             egrZero = last(Pids.BMW_EGR_ZERO_LAST),
             filterZero = last(Pids.BMW_FILTER_ZERO),
-            egrCooler = cooler?.takeIf { it.isNotEmpty() }?.let { it[it.size / 2] },
+            egrCooler = cooler.takeIf { it.isNotEmpty() }?.let { it[it.size / 2] },
         )
         return wear.takeUnless { it.empty }
     }
@@ -72,13 +72,44 @@ object TripCsv {
      * lectura suelta equivocada no cuente, y lo que no puede ser un desfase se descarta antes.
      */
     fun timing(data: TripData): TimingOffset? {
-        val read = data.series[TIMING_OFFSET]?.filter { !it.isNaN() && it > -MAX_TIMING_OFFSET && it < MAX_TIMING_OFFSET }.orEmpty()
+        val read = whileRunning(data, TIMING_OFFSET).filter { it > -MAX_TIMING_OFFSET && it < MAX_TIMING_OFFSET }
         if (read.isEmpty()) return null
         val sorted = read.sorted()
         val coolant = data.series[Pids.COOLANT]?.firstOrNull { !it.isNaN() }
         return TimingOffset(sorted[sorted.size / 2], sorted.first(), sorted.last(), coolant)
     }
 
+    /**
+     * Lo leido de una medida con el motor en marcha. Con el motor parado el desfase da 0 y el
+     * enfriador 1, que no son medidas (visto en el coche el 13 de octubre). Como cada fila repite
+     * lo ultimo leido, lo que venia de motor parado tampoco cuenta hasta que cambia, o hasta que
+     * pasa un minuto en marcha y ya tiene que ser una lectura nueva. Sin revoluciones grabadas no
+     * se puede saber y vale todo.
+     */
+    private fun whileRunning(data: TripData, id: Int): List<Double> {
+        val series = data.series[id] ?: return emptyList()
+        val rpm = data.series[Pids.RPM] ?: return series.filter { !it.isNaN() }
+        val read = ArrayList<Double>()
+        var startedMs = -1L
+        var stopped = Double.NaN
+        for (i in 0 until data.size) {
+            val value = series[i]
+            if (!(rpm[i] >= RUNNING_RPM)) {
+                startedMs = -1L
+                if (!value.isNaN()) stopped = value
+                continue
+            }
+            if (startedMs < 0) startedMs = data.tMs[i]
+            if (value.isNaN()) continue
+            if (value == stopped && data.tMs[i] - startedMs < STALE_AFTER_START_MS) continue
+            stopped = Double.NaN
+            read += value
+        }
+        return read
+    }
+
+    private const val RUNNING_RPM = 400.0
+    private const val STALE_AFTER_START_MS = 60_000L
     private val TIMING_OFFSET = Pids.bmw(Pids.BMW_TIMING_OFFSET_ADDRESS)
     private const val MAX_TIMING_OFFSET = 30.0
 

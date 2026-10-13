@@ -163,20 +163,21 @@ private fun WearTable(trips: List<TripEntry>) {
         @Composable
         fun cells(date: String, values: List<String>, color: Color) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(date, color = Bmw.TextDim, fontSize = 13.sp, modifier = Modifier.weight(1.6f), maxLines = 1)
+                Text(date, color = Bmw.TextDim, fontSize = 13.sp, modifier = Modifier.weight(1.1f), maxLines = 1)
                 for (value in values) Text(value, color = color, fontSize = 13.sp, modifier = Modifier.weight(1f), maxLines = 1)
             }
         }
-        cells("", listOf("Raíl %", "Lambda %", "EGR %", "Enfr.", "Filtro hPa"), Bmw.TextDim)
+        cells("", listOf("Raíl", "Lambda", "EGR", "Enfr.", "Filtro"), Bmw.TextDim)
         for (trip in trips) {
             val wear = trip.wear ?: continue
             fun text(value: Double?, decimals: Int) = value?.let { "%.${decimals}f".format(it) } ?: "—"
             cells(
-                formatStart(trip.startMillis),
+                formatDay(trip.startMillis),
                 listOf(text(wear.railValve, 1), text(wear.lambda, 1), text(wear.egrZero, 2), text(wear.egrCooler, 2), text(wear.filterZero, 1)),
                 Bmw.Text,
             )
         }
+        Text("Raíl, lambda y EGR en %. Enfriador: rendimiento de 0 a 1. Filtro en hPa.", color = Bmw.TextDim, fontSize = 12.sp)
     }
 }
 
@@ -404,6 +405,8 @@ private fun statCells(stats: TripStats): List<Pair<String, String>> = listOfNotN
 /** Nombre con el que sale el CSV al compartirlo: con la fecha y sin el bastidor del coche. */
 private fun exportName(entry: TripEntry): String =
     "trayecto_" + SimpleDateFormat("yyyyMMdd_HHmm", Locale.US).format(Date(entry.startMillis)) + ".csv"
+
+private fun formatDay(millis: Long): String = SimpleDateFormat("d MMM", Locale.getDefault()).format(Date(millis))
 
 private fun formatStart(millis: Long): String =
     SimpleDateFormat("EEE d MMM · HH:mm", Locale.getDefault()).format(Date(millis))
