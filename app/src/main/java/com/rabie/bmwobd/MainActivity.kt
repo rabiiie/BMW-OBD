@@ -33,6 +33,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
+import kotlinx.coroutines.delay
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -74,6 +79,8 @@ class MainActivity : ComponentActivity() {
 }
 
 private const val COMPACT_HEIGHT_DP = 500
+private const val AUTO_CONNECT_EVERY_MS = 8_000L
+private const val AUTO_CONNECT_ATTEMPTS = 30
 
 private enum class Tab(val title: String) {
     PANEL("Panel"), TRIPS("Trayectos"), FAULTS("Averías"), LOG("Registro"), SETTINGS("Ajustes")
@@ -101,14 +108,32 @@ private fun MainScreen(vm: ObdViewModel = viewModel()) {
         if (permissionGranted) vm.refreshDevices() else launcher.launch(runtimePermissions())
     }
 
-    // Conexion automatica: una sola vez por arranque, en cuanto se conoce la lista de emparejados.
-    var autoConnectTried by rememberSaveable { mutableStateOf(false) }
-    LaunchedEffect(devices) {
-        if (autoConnectTried || devices.isEmpty()) return@LaunchedEffect
-        autoConnectTried = true
-        val last = settings.lastAdapter
-        if (settings.autoConnect && state.phase == Phase.IDLE && devices.any { it.address == last }) {
-            vm.connect(last.orEmpty())
+    // Conexion automatica: con la app a la vista y sin conectar, lo intenta sola cada pocos
+    // segundos, tambien cuando la conexion se corta. Desconectar a mano la para hasta que se
+    // conecte a mano otra vez. Tras unos minutos sin exito deja de insistir: el adaptador tiene
+    // corriente siempre y no hay por que estar llamando a un coche apagado.
+    var autoPaused by rememberSaveable { mutableStateOf(false) }
+    var autoSearching by remember { mutableStateOf(false) }
+    val phase by rememberUpdatedState(state.phase)
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val auto = settings.autoConnect && !autoPaused && permissionGranted
+    LaunchedEffect(auto, lifecycleOwner) {
+        if (!auto) return@LaunchedEffect
+        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            var attempts = 0
+            try {
+                while (attempts < AUTO_CONNECT_ATTEMPTS) {
+                    when (phase) {
+                        Phase.LIVE -> attempts = 0
+                        Phase.CONNECTING -> Unit
+                        else -> if (vm.autoConnect()) attempts++ else break
+                    }
+                    autoSearching = true
+                    delay(AUTO_CONNECT_EVERY_MS)
+                }
+            } finally {
+                autoSearching = false
+            }
         }
     }
 
@@ -142,7 +167,10 @@ private fun MainScreen(vm: ObdViewModel = viewModel()) {
                     onToggleBubble = toggleBubble,
                     onSaveVehicle = vm::updateVehicle,
                     onCase = { case -> vm.updateSettings { it.copy(case = case) } },
-                    onDisconnect = vm::disconnect,
+                    onDisconnect = {
+                        autoPaused = true
+                        vm.disconnect()
+                    },
                     modifier = content,
                 )
             } else {
@@ -154,8 +182,16 @@ private fun MainScreen(vm: ObdViewModel = viewModel()) {
                     permissionGranted = permissionGranted,
                     onRequestPermission = { launcher.launch(runtimePermissions()) },
                     onRefresh = vm::refreshDevices,
-                    onConnect = { vm.connect(it.address) },
-                    onSimulate = vm::connectSimulator,
+                    onConnect = {
+                        autoPaused = false
+                        vm.connect(it.address)
+                    },
+                    onSimulate = {
+                        autoPaused = true
+                        vm.connectSimulator()
+                    },
+                    retrying = auto && autoSearching,
+                    onStopRetrying = { autoPaused = true },
                     modifier = content,
                 )
             }

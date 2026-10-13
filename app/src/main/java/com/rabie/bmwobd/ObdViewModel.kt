@@ -44,10 +44,25 @@ class ObdViewModel(app: Application) : AndroidViewModel(app) {
         _devices.value = found.map { DeviceItem(it.name ?: it.address, it.address) }.sortedBy { it.name }
     }
 
-    fun connect(address: String) {
+    fun connect(address: String, keepLog: Boolean = false) {
         val device = bonded[address] ?: return
         settingsStore.update { it.copy(lastAdapter = address) }
-        controller.connect(BluetoothSppTransport(device), simulated = false)
+        controller.connect(BluetoothSppTransport(device), simulated = false, keepLog = keepLog)
+    }
+
+    /**
+     * Intenta conectar sin que nadie lo pida: con el ultimo adaptador usado si sigue emparejado y,
+     * si nunca se uso ninguno, con el unico emparejado que por su nombre sea un ELM327. Devuelve
+     * si habia con quien intentarlo.
+     */
+    fun autoConnect(): Boolean {
+        refreshDevices()
+        val last = settingsStore.state.value.lastAdapter
+        val address = bonded[last]?.address
+            ?: _devices.value.singleOrNull { device -> ADAPTER_NAMES.any { device.name.contains(it, ignoreCase = true) } }?.address
+            ?: return false
+        connect(address, keepLog = true)
+        return true
     }
 
     fun connectSimulator() = controller.connect(SimulatedTransport(), simulated = true)
@@ -89,6 +104,10 @@ class ObdViewModel(app: Application) : AndroidViewModel(app) {
     fun resetScan() = controller.resetScan()
 
     fun scanFile() = controller.scanFile()
+
+    private companion object {
+        val ADAPTER_NAMES = listOf("OBD", "ELM", "VLINK", "V-LINK")
+    }
 
     fun readDiagnostics() = controller.readDiagnostics()
 

@@ -12,6 +12,7 @@ import com.rabie.bmwobd.advice.Advice
 import com.rabie.bmwobd.advice.Advisor
 import com.rabie.bmwobd.advice.Severity
 import com.rabie.bmwobd.cases.Case
+import com.rabie.bmwobd.cases.FirstStart
 import com.rabie.bmwobd.dash.Dashboard
 import com.rabie.bmwobd.advice.Moment
 import com.rabie.bmwobd.dash.GearGuess
@@ -132,13 +133,21 @@ class ObdController(
 
     // Solo se toca desde la lectura.
     private var silence = Silence()
+    private var lastError: String? = null
     private var job: Job? = null
 
-    fun connect(transport: ObdTransport, simulated: Boolean) {
+    /**
+     * Con [keepLog] el registro no se vacia: es un intento automatico, y lo ultimo que contesto el
+     * coche tiene que seguir ahi aunque la app lo reintente sola.
+     */
+    fun connect(transport: ObdTransport, simulated: Boolean, keepLog: Boolean = false) {
         job?.cancel()
         while (tasks.tryReceive().isSuccess) Unit
-        logBuffer.clear()
-        _log.value = emptyList()
+        if (!keepLog) {
+            logBuffer.clear()
+            _log.value = emptyList()
+            lastError = null
+        }
         _probe.update { it.copy(running = false) }
         _diagnostics.value = DiagnosticsState()
         _state.value = LiveState(phase = Phase.CONNECTING, simulated = simulated)
@@ -156,7 +165,15 @@ class ObdController(
                 // Lo que una averia presente deja sin lectura de verdad no se enseña ni se graba.
                 val ownFaults = if (profile.ownDiagnostics) session.ownFaults() else null
                 val blind = BmwFault.unreadable(ownFaults)
-                if (ownFaults != null) session.probeFaultMemory(ownFaults)
+                if (ownFaults != null) {
+                    // Fijo en el registro: las lecturas de despues lo echarian fuera en segundos.
+                    logBuffer.pin()
+                    try {
+                        session.probeFaultMemory(ownFaults)
+                    } finally {
+                        logBuffer.unpin()
+                    }
+                }
                 if (blind.isNotEmpty()) appendLog("## Aceite: el sensor de nivel tiene una avería presente; no se enseñan su nivel ni su temperatura")
                 val defs = (standard + own).filterNot { it.id in blind }
                 // Las medidas de los casos tienen su columna desde el principio, aunque no se pidan.
@@ -167,6 +184,7 @@ class ObdController(
                     TripRecorder(trips.newFile(simulated, vehicle.key), (defs + extras).map { it.id }.distinct())
                 }
                 recorder = started
+                lastError = null
                 _state.update {
                     it.copy(
                         phase = Phase.LIVE,
@@ -185,7 +203,9 @@ class ObdController(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                appendLog("!! ${e.message}")
+                // Un reintento automatico que falla igual que el anterior no vuelve a apuntarlo.
+                if (!keepLog || e.message != lastError) appendLog("!! ${e.message}")
+                lastError = e.message
                 _state.update { it.copy(phase = Phase.ERROR, error = e.message ?: "Error de conexión") }
             } finally {
                 closeScan(keepActive = true)
@@ -417,6 +437,7 @@ class ObdController(
         var lastSumNanos = System.nanoTime()
         val gears = GearGuess()
         val shifts = ShiftHint()
+        val firstStart = FirstStart()
         var looked = emptyList<Int>()
         _state.update { it.copy(supported = turns.shown) }
 
@@ -439,6 +460,8 @@ class ObdController(
             val urgent = advice.firstOrNull { it.severity != Severity.INFO } ?: advice.firstOrNull()
             val wanted = when {
                 extras.isEmpty() -> Case.NORMAL
+                // El primer arranque se mira solo, se haya elegido el caso que se haya elegido.
+                firstStart.watching(System.nanoTime() / 1_000_000, values[Pids.RPM]) -> Case.COLD_START
                 chosen != Case.NORMAL -> chosen
                 else -> urgent?.let(Dashboard::group)?.case ?: Case.NORMAL
             }

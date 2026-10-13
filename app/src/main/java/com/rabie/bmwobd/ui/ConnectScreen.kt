@@ -41,6 +41,8 @@ fun ConnectScreen(
     onRefresh: () -> Unit,
     onConnect: (DeviceItem) -> Unit,
     onSimulate: () -> Unit,
+    retrying: Boolean = false,
+    onStopRetrying: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val connecting = state.phase == Phase.CONNECTING
@@ -59,6 +61,12 @@ fun ConnectScreen(
         )
 
         state.error?.let { Text(it, color = Bmw.MRed, fontSize = 14.sp) }
+        if (retrying) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Se conecta sola: lo intenta cada pocos segundos.", color = Bmw.TextDim, fontSize = 14.sp, modifier = Modifier.weight(1f))
+                TextButton(onClick = onStopRetrying) { Text("Parar") }
+            }
+        }
 
         // El ultimo adaptador usado va arriba y con un boton propio: es lo que se quiere casi siempre.
         val last = devices.firstOrNull { it.address == lastAdapter }
