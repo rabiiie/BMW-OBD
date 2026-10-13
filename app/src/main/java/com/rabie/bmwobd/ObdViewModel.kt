@@ -93,6 +93,8 @@ class ObdViewModel(app: Application) : AndroidViewModel(app) {
     fun watch(ids: List<Int>) = controller.watch(ids)
 
     fun probe() = controller.probe()
+
+    fun probeModules() = controller.probeModules()
     val probeState: StateFlow<ProbeState> = controller.probeState
 
     val scanState: StateFlow<ScanProgress> = controller.scanState

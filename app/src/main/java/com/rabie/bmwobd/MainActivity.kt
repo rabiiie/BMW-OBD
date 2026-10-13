@@ -223,6 +223,7 @@ private fun MainScreen(vm: ObdViewModel = viewModel()) {
                     onToggleScan = vm::toggleScan,
                     onResetScan = vm::resetScan,
                     scanFile = vm::scanFile,
+                    onProbeModules = vm::probeModules,
                     modifier = content,
                 )
             }

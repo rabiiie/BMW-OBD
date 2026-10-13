@@ -295,6 +295,31 @@ class ObdSession(
     }
 
     /**
+     * Pregunta a otras centralitas del coche, no a la del motor, quienes son y que configuracion
+     * guardan. Todo son consultas: identidad (1A 80), averias (18 02) y bloques de configuracion
+     * (22 30xx). No escribe nada. Cada centralita tiene su direccion y el adaptador se prepara
+     * para hablar con ella de la forma en que contesto la del motor en el primer sondeo. Lo que
+     * contesten queda en el registro tal cual. Al acabar el adaptador vuelve a la lectura normal.
+     */
+    suspend fun probeModules() {
+        log("## Centralitas: inicio")
+        try {
+            for ((address, name) in MODULES) {
+                log("## Centralita %02X: %s".format(address, name))
+                val setup = listOf(
+                    "ATSP6", "ATSH6F1", "ATCEA%02X".format(address), "ATFCSH6F1", "ATFCSD%02X3000".format(address),
+                    "ATFCSM1", "ATCRA6%02X".format(address), "ATAT0", "ATSTFF",
+                )
+                for (command in setup) attempt(command)
+                for (query in MODULE_QUERIES) attempt(query, RAW_TIMEOUT_MS)
+            }
+        } finally {
+            restoreOrFail()
+        }
+        log("## Centralitas: fin")
+    }
+
+    /**
      * Deja el adaptador como lo espera la lectura normal y comprueba que el coche vuelve a
      * contestar. Si no lo consigue en dos intentos corta la conexion: es mejor reconectar, que
      * reinicia el adaptador desde cero, que seguir leyendo con el a medio configurar.
@@ -485,6 +510,19 @@ class ObdSession(
         val RAW_SETUP = listOf("ATSP6", "ATCAF0", "ATSH6F1", "ATCF600", "ATCM700", "ATAT0", "ATSTFF")
         val RAW_TARGETS = listOf(0x12, 0x60, 0x40, 0x29)
         const val RAW_TIMEOUT_MS = 2_500L
+
+        // Las direcciones son las de los BMW de esta epoca. La primera es la del motor, que ya
+        // se sabe que contesta: sirve de control de que la forma de preguntar es buena.
+        val MODULES = listOf(
+            0x12 to "motor (de control)",
+            0x72 to "luces e intermitentes, en el hueco de los pies",
+            0x00 to "caja de conexiones, que hace de pasarela",
+            0x60 to "cuadro de instrumentos",
+            0x40 to "llaves y arranque",
+        )
+
+        // Solo servicios de lectura: identidad, averias y los cuatro primeros bloques de configuracion.
+        val MODULE_QUERIES = listOf("1A80", "1802FFFF", "223000", "223001", "223002", "223003")
         const val SCAN_TIMEOUT_MS = 1_500L
 
         // Espera fija de 400 ms en vez de la adaptativa.

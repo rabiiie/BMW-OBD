@@ -54,8 +54,10 @@ fun shareFile(context: Context, file: File, mimeType: String, displayName: Strin
 fun shareLog(context: Context, lines: List<String>) {
     val dir = File(context.filesDir, "logs").apply { mkdirs() }
     val file = File(dir, "registro.txt")
-    val saved = File(context.filesDir, ObdController.PROBE_FILE).takeIf { it.exists() }?.readLines().orEmpty()
-    file.writeText(LogExport.withoutVin(ObdController.withSavedProbe(lines, saved)).joinToString("\n"))
+    fun saved(name: String) = File(context.filesDir, name).takeIf { it.exists() }?.readLines().orEmpty()
+    val withProbe = ObdController.withSaved(lines, saved(ObdController.PROBE_FILE), ObdController.PROBE_END)
+    val whole = ObdController.withSaved(withProbe, saved(ObdController.MODULES_FILE), ObdController.MODULES_END)
+    file.writeText(LogExport.withoutVin(whole).joinToString("\n"))
     val stamp = SimpleDateFormat("yyyyMMdd_HHmm", Locale.US).format(Date())
     shareFile(context, file, "text/plain", "registro_bmwobd_$stamp.txt")
 }

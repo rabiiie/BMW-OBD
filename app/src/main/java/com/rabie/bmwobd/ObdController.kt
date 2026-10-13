@@ -399,6 +399,39 @@ class ObdController(
         }
     }
 
+    /**
+     * Pregunta a las otras centralitas quienes son y que configuracion guardan. Solo lee. Como
+     * cambia la configuracion del adaptador mientras dura, solo se hace con el coche parado; lo
+     * que contesten queda fijo en el registro y guardado en el movil.
+     */
+    fun probeModules() {
+        if (!isLive() || !canScan(_state.value.vehicle)) return
+        if ((_state.value.values[Pids.SPEED] ?: 0.0) >= 1.0) {
+            appendLog("!! Las otras centralitas solo se preguntan con el coche parado.")
+            return
+        }
+        tasks.trySend { session ->
+            logBuffer.pin()
+            try {
+                session.probeModules()
+            } catch (e: IOException) {
+                appendLog("!! Centralitas: interrumpido: ${e.message}")
+                throw e
+            } finally {
+                logBuffer.unpin()
+                val answered = logBuffer.pinned()
+                withContext(Dispatchers.IO) {
+                    runCatching {
+                        val file = java.io.File(context.filesDir, MODULES_FILE)
+                        file.parentFile?.mkdirs()
+                        val stamp = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.US).format(java.util.Date())
+                        file.writeText((listOf("## Centralitas guardadas de la conexión del $stamp") + answered).joinToString("\n"))
+                    }
+                }
+            }
+        }
+    }
+
     fun readDiagnostics() = diagnose(clearFirst = false)
 
     fun clearDtcs() = diagnose(clearFirst = true)
@@ -621,11 +654,14 @@ class ObdController(
     companion object {
         /** Donde queda la ultima respuesta a la prueba de la memoria de averias. */
         const val PROBE_FILE = "logs/prueba_averias.txt"
-        private const val PROBE_END = "## Prueba: fin"
+        /** Donde queda lo ultimo que contestaron las otras centralitas. */
+        const val MODULES_FILE = "logs/otras_centralitas.txt"
+        const val PROBE_END = "## Prueba: fin"
+        const val MODULES_END = "## Centralitas: fin"
 
-        /** [lines] con la ultima prueba guardada detras, si no la llevan ya. */
-        fun withSavedProbe(lines: List<String>, saved: List<String>): List<String> =
-            if (saved.isEmpty() || lines.any { it.startsWith(PROBE_END) }) lines else lines + saved
+        /** [lines] con lo guardado en [saved] detras, si no lo llevan ya: se reconoce por su ultima linea, [end]. */
+        fun withSaved(lines: List<String>, saved: List<String>, end: String): List<String> =
+            if (saved.isEmpty() || lines.any { it.startsWith(end) }) lines else lines + saved
 
         private val SOUNDING = setOf("lugging")
         private const val IDLE_DELAY_MS = 200L
