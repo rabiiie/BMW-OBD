@@ -405,6 +405,9 @@ object Pids {
         bmwDef(0x05DE, "Bomba del depósito: giro", "rpm", 0, PidGroup.FUEL) { it.toDouble() },
         bmwDef(0x0674, "Raíl: presión real (centralita)", "bar", 0, PidGroup.FUEL) { it * 0.045777 },
         bmwDef(0x0644, "Raíl: desviación", "bar", 1, PidGroup.FUEL) { it * 0.1 },
+        // La centralita manda en el motor de arranque: lo suelta cuando el motor pasa de unas vueltas.
+        bmwDef(0x069A, "Motor de arranque (1 = actuando)", "", 0, PidGroup.ENGINE, size = 1) { it.toDouble() },
+        bmwDef(0x0D8E, "Motor de arranque: se suelta a", "rpm", 0, PidGroup.ENGINE) { it * 0.091554 },
         bmwDef(0x01BC, "Alternador: corriente", "", 0, PidGroup.ELECTRIC, size = 1) { it.toDouble() },
         bmwDef(0x01AF, "Alternador: tensión que se le pide", "V", 1, PidGroup.ELECTRIC) { it * 0.1 },
         bmwDef(0x0186, "Alternador: carga", "%", 0, PidGroup.ELECTRIC) { it * 0.003052 },

@@ -352,6 +352,8 @@ object SimulatedDde {
         measure(0x14D3) { _ -> word((-0.3 + 327.67) / 0.01) },
         measure(0x15E5) { _ -> word((0.2 + 100) / 0.003052) },
         measure(0x02DC) { _ -> word(3_800.0) },
+        measure(0x069A) { _ -> byte(0.0) },
+        measure(0x0D8E) { _ -> word(1_039.0 / 0.091554) },
         measure(0x0327) { _ -> byte(38.0) },
         measure(0x0324) { _ -> byte(80.0) },
         measure(0x05DF) { _ -> word(62.0 / 0.012207) },
