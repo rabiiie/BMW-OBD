@@ -382,8 +382,24 @@ class ObdSession(
             vin = text("0902", "4902"),
             calibration = text("0904", "4904"),
             readiness = status?.let(Readiness::parse),
-            bmwFaults = if (bmw) bmwFaults() else null,
-        )
+        ).let { report ->
+            if (!bmw) return@let report
+            val faults = bmwFaults()
+            report.copy(bmwFaults = faults, bmwInfo = bmwInfo(), bmwFaultKm = faults.orEmpty().mapNotNull { fault -> faultKm(fault.code)?.let { fault.code to it } }.toMap())
+        }
+    }
+
+    private suspend fun bmwInfo(): List<BmwFault>? = bmwAsk(BmwFault.INFO_QUERY, BmwFault.INFO_ANSWER)?.let(BmwFault::parse)
+
+    private suspend fun faultKm(code: Int): Int? = bmwAsk(BmwFault.detailQuery(code), BmwFault.DETAIL_ANSWER)?.let { BmwFault.detailKm(it, code) }
+
+    /** Una consulta de la memoria de averias de BMW. Si no contesta a tiempo, su respuesta podria llegar tarde y cruzarse. */
+    private suspend fun bmwAsk(query: String, answer: String): IntArray? = try {
+        ObdParser.payloads(elm.send(query, READ_TIMEOUT_MS), answer).lastOrNull()
+    } catch (e: SocketTimeoutException) {
+        null
+    } finally {
+        bmwLate = true
     }
 
     /** Las averias de la memoria propia de BMW, o null si la centralita no las da. */
@@ -391,31 +407,6 @@ class ObdSession(
         bmwFaults()
     } catch (e: SocketTimeoutException) {
         null
-    }
-
-    /**
-     * Dos lecturas de la memoria de averias de BMW que todavia no se saben traducir: la memoria de
-     * informacion (22 2000) y el detalle de cada averia (17 y su codigo). Las dos solo leen. La
-     * respuesta queda tal cual en el registro, para ver en el coche que contesta la centralita.
-     */
-    suspend fun probeFaultMemory(faults: List<BmwFault>) {
-        log("## Prueba: memoria de información (22 2000)")
-        probe(INFO_MEMORY_QUERY)
-        for (fault in faults.take(MAX_FAULT_DETAILS)) {
-            log("## Prueba: detalle de la avería ${fault.label}")
-            probe(FAULT_DETAIL_QUERY + fault.label)
-        }
-        log("## Prueba: fin")
-    }
-
-    private suspend fun probe(query: String) {
-        try {
-            elm.send(query, READ_TIMEOUT_MS)
-        } catch (e: SocketTimeoutException) {
-            log("## Prueba: sin respuesta a $query")
-        }
-        // Si la respuesta llega tarde, que no salga como la de la primera medida que se pida.
-        bmwLate = true
     }
 
     private suspend fun bmwFaults(): List<BmwFault>? =
@@ -525,9 +516,6 @@ class ObdSession(
         const val BMW_QUERY = "2C10"
         const val BMW_ANSWER = "6C10"
         const val BMW_IDENT = "1A80"
-        const val INFO_MEMORY_QUERY = "222000"
-        const val FAULT_DETAIL_QUERY = "17"
-        const val MAX_FAULT_DETAILS = 10
 
         val RAW_SETUP = listOf("ATSP6", "ATCAF0", "ATSH6F1", "ATCF600", "ATCM700", "ATAT0", "ATSTFF")
         val RAW_TARGETS = listOf(0x12, 0x60, 0x40, 0x29)

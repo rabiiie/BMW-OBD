@@ -92,11 +92,25 @@ object Pids {
     const val MODE_REGENERATING = 0x02010002
 
     /**
+     * La regeneracion de proteccion: con el filtro muy cargado lo quema despacio, sin pasar de unos
+     * 500 grados, para no dañarlo. Visto el 13 y el 14 de octubre, cuando la memoria de informacion
+     * apunto 4CE0, "regeneracion de proteccion del motor activada".
+     */
+    const val MODE_PROTECTION = 0x00210002
+
+    /** Con el contacto puesto y el motor parado. */
+    const val MODE_STOPPED = 0x80100001.toInt()
+
+    val KNOWN_MODES = setOf(MODE_NORMAL, MODE_REGENERATING, MODE_PROTECTION, MODE_STOPPED)
+
+    fun protecting(values: Map<Int, Double>): Boolean = values[BMW_ENGINE_MODE]?.toLong()?.toInt() == MODE_PROTECTION
+
+    /**
      * Si el filtro esta regenerando ahora. Con el modo del motor leido, lo dice el; un modo que no
      * se conoce no cuenta. Sin modo, en grabaciones de antes de leerlo, vale la peticion.
      */
     fun regenerating(request: Double?, mode: Double?): Boolean = when {
-        mode != null && !mode.isNaN() -> mode == MODE_REGENERATING.toDouble()
+        mode != null && !mode.isNaN() -> mode.toLong().toInt().let { it == MODE_REGENERATING || it == MODE_PROTECTION }
         else -> request != null && request >= BMW_REGEN_ACTIVE
     }
 

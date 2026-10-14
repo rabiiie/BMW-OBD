@@ -593,6 +593,13 @@ class Advisor {
                 // Si la centralita dice si pide regenerar, vale eso y no se deduce por la temperatura.
                 if (Pids.BMW_REGEN_REQUEST in m.values || Pids.BMW_ENGINE_MODE in m.values) {
                     if (!Pids.regenerating(m.values) || !m.running) return@Rule null
+                    if (Pids.protecting(m.values)) {
+                        return@Rule Advice(
+                            "regeneration", Severity.WARN, "Regeneración de protección",
+                            "El filtro está muy cargado y la centralita lo quema despacio para no dañarlo. " +
+                                "Ayúdala con 20 o 30 minutos seguidos por carretera, sin apagar el motor.",
+                        )
+                    }
                     return@Rule Advice(
                         "regeneration", Severity.INFO, "El filtro está regenerando",
                         "Lo dice la centralita. Si puedes, sigue circulando unos minutos antes de apagar: " +

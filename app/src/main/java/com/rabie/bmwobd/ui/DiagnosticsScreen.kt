@@ -144,7 +144,8 @@ private fun Report(report: DiagnosticsReport, vehicleTerms: String) {
     if (listOfNotNull(report.stored, report.pending, report.permanent).any { it.isNotEmpty() }) {
         Text("Toca un código para buscarlo en internet con los datos de este coche.", color = Bmw.TextDim, fontSize = 12.sp)
     }
-    report.bmwFaults?.let { BmwFaultsCard(it, vehicleTerms) }
+    report.bmwFaults?.let { BmwFaultsCard(it, report.bmwFaultKm, vehicleTerms) }
+    report.bmwInfo?.let { BmwInfoCard(it) }
 
     if (report.freezeDtc != null) {
         Card {
@@ -176,7 +177,7 @@ private fun Report(report: DiagnosticsReport, vehicleTerms: String) {
  * no las borra; el boton de borrar solo borra las del OBD estandar.
  */
 @Composable
-private fun BmwFaultsCard(faults: List<BmwFault>, vehicleTerms: String) {
+private fun BmwFaultsCard(faults: List<BmwFault>, kms: Map<Int, Int>, vehicleTerms: String) {
     val context = LocalContext.current
     Card {
         Label("En la memoria propia de BMW")
@@ -202,7 +203,8 @@ private fun BmwFaultsCard(faults: List<BmwFault>, vehicleTerms: String) {
                 }
                 fault.kind?.let { Text(it, color = Bmw.Text, fontSize = 14.sp) }
                 Text(
-                    if (fault.active) "Presente ahora" else "Guardada de antes; ahora no está presente",
+                    (if (fault.active) "Presente ahora" else "Guardada de antes; ahora no está presente") +
+                        (kms[fault.code]?.let { " · apuntada a los ${thousands(it)} km" } ?: ""),
                     color = Bmw.TextDim,
                     fontSize = 13.sp,
                 )
@@ -210,6 +212,30 @@ private fun BmwFaultsCard(faults: List<BmwFault>, vehicleTerms: String) {
         }
     }
 }
+
+/** La memoria de informacion de BMW: lo que la centralita apunta sin encender ningun testigo. */
+@Composable
+private fun BmwInfoCard(info: List<BmwFault>) {
+    Card {
+        Label("Memoria de información de BMW")
+        if (info.isEmpty()) {
+            Text("Nada apuntado.", color = Bmw.Text)
+            return@Card
+        }
+        Text("Avisos que la centralita guarda sin encender ningún testigo.", color = Bmw.TextDim, fontSize = 13.sp)
+        for (entry in info) {
+            Column(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(entry.label, color = Bmw.Accent, fontFamily = FontFamily.Monospace, fontSize = 18.sp)
+                    Text(entry.text ?: "Sin descripción en la app", color = Bmw.Text, fontSize = 15.sp, modifier = Modifier.weight(1f))
+                }
+                entry.kind?.let { Text(it, color = Bmw.Text, fontSize = 14.sp) }
+            }
+        }
+    }
+}
+
+private fun thousands(value: Int) = String.format(java.util.Locale.US, "%,d", value).replace(',', '.')
 
 /**
  * Las autocomprobaciones del coche. Es lo que lee una estacion de ITV por el conector: testigo,

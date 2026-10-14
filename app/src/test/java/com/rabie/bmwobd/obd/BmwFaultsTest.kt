@@ -67,4 +67,26 @@ class BmwFaultsTest {
         // Las del OBD estandar siguen saliendo como siempre.
         assertEquals(2, report.stored!!.size)
     }
+
+    @Test
+    fun `el detalle de cada averia da el kilometraje en que se apunto`() {
+        // Respuestas del coche el 14 de octubre, tal como las dio el adaptador.
+        fun detail(text: String, code: Int) = BmwFault.detailKm(ObdParser.payloads(text, BmwFault.DETAIL_ANSWER).last(), code)
+        val oil = "04A\n0: 5701498E6100\n1: 0000FF01AE0500\n2: 005F0000003C7D\n3: 91040000004719\n4: 000000285C2100\n" +
+            "5: 00801000015300\n6: FFB91206CF5A2B\n7: 1C293C89901000\n8: 00524AE664000C\n9: 28461C00000010\nA: 00014E00CAAAAA"
+        assertEquals(356_392, detail(oil, 0x498E))
+        val back = "058\n0: 57014D002100\n1: 00000428B92311\n2: A784A585B68F8A\n3: 9B103800100001\n4: DDDDDB07390F83\n" +
+            "5: 0304FF000480FF\n6: 007D487F057362\n7: 7AB93818CE81C6\n8: 88A2868B98103B\n9: 00210002E7E7E5\nA: 07510F83071FF2\n" +
+            "B: 00071598005F48\nC: EE0575AF51AAAA"
+        assertEquals(379_160, detail(back, 0x4D00))
+        // La respuesta de otra averia no vale para esta.
+        assertNull(detail(back, 0x498E))
+    }
+
+    @Test
+    fun `la memoria de informacion se lee como la de averias`() {
+        val info = BmwFault.parse(ObdParser.payloads("622000014CE021", BmwFault.INFO_ANSWER).last())
+        assertEquals(listOf(BmwFault(0x4CE0, 0x21)), info)
+        assertEquals("Sistema del filtro de partículas", info.single().text)
+    }
 }

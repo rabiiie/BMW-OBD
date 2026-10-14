@@ -345,6 +345,12 @@ object CaseCards {
         )
         return when {
             asked == null -> HealthCard(HealthSystem.FILTER, HealthLevel.UNKNOWN, "Esperando los datos del filtro.", facts)
+            Pids.protecting(values) -> HealthCard(
+                HealthSystem.FILTER, HealthLevel.WATCH,
+                "Regeneración de protección: el filtro está muy cargado.",
+                facts,
+                "La centralita lo quema despacio, sin pasar de unos 500 °C, para no dañarlo. Necesita trayectos seguidos por carretera.",
+            )
             Pids.regenerating(values) -> HealthCard(
                 HealthSystem.FILTER, HealthLevel.WATCH,
                 "Está regenerando.",

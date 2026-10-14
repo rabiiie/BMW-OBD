@@ -214,6 +214,11 @@ class HealthTest {
         assertTrue(Pids.regenerating(now + (Pids.BMW_ENGINE_MODE to Pids.MODE_REGENERATING.toDouble())))
         // Un modo que no se conoce tampoco cuenta como regeneracion.
         assertFalse(Pids.regenerating(now + (Pids.BMW_ENGINE_MODE to 0x02010003.toDouble())))
+        // La de proteccion si, y el motor parado no.
+        val protecting = now + (Pids.BMW_ENGINE_MODE to Pids.MODE_PROTECTION.toDouble())
+        assertTrue(Pids.regenerating(protecting))
+        assertTrue(Pids.protecting(protecting))
+        assertFalse(Pids.regenerating(now + (Pids.BMW_ENGINE_MODE to 0x80100001L.toDouble())))
     }
 
     @Test

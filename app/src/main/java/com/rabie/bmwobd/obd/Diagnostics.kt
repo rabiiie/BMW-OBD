@@ -17,6 +17,10 @@ data class DiagnosticsReport(
     val readiness: Readiness? = null,
     /** Las averias de la memoria propia de BMW; null si no se han pedido o el coche no las da. */
     val bmwFaults: List<BmwFault>? = null,
+    /** La memoria de informacion de BMW: avisos sin testigo. */
+    val bmwInfo: List<BmwFault>? = null,
+    /** El kilometraje en que se apunto cada averia de BMW, por su codigo; solo las que lo dieron. */
+    val bmwFaultKm: Map<Int, Int> = emptyMap(),
 )
 
 object Dtcs {

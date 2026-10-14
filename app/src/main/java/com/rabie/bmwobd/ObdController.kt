@@ -177,25 +177,6 @@ class ObdController(
                 // Lo que una averia presente deja sin lectura de verdad no se enseña ni se graba.
                 val ownFaults = if (profile.ownDiagnostics) session.ownFaults() else null
                 val blind = BmwFault.unreadable(ownFaults)
-                if (ownFaults != null) {
-                    // Fijo en el registro: las lecturas de despues lo echarian fuera en segundos.
-                    logBuffer.pin()
-                    try {
-                        session.probeFaultMemory(ownFaults)
-                    } finally {
-                        logBuffer.unpin()
-                    }
-                    // A un fichero: el registro vive en memoria y se pierde si la app se cierra.
-                    val answered = logBuffer.pinned()
-                    withContext(Dispatchers.IO) {
-                        runCatching {
-                            val file = java.io.File(context.filesDir, PROBE_FILE)
-                            file.parentFile?.mkdirs()
-                            val stamp = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.US).format(java.util.Date())
-                            file.writeText((listOf("## Prueba guardada de la conexión del $stamp") + answered).joinToString("\n"))
-                        }
-                    }
-                }
                 if (blind.isNotEmpty()) appendLog("## Aceite: el sensor de nivel tiene una avería presente; no se enseñan su nivel ni su temperatura")
                 val defs = (standard + own).filterNot { it.id in blind }
                 // Las medidas de los casos tienen su columna desde el principio, aunque no se pidan.
@@ -567,7 +548,7 @@ class ObdController(
                 }
             }
             snapshot[Pids.BMW_ENGINE_MODE]?.toInt()?.let { mode ->
-                if (mode != Pids.MODE_NORMAL && mode != Pids.MODE_REGENERATING && mode != lastUnknownMode) {
+                if (mode !in Pids.KNOWN_MODES && mode != lastUnknownMode) {
                     appendLog("## Modo del motor que no se conoce: 0x%08X. No se da por regeneración.".format(mode))
                     lastUnknownMode = mode
                 }
@@ -683,11 +664,8 @@ class ObdController(
     }
 
     companion object {
-        /** Donde queda la ultima respuesta a la prueba de la memoria de averias. */
-        const val PROBE_FILE = "logs/prueba_averias.txt"
         /** Donde queda lo ultimo que contestaron las otras centralitas. */
         const val MODULES_FILE = "logs/otras_centralitas.txt"
-        const val PROBE_END = "## Prueba: fin"
         const val MODULES_END = "## Centralitas: fin"
 
         /** Los saltos sueltos de las medidas de BMW de la ultima conexion, con su trama. */

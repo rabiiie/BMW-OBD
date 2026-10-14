@@ -38,6 +38,36 @@ data class BmwFault(val code: Int, val status: Int) {
         const val ANSWER = "58"
 
         /**
+         * La memoria de informacion: avisos que la centralita apunta sin encender ningun testigo.
+         * La respuesta, tras 62 20 00, lleva lo mismo que la de las averias: cuantos y, por cada uno,
+         * codigo y estado. El 14 de octubre dio 4CE0, la regeneracion de proteccion del filtro.
+         */
+        const val INFO_QUERY = "222000"
+        const val INFO_ANSWER = "622000"
+
+        /** El detalle de una averia: 17 y su codigo. Contesta con 57. */
+        fun detailQuery(code: Int) = "17%04X".format(code)
+        const val DETAIL_ANSWER = "57"
+
+        /**
+         * El kilometraje en que se apunto la averia, del detalle. Tras el 57 vienen cuantas, el
+         * codigo, el estado y el entorno; el kilometraje va en los bytes 9 y 10, en pasos de 8 km
+         * (la tabla lo da de 0 a 524.280 km). Comprobado el 14 de octubre: las averias de la junta
+         * del escape salieron entre 379.136 y 379.160 km, y el coche tenia 379.192 la tarde del 13.
+         * Del resto del detalle no se sabe con seguridad que es cada byte y no se enseña.
+         */
+        fun detailKm(payload: IntArray, code: Int): Int? {
+            if (payload.size <= DETAIL_KM_LOW) return null
+            if (payload[1] * 256 + payload[2] != code) return null
+            val km = (payload[DETAIL_KM_HIGH] * 256 + payload[DETAIL_KM_LOW]) * DETAIL_KM_STEP
+            return km.takeIf { it > 0 }
+        }
+
+        private const val DETAIL_KM_HIGH = 9
+        private const val DETAIL_KM_LOW = 10
+        private const val DETAIL_KM_STEP = 8
+
+        /**
          * Lo que sigue al 58 de la respuesta: cuantas hay y, por cada una, dos bytes de codigo y
          * uno de estado.
          */
