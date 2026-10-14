@@ -106,26 +106,23 @@ object TripCsv {
     /**
      * Lo leido de una medida con el motor en marcha. Con el motor parado el desfase da 0 y el
      * enfriador 1, que no son medidas (visto en el coche el 13 de octubre). Como cada fila repite
-     * lo ultimo leido, lo que venia de motor parado tampoco cuenta hasta que cambia, o hasta que
-     * pasa un minuto en marcha y ya tiene que ser una lectura nueva. Sin revoluciones grabadas no
-     * se puede saber y vale todo.
+     * lo ultimo leido, lo que venia de motor parado tampoco cuenta hasta que cambia: fuera del
+     * primer arranque esta medida se lee cada minuto o dos, y tras una parada del Start-Stop el 0
+     * siguio en las filas casi dos minutos con el motor girando. Sin revoluciones grabadas no se
+     * puede saber y vale todo.
      */
     private fun whileRunning(data: TripData, id: Int): List<Double> {
         val series = data.series[id] ?: return emptyList()
         val rpm = data.series[Pids.RPM] ?: return series.filter { !it.isNaN() }
         val read = ArrayList<Double>()
-        var startedMs = -1L
         var stopped = Double.NaN
         for (i in 0 until data.size) {
             val value = series[i]
             if (!(rpm[i] >= RUNNING_RPM)) {
-                startedMs = -1L
                 if (!value.isNaN()) stopped = value
                 continue
             }
-            if (startedMs < 0) startedMs = data.tMs[i]
-            if (value.isNaN()) continue
-            if (value == stopped && data.tMs[i] - startedMs < STALE_AFTER_START_MS) continue
+            if (value.isNaN() || value == stopped) continue
             stopped = Double.NaN
             read += value
         }
@@ -133,7 +130,6 @@ object TripCsv {
     }
 
     private const val RUNNING_RPM = 400.0
-    private const val STALE_AFTER_START_MS = 60_000L
     private val TIMING_OFFSET = Pids.bmw(Pids.BMW_TIMING_OFFSET_ADDRESS)
     private const val MAX_TIMING_OFFSET = 30.0
 
