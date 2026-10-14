@@ -281,7 +281,7 @@ object Pids {
     )
 
     private val electric = listOf(
-        PidDef(0x42, "Tensión módulo", "V", 2, 1) { word(it) / 1000.0 },
+        PidDef(0x42, "Tensión módulo", "V", 2, 1, tier = Tier.MEDIUM) { word(it) / 1000.0 },
         PidDef(ADAPTER_VOLTAGE, "Batería (adaptador)", "V", 0, 1, pid = ADAPTER_PID) { null },
         PidDef(0x46, "Temp. ambiente", "°C", 1, 0) { temp(it) },
     )
@@ -294,7 +294,7 @@ object Pids {
         PidDef(ODOMETER, "Cuentakilómetros", "km", 4, 0) { long(it, 0) / 10.0 },
         PidDef(0x31, "Km desde el borrado de averías", "km", 2, 0) { word(it).toDouble() },
         PidDef(0x4E, "Tiempo desde el borrado", "min", 2, 0) { word(it).toDouble() },
-        PidDef(0x30, "Calentamientos desde el borrado", "", 1, 0) { it[0].toDouble() },
+        PidDef(0x30, "Calentamientos desde el borrado (255 = 255 o más)", "", 1, 0) { it[0].toDouble() },
         PidDef(0x21, "Km con el testigo encendido", "km", 2, 0) { word(it).toDouble() },
         PidDef(0x4D, "Tiempo con el testigo encendido", "min", 2, 0) { word(it).toDouble() },
     )

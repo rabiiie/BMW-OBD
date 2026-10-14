@@ -220,7 +220,8 @@ object CaseCards {
             values[RAIL_REAL]?.let { rail ->
                 "Raíl: ${n(rail)} bar" + (values[RAIL_ASKED]?.let { " y pide ${n(it)}." } ?: ".")
             },
-            values[BATTERY_VOLTS]?.let { volts ->
+            // La del borne y la del OBD se leen seguido; la de la centralita puede ser todavia la de antes de arrancar.
+            (values[BATTERY_TERMINAL] ?: values[Moment.MODULE_VOLTAGE] ?: values[BATTERY_VOLTS])?.let { volts ->
                 "Batería: ${n(volts, 1)} V" + (values[BATTERY_MARGIN]?.let { "; margen para arrancar ${n(it)} (más alto, mejor)." } ?: ".")
             },
             if (faults.isEmpty() && Pids.BMW_GLOW_FAULTS.all { values[it.first] != null }) "Su mando no marca ningún fallo ahora." else null,

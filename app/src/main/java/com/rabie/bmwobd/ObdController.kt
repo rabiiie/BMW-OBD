@@ -22,7 +22,9 @@ import com.rabie.bmwobd.obd.Commands
 import com.rabie.bmwobd.obd.DiagnosticsReport
 import com.rabie.bmwobd.obd.MonitorTest
 import com.rabie.bmwobd.settings.SettingsStore
+import com.rabie.bmwobd.obd.Jumps
 import com.rabie.bmwobd.obd.ObdSession
+import com.rabie.bmwobd.obd.Plausible
 import com.rabie.bmwobd.obd.ObdTransport
 import com.rabie.bmwobd.obd.PidDef
 import com.rabie.bmwobd.obd.Pids
@@ -142,6 +144,7 @@ class ObdController(
     private var silence = Silence()
     private var lastError: String? = null
     private var lastUnknownMode: Int? = null
+    private var jumps: Jumps? = null
     private var job: Job? = null
 
     /**
@@ -479,6 +482,8 @@ class ObdController(
     private suspend fun poll(session: ObdSession, defs: List<PidDef>, extras: List<PidDef>, recorder: TripRecorder) {
         val turns = Turns(defs, extras, Dashboard.background)
         silence = Silence()
+        jumps = Jumps { id -> Pids.byId[id]?.name ?: "%X".format(id) }
+        var jumpsSaved = 0
         val values = HashMap<Int, Double>()
         val advisor = Advisor()
         var soundedAlerts = emptySet<String>()
@@ -547,7 +552,15 @@ class ObdController(
                 cyclesInWindow = 0
             }
 
+            Plausible.clean(values)
             val snapshot = values.toMap()
+            jumps?.found?.takeIf { it.size > jumpsSaved }?.let { found ->
+                jumpsSaved = found.size
+                val text = (listOf(JUMPS_TITLE) + found + JUMPS_END).joinToString("\n")
+                withContext(Dispatchers.IO) {
+                    runCatching { java.io.File(context.filesDir, JUMPS_FILE).apply { parentFile?.mkdirs() }.writeText(text) }
+                }
+            }
             snapshot[Pids.BMW_ENGINE_MODE]?.toInt()?.let { mode ->
                 if (mode != Pids.MODE_NORMAL && mode != Pids.MODE_REGENERATING && mode != lastUnknownMode) {
                     appendLog("## Modo del motor que no se conoce: 0x%08X. No se da por regeneración.".format(mode))
@@ -620,6 +633,12 @@ class ObdController(
             val value = def.decodeOrNull(data)
             if (value != null) values[def.id] = value else values.remove(def.id)
         }
+        if (Pids.isBmw(request.pid)) {
+            val def = request.defs.first()
+            values[def.id]?.let { value ->
+                jumps?.seen(def.id, value, data.joinToString("") { "%02X".format(it) })?.let(::appendLog)
+            }
+        }
         return true
     }
 
@@ -665,6 +684,11 @@ class ObdController(
         const val MODULES_FILE = "logs/otras_centralitas.txt"
         const val PROBE_END = "## Prueba: fin"
         const val MODULES_END = "## Centralitas: fin"
+
+        /** Los saltos sueltos de las medidas de BMW de la ultima conexion, con su trama. */
+        const val JUMPS_FILE = "logs/saltos_bmw.txt"
+        const val JUMPS_END = "## Saltos: fin"
+        private const val JUMPS_TITLE = "## Saltos sueltos de las medidas de BMW en la última conexión"
 
         /** [lines] con lo guardado en [saved] detras, si no lo llevan ya: se reconoce por su ultima linea, [end]. */
         fun withSaved(lines: List<String>, saved: List<String>, end: String): List<String> =
