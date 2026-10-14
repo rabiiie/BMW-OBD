@@ -10,6 +10,7 @@ import com.rabie.bmwobd.obd.SimulatedTransport
 import com.rabie.bmwobd.scan.ScanProgress
 import com.rabie.bmwobd.settings.AppSettings
 import com.rabie.bmwobd.trips.TripStore
+import com.rabie.bmwobd.vehicle.ModuleProbe
 import com.rabie.bmwobd.vehicle.Vehicle
 import com.rabie.bmwobd.vehicle.VehicleStore
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -95,6 +96,9 @@ class ObdViewModel(app: Application) : AndroidViewModel(app) {
     fun probe() = controller.probe()
 
     fun probeModules() = controller.probeModules()
+
+    /** Las otras centralitas que se saben preguntar en este coche, o null si ninguna. */
+    fun moduleProbe(vehicle: Vehicle) = ModuleProbe.of(vehicle)
     val probeState: StateFlow<ProbeState> = controller.probeState
 
     val scanState: StateFlow<ScanProgress> = controller.scanState

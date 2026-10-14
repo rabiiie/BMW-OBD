@@ -46,7 +46,7 @@ fun LogScreen(
     onResetScan: () -> Unit,
     scanFile: () -> File?,
     onProbeModules: () -> Unit = {},
-    showModules: Boolean = false,
+    modulesButton: String? = null,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -72,9 +72,9 @@ fun LogScreen(
         ScanRow(scan, canScan, onResetScan, scanFile)
         // Solo lee: pregunta a las centralitas de luces, cuadro y llaves quienes son y que configuracion guardan.
         // Solo con el modo experto puesto, para que no se pulse sin querer en un trayecto.
-        if (showModules) {
-            OutlinedButton(onClick = onProbeModules, enabled = canScan && !scan.active, modifier = Modifier.fillMaxWidth()) {
-                Text("Preguntar a las otras centralitas (coche parado, solo lee)")
+        if (modulesButton != null) {
+            OutlinedButton(onClick = onProbeModules, enabled = canSend && !scan.active, modifier = Modifier.fillMaxWidth()) {
+                Text(modulesButton)
             }
         }
 

@@ -224,7 +224,7 @@ private fun MainScreen(vm: ObdViewModel = viewModel()) {
                     onResetScan = vm::resetScan,
                     scanFile = vm::scanFile,
                     onProbeModules = vm::probeModules,
-                    showModules = settings.expertConsole,
+                    modulesButton = vm.moduleProbe(state.vehicle)?.button?.takeIf { settings.expertConsole && state.phase == Phase.LIVE },
                     modifier = content,
                 )
             }

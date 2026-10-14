@@ -320,6 +320,28 @@ class ObdSession(
     }
 
     /**
+     * Pregunta a otras centralitas de un Ford quienes son y que averias guardan. Ford usa el
+     * protocolo estandar: cada centralita tiene su direccion de envio y la de respuesta, ocho mas
+     * alta, y el adaptador hace solo el control de flujo. Todo son consultas: referencia y version
+     * (22 F113, 22 F188) y averias (19 02). El bastidor no se pide. Al acabar el adaptador vuelve a
+     * la lectura normal.
+     */
+    suspend fun probeFordModules() {
+        log("## Centralitas Ford: inicio")
+        try {
+            for ((address, name) in FORD_MODULES) {
+                log("## Centralita %03X: %s".format(address, name))
+                val setup = listOf("ATSP6", "ATSH%03X".format(address), "ATCRA%03X".format(address + FORD_ANSWER_OFFSET), "ATAT0", "ATSTFF")
+                for (command in setup) attempt(command)
+                for (query in FORD_QUERIES) attempt(query, RAW_TIMEOUT_MS)
+            }
+        } finally {
+            restoreOrFail()
+        }
+        log("## Centralitas: fin")
+    }
+
+    /**
      * Deja el adaptador como lo espera la lectura normal y comprueba que el coche vuelve a
      * contestar. Si no lo consigue en dos intentos corta la conexion: es mejor reconectar, que
      * reinicia el adaptador desde cero, que seguir leyendo con el a medio configurar.
@@ -523,6 +545,19 @@ class ObdSession(
 
         // Solo servicios de lectura: identidad, averias y los cuatro primeros bloques de configuracion.
         val MODULE_QUERIES = listOf("1A80", "1802FFFF", "223000", "223001", "223002", "223003")
+
+        // Las direcciones de envio de un Focus de esa epoca, de memoria: hay que confirmarlas con lo
+        // que contesten. La primera es la del motor, que contesta seguro: sirve de control.
+        val FORD_MODULES = listOf(
+            0x7E0 to "motor (de control)",
+            0x726 to "carrocería, que recibe los sensores de presión de las ruedas",
+            0x760 to "ABS, que en algunas versiones vigila las ruedas por su giro",
+            0x720 to "cuadro de instrumentos",
+        )
+        const val FORD_ANSWER_OFFSET = 8
+
+        // Referencia de la pieza, version del programa y averias guardadas con cualquier estado.
+        val FORD_QUERIES = listOf("22F113", "22F188", "1902FF")
         const val SCAN_TIMEOUT_MS = 1_500L
 
         // Espera fija de 400 ms en vez de la adaptativa.

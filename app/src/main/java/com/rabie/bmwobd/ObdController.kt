@@ -37,6 +37,7 @@ import com.rabie.bmwobd.trips.TripFuel
 import com.rabie.bmwobd.trips.TripRecorder
 import com.rabie.bmwobd.trips.TripStore
 import com.rabie.bmwobd.vehicle.EngineProfile
+import com.rabie.bmwobd.vehicle.ModuleProbe
 import com.rabie.bmwobd.vehicle.N47Fingerprint
 import com.rabie.bmwobd.vehicle.Vehicle
 import com.rabie.bmwobd.vehicle.VehicleStore
@@ -409,7 +410,8 @@ class ObdController(
      * que contesten queda fijo en el registro y guardado en el movil.
      */
     fun probeModules() {
-        if (!isLive() || !canScan(_state.value.vehicle)) return
+        val probe = ModuleProbe.of(_state.value.vehicle)
+        if (!isLive() || probe == null) return
         if ((_state.value.values[Pids.SPEED] ?: 0.0) >= 1.0) {
             appendLog("!! Las otras centralitas solo se preguntan con el coche parado.")
             return
@@ -417,7 +419,10 @@ class ObdController(
         tasks.trySend { session ->
             logBuffer.pin()
             try {
-                session.probeModules()
+                when (probe) {
+                    ModuleProbe.BMW -> session.probeModules()
+                    ModuleProbe.FORD -> session.probeFordModules()
+                }
             } catch (e: IOException) {
                 appendLog("!! Centralitas: interrumpido: ${e.message}")
                 throw e

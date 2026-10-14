@@ -1,0 +1,23 @@
+package com.rabie.bmwobd.vehicle
+
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Test
+
+class ModuleProbeTest {
+
+    private fun car(vin: String?, profile: String? = null) =
+        Vehicle(vin ?: Vehicle.UNKNOWN_KEY, vin, "coche", vin?.let(Vin::make), diesel = true, displacementLiters = null, profile = profile)
+
+    @Test
+    fun `cada marca pregunta a las suyas y ninguna se mezcla`() {
+        // El BMW solo con la centralita del motor reconocida, como hasta ahora.
+        assertEquals(ModuleProbe.BMW, ModuleProbe.of(car("WBAUD71000P000000", EngineProfile.BMW_N47.key)))
+        assertNull(ModuleProbe.of(car("WBAUD71000P000000")))
+        // Un Focus fabricado en Alemania: bastidor WF0.
+        assertEquals(ModuleProbe.FORD, ModuleProbe.of(car("WF0XXXGCDXEA00000")))
+        // El Touran y un coche sin bastidor no tienen otras centralitas que preguntar.
+        assertNull(ModuleProbe.of(car("WVGZZZ1TZBW000000")))
+        assertNull(ModuleProbe.of(car(null)))
+    }
+}
