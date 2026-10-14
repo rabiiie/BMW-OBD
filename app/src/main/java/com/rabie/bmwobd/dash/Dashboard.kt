@@ -37,7 +37,7 @@ object Dashboard {
      * fabrica: es un criterio de la app. Sin temperatura de escape no se dice nada.
      */
     fun shutdown(values: Map<Int, Double>): Shutdown? {
-        if ((values[Pids.BMW_REGEN_REQUEST] ?: 0.0) >= Pids.BMW_REGEN_ACTIVE) return Shutdown.WAIT
+        if (Pids.regenerating(values)) return Shutdown.WAIT
         val exhaust = (Moment.EXHAUST_TEMPS.mapNotNull { values[it] } + listOfNotNull(values[BEFORE_CATALYST])).maxOrNull() ?: return null
         return when {
             exhaust >= Limits.HOT_STOP_EXHAUST -> Shutdown.WAIT
@@ -201,7 +201,7 @@ object Dashboard {
 
     /** El grupo al que toca un aviso: es el que se queda fijo mientras dura. */
     fun group(advice: Advice): DashGroup? = when (advice.id) {
-        "regeneration", "regen_stop", "soot_gap", "filter_idle", "filter_load", "exhaust_hot" -> DashGroup.FILTER
+        "regeneration", "regen_stop", "regen_pending", "soot_gap", "filter_idle", "filter_load", "exhaust_hot" -> DashGroup.FILTER
         "boost_low", "boost_high", "air_full" -> DashGroup.TURBO
         "rail", "rail_high", "idle_rail" -> DashGroup.INJECTORS
         "voltage" -> DashGroup.ELECTRIC

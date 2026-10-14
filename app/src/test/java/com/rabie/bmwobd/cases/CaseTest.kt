@@ -59,7 +59,7 @@ class CaseTest {
         val later = turns.ids(600).flatten()
         assertEquals((base.filter { it.tier != Tier.ONCE }.map { it.id } + own(Case.FILTER)).toSet(), (read.flatten() + later).toSet())
         // Las vigiladas ya no gastan ademas su turno lento.
-        assertEquals(600, later.count { it == Pids.BMW_SOOT_MEASURED } * watch.size)
+        assertEquals(600.0, (later.count { it == Pids.BMW_SOOT_MEASURED } * watch.size).toDouble(), watch.size.toDouble())
     }
 
     @Test
@@ -268,8 +268,11 @@ class CaseTest {
         val after = during + (Pids.BMW_REGEN_REQUEST to 0.0) + (Pids.bmw(0x05AA) to 0x00100001.toDouble())
         assertEquals("No está regenerando.", CaseCards.card(Case.FILTER, after)!!.headline)
         // Con un 1 la tiene pendiente pero no ha empezado: asi estuvo veinte minutos el 12 de octubre.
-        val waiting = during + (Pids.BMW_REGEN_REQUEST to 1.0)
+        val waiting = during + (Pids.BMW_REGEN_REQUEST to 1.0) + (Pids.BMW_ENGINE_MODE to Pids.MODE_NORMAL.toDouble())
         assertEquals("La centralita tiene una regeneración pendiente.", CaseCards.card(Case.FILTER, waiting)!!.headline)
+        // Pidiendola sin hacerla, como tras la averia del escape del 13 de octubre.
+        val blocked = waiting + (Pids.BMW_REGEN_REQUEST to 7.0)
+        assertEquals("La centralita pide regenerar, pero no lo está haciendo.", CaseCards.card(Case.FILTER, blocked)!!.headline)
 
         assertEquals(HealthLevel.UNKNOWN, CaseCards.card(Case.FILTER, emptyMap())!!.level)
         assertNull(CaseCards.card(Case.NORMAL, during))

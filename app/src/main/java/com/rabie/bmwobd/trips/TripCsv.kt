@@ -129,6 +129,18 @@ object TripCsv {
         return read
     }
 
+    /**
+     * El modo del motor fila a fila. Se lee cada poco y algunas filas quedan sin el: valen lo
+     * ultimo que se leyo, y las del principio lo primero. Null si el trayecto no lo tiene, que es
+     * cuando hay que fiarse de la peticion de regeneracion.
+     */
+    fun engineMode(data: TripData): DoubleArray? {
+        val read = data.series[Pids.BMW_ENGINE_MODE] ?: return null
+        val first = read.firstOrNull { !it.isNaN() } ?: return null
+        var last = first
+        return DoubleArray(data.size) { i -> read[i].takeIf { !it.isNaN() }?.also { last = it } ?: last }
+    }
+
     private const val RUNNING_RPM = 400.0
     private val TIMING_OFFSET = Pids.bmw(Pids.BMW_TIMING_OFFSET_ADDRESS)
     private const val MAX_TIMING_OFFSET = 30.0

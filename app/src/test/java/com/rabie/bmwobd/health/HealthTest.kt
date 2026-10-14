@@ -10,6 +10,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertFalse
 import org.junit.Test
 
 class HealthTest {
@@ -174,12 +175,14 @@ class HealthTest {
     fun `las regeneraciones del 12 de octubre, una que no conto a la ida y una pendiente toda la vuelta`() {
         val out = Health.regenerations(real("trayecto_real_regeneracion_incompleta.csv"))!!
         val episode = out.episodes.single()
-        assertEquals(19, episode.startMs / 60_000)
-        assertTrue("dura ${episode.seconds} s", episode.seconds in 11 * 60L..13 * 60L)
-        assertTrue("espera ${episode.waitedSeconds} s", episode.waitedSeconds in 8 * 60L..9 * 60L)
-        assertTrue("recorre ${episode.km} km", episode.km!! in 15.0..18.0)
+        // Con el modo del motor: la peticion paso a 5 en el minuto 19,4 y el motor entro en
+        // regeneracion en el 20,3; hasta entonces cuenta como espera.
+        assertEquals(20, episode.startMs / 60_000)
+        assertTrue("dura ${episode.seconds} s", episode.seconds in 10 * 60L..12 * 60L)
+        assertTrue("espera ${episode.waitedSeconds} s", episode.waitedSeconds in 9 * 60L..10 * 60L)
+        assertTrue("recorre ${episode.km} km", episode.km!! in 14.0..17.0)
         assertTrue("escape a ${episode.maxExhaust}", episode.maxExhaust!! in 600.0..640.0)
-        assertEquals(30.4, episode.sootBefore!!, 0.3)
+        assertEquals(29.1, episode.sootBefore!!, 0.3)
         assertEquals(6.35, episode.sootAfter!!, 0.3)
         assertEquals(RegenOutcome.NOT_COUNTED, episode.outcome)
         assertTrue("pendiente al final ${out.pendingSecondsAtEnd} s", out.pendingSecondsAtEnd in 36 * 60L..38 * 60L)
@@ -193,6 +196,24 @@ class HealthTest {
         )
         // Una grabacion sin la peticion de la centralita no da tabla.
         assertNull(Health.regenerations(real("trayecto_real_corto.csv")))
+    }
+
+    @Test
+    fun `el 13 de octubre el motor solo regenero antes de la averia, aunque la peticion siguio en 5 y en 7`() {
+        // 15:38: la peticion pasa a 5 en el minuto 8 y el modo del motor entra y sale de regeneracion.
+        val before = Health.regenerations(real("trayecto_real_13oct_1538.csv"))!!
+        assertTrue(before.episodes.isNotEmpty())
+        assertTrue(before.episodes.all { it.maxExhaust!! > 400.0 })
+        // 16:28: con la junta del escape rota, el modo no deja de ser normal en todo el trayecto.
+        val after = Health.regenerations(real("trayecto_real_13oct_1628.csv"))!!
+        assertTrue(after.episodes.isEmpty())
+        assertTrue("pendiente ${after.pendingSecondsAtEnd} s", after.pendingSecondsAtEnd > 20 * 60L)
+        // Ni la luz de apagado ni el aviso dicen que regenera con la peticion en 7 y el modo normal.
+        val now = mapOf(Pids.BMW_REGEN_REQUEST to 7.0, Pids.BMW_ENGINE_MODE to Pids.MODE_NORMAL.toDouble())
+        assertFalse(Pids.regenerating(now))
+        assertTrue(Pids.regenerating(now + (Pids.BMW_ENGINE_MODE to Pids.MODE_REGENERATING.toDouble())))
+        // Un modo que no se conoce tampoco cuenta como regeneracion.
+        assertFalse(Pids.regenerating(now + (Pids.BMW_ENGINE_MODE to 0x02010003.toDouble())))
     }
 
     @Test

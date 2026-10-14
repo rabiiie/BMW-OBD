@@ -591,8 +591,8 @@ class Advisor {
             },
             Rule("regeneration", Limits.REGEN_HOLD_MS) { m ->
                 // Si la centralita dice si pide regenerar, vale eso y no se deduce por la temperatura.
-                m.values[Pids.BMW_REGEN_REQUEST]?.let { asked ->
-                    if (asked < Pids.BMW_REGEN_ACTIVE || !m.running) return@Rule null
+                if (Pids.BMW_REGEN_REQUEST in m.values || Pids.BMW_ENGINE_MODE in m.values) {
+                    if (!Pids.regenerating(m.values) || !m.running) return@Rule null
                     return@Rule Advice(
                         "regeneration", Severity.INFO, "El filtro está regenerando",
                         "Lo dice la centralita. Si puedes, sigue circulando unos minutos antes de apagar: " +
@@ -609,6 +609,18 @@ class Advisor {
                         "antes de apagar: una regeneración a medias deja el filtro sin limpiar.",
                 )
             },
+            Rule("regen_pending", Limits.REGEN_HOLD_MS) { m ->
+                val asked = m.values[Pids.BMW_REGEN_REQUEST] ?: return@Rule null
+                if (asked <= 0 || !m.running || Pids.regenerating(m.values)) return@Rule null
+                Advice(
+                    "regen_pending", Severity.INFO, "Regeneración pendiente",
+                    if (asked >= Pids.BMW_REGEN_ACTIVE) {
+                        "La centralita la pide, pero el motor no la está haciendo. Pasa cuando algo se lo impide, como una avería del escape."
+                    } else {
+                        "La hará cuando lleves unos minutos seguidos por carretera. Si puedes, no apagues en cuanto empiece."
+                    },
+                )
+            },
             Rule("soot_gap", Limits.SOOT_GAP_HOLD_MS) { m ->
                 val measured = m.values[Pids.BMW_SOOT_MEASURED] ?: return@Rule null
                 val model = m.values[Pids.BMW_SOOT_MODEL] ?: return@Rule null
@@ -620,8 +632,7 @@ class Advisor {
                 )
             },
             Rule("regen_stop", Limits.REGEN_STOP_HOLD_MS) { m ->
-                val asked = m.values[Pids.BMW_REGEN_REQUEST] ?: return@Rule null
-                if (asked < Pids.BMW_REGEN_ACTIVE || !m.idle) return@Rule null
+                if (!Pids.regenerating(m.values) || !m.idle) return@Rule null
                 Advice(
                     "regen_stop", Severity.WARN, "Regenerando y parado",
                     "Si apagas ahora, la regeneración se queda a medias. Mejor circular unos minutos más.",
@@ -629,7 +640,7 @@ class Advisor {
             },
             Rule("long_idle", Limits.LONG_IDLE_MS) { m ->
                 // Regenerando el ralenti tiene su aviso propio.
-                if (!m.idle || (m.values[Pids.BMW_REGEN_REQUEST] ?: 0.0) >= Pids.BMW_REGEN_ACTIVE) return@Rule null
+                if (!m.idle || Pids.regenerating(m.values)) return@Rule null
                 Advice(
                     "long_idle", Severity.INFO, "Mucho rato al ralentí",
                     "Más de cinco minutos parado con el motor en marcha: gasta, ensucia la EGR y carga el filtro.",

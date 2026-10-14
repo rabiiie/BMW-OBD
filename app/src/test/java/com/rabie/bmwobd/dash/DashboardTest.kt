@@ -190,6 +190,10 @@ class DashboardTest {
         // Regenerando hay que esperar aunque el escape todavia no haya subido.
         assertEquals(Shutdown.WAIT, Dashboard.shutdown(mapOf(exhaust to 180.0, Pids.BMW_REGEN_REQUEST to 5.0)))
         assertEquals(Shutdown.OK, Dashboard.shutdown(mapOf(exhaust to 180.0, Pids.BMW_REGEN_REQUEST to 1.0)))
+        // Pidiendo regenerar sin hacerlo, como tras la averia del 13 de octubre, no hay que esperar.
+        val pending = mapOf(exhaust to 180.0, Pids.BMW_REGEN_REQUEST to 7.0, Pids.BMW_ENGINE_MODE to Pids.MODE_NORMAL.toDouble())
+        assertEquals(Shutdown.OK, Dashboard.shutdown(pending))
+        assertEquals(Shutdown.WAIT, Dashboard.shutdown(pending + (Pids.BMW_ENGINE_MODE to Pids.MODE_REGENERATING.toDouble())))
         // Sin temperatura de escape no se dice nada.
         assertNull(Dashboard.shutdown(mapOf(Pids.RPM to 850.0)))
     }

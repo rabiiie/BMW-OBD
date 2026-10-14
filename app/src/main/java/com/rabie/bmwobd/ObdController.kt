@@ -141,6 +141,7 @@ class ObdController(
     // Solo se toca desde la lectura.
     private var silence = Silence()
     private var lastError: String? = null
+    private var lastUnknownMode: Int? = null
     private var job: Job? = null
 
     /**
@@ -547,6 +548,12 @@ class ObdController(
             }
 
             val snapshot = values.toMap()
+            snapshot[Pids.BMW_ENGINE_MODE]?.toInt()?.let { mode ->
+                if (mode != Pids.MODE_NORMAL && mode != Pids.MODE_REGENERATING && mode != lastUnknownMode) {
+                    appendLog("## Modo del motor que no se conoce: 0x%08X. No se da por regeneración.".format(mode))
+                    lastUnknownMode = mode
+                }
+            }
             advice = advisor.update(now / 1_000_000, snapshot, _state.value.vehicle)
             val hours = (now - lastSumNanos).coerceIn(0L, MAX_SUM_GAP_NANOS) / NANOS_PER_HOUR
             lastSumNanos = now

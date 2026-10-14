@@ -76,16 +76,36 @@ object Pids {
     val BMW_SOOT_MODEL = bmw(0x03ED)
 
     /**
-     * Lo que la centralita quiere hacer con el filtro. Visto en el coche: 0 nada, 1 tiene una
-     * regeneracion pendiente y 5 esta regenerando. Con el 1 estuvo veinte minutos sin empezar y
-     * con el 1 se quedo despues de una que no dio por completa.
+     * La peticion de regeneracion: lo que la centralita quiere hacer con el filtro, no lo que hace.
+     * Visto en el coche: 0 nada y 1 pendiente. El 5 coincidio con una regeneracion el 12 de
+     * octubre, pero el 13, con una averia del escape, siguio en 5 y luego en 7 sin regenerar.
      */
     val BMW_REGEN_REQUEST = bmw(0x0404)
+
+    /**
+     * El modo en que esta el motor, segun su coordinador de modos ("Regenerationsstatus"). La
+     * tabla no da los valores; de los trayectos: [MODE_NORMAL] y [MODE_REGENERATING], este solo
+     * mientras regenera de verdad, con el escape a 500 o 600 grados.
+     */
+    val BMW_ENGINE_MODE = bmw(0x05AA)
+    const val MODE_NORMAL = 0x00100001
+    const val MODE_REGENERATING = 0x02010002
+
+    /**
+     * Si el filtro esta regenerando ahora. Con el modo del motor leido, lo dice el; un modo que no
+     * se conoce no cuenta. Sin modo, en grabaciones de antes de leerlo, vale la peticion.
+     */
+    fun regenerating(request: Double?, mode: Double?): Boolean = when {
+        mode != null && !mode.isNaN() -> mode == MODE_REGENERATING.toDouble()
+        else -> request != null && request >= BMW_REGEN_ACTIVE
+    }
+
+    fun regenerating(values: Map<Int, Double>): Boolean = regenerating(values[BMW_REGEN_REQUEST], values[BMW_ENGINE_MODE])
 
     /** Los minutos que llevaba el coche parado antes de este arranque, segun la centralita. */
     val BMW_PARKED_MINUTES = bmw(0x10CE)
 
-    /** A partir de este valor de [BMW_REGEN_REQUEST] la regeneracion esta en marcha. */
+    /** A partir de este valor de [BMW_REGEN_REQUEST] la centralita la da por empezada, aunque puede no estar haciendola. */
     const val BMW_REGEN_ACTIVE = 2.0
 
     /** Lo que la centralita suma o quita a cada inyector para igualar los cilindros, del 1 al 4. */
@@ -315,6 +335,8 @@ object Pids {
     }
 
     val bmwDiesel: List<PidDef> = bmwInjectorTimes + listOf(
+        // Se lee siempre: es el que dice si el filtro esta regenerando de verdad.
+        bmwDef(0x05AA, "Motor: modo de funcionamiento (código)", "", 0, PidGroup.EXHAUST, size = 4) { it.toDouble() },
         // Se lee siempre: dice cuanto llevaba parado el coche, que es de lo que depende un arranque.
         bmwDef(0x10CE, "Tiempo aparcado antes de arrancar", "min", 0, PidGroup.ELECTRIC) { it.toDouble() },
         bmwDef(0x0500, "Cantidad inyectada", "mg/emb", 1, PidGroup.FUEL, Tier.MEDIUM) { it * 0.003052 - 100.0 },
@@ -391,7 +413,6 @@ object Pids {
         bmwDef(0x03E0, "Escape: presión antes del turbo", "hPa", 0, PidGroup.EXHAUST) { it * 0.038148 + 500.0 },
         bmwDef(0x0408, "Filtro: tiempo desde la última regeneración", "min", 0, PidGroup.EXHAUST, size = 4) { it / 60.0 },
         bmwDef(0x03EC, "Filtro: código de interrupción", "", 0, PidGroup.EXHAUST) { it.toDouble() },
-        bmwDef(0x05AA, "Motor: modo de funcionamiento (código)", "", 0, PidGroup.EXHAUST, size = 4) { it.toDouble() },
         bmwDef(0x03DE, "Filtro: velocidad media desde la regeneración", "km/h", 0, PidGroup.EXHAUST) { it * 0.003815 },
         bmwDef(0x03EE, "Filtro: regeneración bloqueada (0 = no)", "", 0, PidGroup.EXHAUST, size = 1) { it.toDouble() },
     ) + BMW_CYLINDER_CORRECTIONS.mapIndexed { cylinder, id ->

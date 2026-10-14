@@ -244,6 +244,7 @@ data class TripHealth(
             val speed = data.series[Pids.SPEED] ?: return emptyList()
             val coolant = data.series[Pids.COOLANT] ?: return emptyList()
             val regen = data.series[Pids.BMW_REGEN_REQUEST]
+            val mode = TripCsv.engineMode(data)
             val rows = ArrayList<Int>()
             var stoppedSince = -1L
             for (i in 0 until data.size) {
@@ -253,7 +254,7 @@ data class TripHealth(
                 }
                 if (stoppedSince < 0) stoppedSince = data.tMs[i]
                 if (data.tMs[i] - stoppedSince < IDLE_SETTLE_MS) continue
-                val regenerating = regen != null && regen[i] >= Pids.BMW_REGEN_ACTIVE
+                val regenerating = Pids.regenerating(regen?.get(i)?.takeIf { !it.isNaN() }, mode?.get(i))
                 if (coolant[i] >= HOT && rpm[i] >= IDLE_FROM && rpm[i] <= IDLE_TO && !regenerating) rows += i
             }
             return rows

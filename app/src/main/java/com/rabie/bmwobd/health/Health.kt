@@ -343,8 +343,9 @@ object Health {
     fun regenerations(data: TripData): RegenLog? {
         val asked = data.series[Pids.BMW_REGEN_REQUEST]?.takeIf { series -> series.any { !it.isNaN() } } ?: return null
         val rows = Rows(data)
-        fun active(i: Int) = asked[i] >= Pids.BMW_REGEN_ACTIVE
-        fun pending(i: Int) = asked[i] > 0 && asked[i] < Pids.BMW_REGEN_ACTIVE
+        val mode = TripCsv.engineMode(data)
+        fun active(i: Int) = Pids.regenerating(asked[i].takeIf { !it.isNaN() }, mode?.get(i))
+        fun pending(i: Int) = asked[i] > 0 && !active(i)
 
         // Tramos seguidos regenerando; dos separados por poco rato son la misma regeneracion.
         val spans = ArrayList<IntArray>()
@@ -440,9 +441,10 @@ object Health {
         var reset = false
         var previousDistance: Double? = null
         var pendingAfter = false
+        val mode = TripCsv.engineMode(data)
         for (i in 0 until data.size) {
             val asked = rows.at(Pids.BMW_REGEN_REQUEST, i) ?: 0.0
-            if (asked >= Pids.BMW_REGEN_ACTIVE) {
+            if (Pids.regenerating(asked, mode?.get(i))) {
                 if (first < 0) first = i
                 last = i
                 activeMs += rows.dt(i)

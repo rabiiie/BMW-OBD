@@ -15,8 +15,8 @@ enum class Case(val title: String, val watch: List<Int>, val also: List<Int>) {
     NORMAL("Normal", emptyList(), emptyList()),
     FILTER(
         "Filtro de partículas",
-        watch = listOf(0x0404, 0x03EA, 0x03ED, 0x03F1, 0x0424, 0x0420, 0x041E, 0x0434).map(Pids::bmw),
-        also = listOf(0x0405, 0x0408, 0x03EC, 0x03EE, 0x05AA, 0x03DE, 0x03E0).map(Pids::bmw),
+        watch = listOf(0x0404, 0x05AA, 0x03EA, 0x03ED, 0x03F1, 0x0424, 0x0420, 0x041E, 0x0434).map(Pids::bmw),
+        also = listOf(0x0405, 0x0408, 0x03EC, 0x03EE, 0x03DE, 0x03E0).map(Pids::bmw),
     ),
     INJECTORS(
         "Inyectores",
@@ -344,11 +344,17 @@ object CaseCards {
         )
         return when {
             asked == null -> HealthCard(HealthSystem.FILTER, HealthLevel.UNKNOWN, "Esperando los datos del filtro.", facts)
-            asked >= Pids.BMW_REGEN_ACTIVE -> HealthCard(
+            Pids.regenerating(values) -> HealthCard(
                 HealthSystem.FILTER, HealthLevel.WATCH,
                 "Está regenerando.",
                 facts,
                 "Si puedes, no apagues el motor hasta que termine. Al acabar, la distancia desde la última regeneración vuelve a cero.",
+            )
+            asked >= Pids.BMW_REGEN_ACTIVE -> HealthCard(
+                HealthSystem.FILTER, HealthLevel.WATCH,
+                "La centralita pide regenerar, pero no lo está haciendo.",
+                facts,
+                "Lo dice el modo del motor. Pasa cuando algo se lo impide, por ejemplo una avería del escape o del sensor del filtro.",
             )
             asked > 0 -> HealthCard(
                 HealthSystem.FILTER, HealthLevel.WATCH,
