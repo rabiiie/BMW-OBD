@@ -16,6 +16,8 @@ class ModuleProbeTest {
         assertNull(ModuleProbe.of(car("WBAUD71000P000000")))
         // Un Focus fabricado en Alemania: bastidor WF0.
         assertEquals(ModuleProbe.FORD, ModuleProbe.of(car("WF0XXXGCDXEA00000")))
+        // Y uno de otra fabrica de Ford: el codigo del principio cambia, la marca no.
+        assertEquals(ModuleProbe.FORD, ModuleProbe.of(car("VS6XXXGCDXEA00000")))
         // El Touran y un coche sin bastidor no tienen otras centralitas que preguntar.
         assertNull(ModuleProbe.of(car("WVGZZZ1TZBW000000")))
         assertNull(ModuleProbe.of(car(null)))
