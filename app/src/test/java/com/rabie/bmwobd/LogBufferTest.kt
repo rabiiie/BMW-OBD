@@ -31,16 +31,16 @@ class LogBufferTest {
     }
 
     @Test
-    fun `un sondeo nuevo sustituye al anterior y una conexion nueva lo borra todo`() {
-        val buffer = LogBuffer(headLines = 3, tailLines = 2)
+    fun `se guardan los ultimos bloques fijados y una conexion nueva lo borra todo`() {
+        val buffer = LogBuffer(headLines = 3, tailLines = 2, pinnedBlocks = 2)
         buffer.add("l1")
-        buffer.pin()
-        buffer.add("primero")
-        buffer.unpin()
-        buffer.pin()
-        buffer.add("segundo")
-        buffer.unpin()
-        assertEquals(listOf("l1", "segundo"), buffer.lines())
+        for (block in listOf("primero", "segundo", "tercero")) {
+            buffer.pin()
+            buffer.add(block)
+            buffer.unpin()
+        }
+        assertEquals(listOf("l1", "segundo", "tercero"), buffer.lines())
+        assertEquals(listOf("tercero"), buffer.pinned())
         buffer.clear()
         assertTrue(buffer.lines().isEmpty())
     }
@@ -60,5 +60,16 @@ class LogBufferTest {
         assertEquals("## Coche: BMW 440891 · diésel · bastidor oculto", shared[2])
         assertEquals("<< 410C0000", shared[4])
         assertFalse(shared.any { it.contains("490201") || it.contains("WBA") })
+    }
+
+    @Test
+    fun `lo guardado solo se añade al registro del mismo coche`() {
+        val bmw = listOf("## Coche: BMW 440891 · diésel · bastidor oculto", "<< 410C0000")
+        val ford = listOf("## Coche: Ford B75665 · diésel · bastidor oculto", "<< 410C0C24")
+        val saved = listOf("## Guardado del coche: BMW 440891", "## Saltos sueltos", "## Saltos: fin")
+        assertEquals(bmw + listOf("## Saltos sueltos", "## Saltos: fin"), ObdController.withSaved(bmw, saved, "## Saltos: fin"))
+        assertEquals(ford, ObdController.withSaved(ford, saved, "## Saltos: fin"))
+        // Lo guardado antes de apuntar el coche no se sabe de quien es.
+        assertEquals(ford, ObdController.withSaved(ford, saved.drop(1), "## Saltos: fin"))
     }
 }

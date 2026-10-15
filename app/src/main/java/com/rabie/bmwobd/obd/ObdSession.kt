@@ -25,6 +25,9 @@ class ObdSession(
     // PIDs cuya respuesta no cabe en una trama: con lectura rapida dejarian tramas pendientes.
     private val longAnswers = mutableSetOf<Int>()
 
+    // Si contestaron las ultimas preguntas del OBD estandar, de la mas antigua a la mas reciente.
+    private val recent = ArrayDeque<Boolean>()
+
     suspend fun connect(): SessionInfo {
         transport.open()
         val version = elm.initialize()
@@ -56,7 +59,34 @@ class ObdSession(
      * Bytes de datos de un PID del modo 01, o null si el coche no contesta en este momento. Un
      * silencio suelto se tolera; varios seguidos significan que el adaptador se ha ido.
      */
-    suspend fun read(pid: Int, singleFrame: Boolean = false): IntArray? {
+    suspend fun read(pid: Int, singleFrame: Boolean = false): IntArray? =
+        readOnce(pid, singleFrame).also { if (!Pids.isBmw(pid)) noteAnswer(it != null) }
+
+    /**
+     * Un coche cuya centralita a veces tarda mas de lo que el adaptador ha aprendido a esperar
+     * pierde respuestas sueltas: visto en un Ford, que dejaba sin contestar una de cada tres. Si
+     * en las ultimas preguntas faltan muchas, se pasa a una espera fija; si siguen faltando, se
+     * deja tambien la lectura rapida. No se vuelve atras en la misma conexion.
+     */
+    private suspend fun noteAnswer(answered: Boolean) {
+        recent.addLast(answered)
+        if (recent.size > SLOW_WINDOW) recent.removeFirst()
+        if (recent.size < SLOW_WINDOW || recent.count { !it } * 100 <= SLOW_PERCENT * SLOW_WINDOW) return
+        recent.clear()
+        when {
+            !fixedWait -> {
+                fixedWait = true
+                applyWait()
+                log("## El coche deja muchas preguntas sin contestar: se pasa a una espera fija de 400 ms")
+            }
+            quick -> {
+                quick = false
+                log("## Con la espera fija siguen faltando respuestas: se deja la lectura rápida")
+            }
+        }
+    }
+
+    private suspend fun readOnce(pid: Int, singleFrame: Boolean): IntArray? {
         val quickly = quick && singleFrame && pid !in longAnswers && !Pids.isBmw(pid)
         val response = request(pid, quickly) ?: return null
         val data = dataOf(response, pid)
@@ -451,26 +481,47 @@ class ObdSession(
 
     /** Con [bmw] se piden tambien las averias de la memoria propia de la centralita de BMW. */
     suspend fun diagnostics(bmw: Boolean = false): DiagnosticsReport {
-        val status = ObdParser.payloads(elm.send("0101", READ_TIMEOUT_MS), "4101").firstOrNull { it.isNotEmpty() }
-        val stored = dtcs("03", "43")
-        val freezeDtc = if (stored.isNullOrEmpty()) null else freezeDtc()
-        return DiagnosticsReport(
-            milOn = status?.let { it[0] and 0x80 != 0 },
-            dtcCount = status?.let { it[0] and 0x7F },
-            stored = stored,
-            pending = dtcs("07", "47"),
-            permanent = dtcs("0A", "4A"),
-            freezeDtc = freezeDtc,
-            freeze = if (freezeDtc == null) emptyMap() else freezeFrame(),
-            vin = text("0902", "4902"),
-            calibration = text("0904", "4904"),
-            readiness = status?.let(Readiness::parse),
-        ).let { report ->
-            if (!bmw) return@let report
-            val faults = bmwFaults()
-            report.copy(bmwFaults = faults, bmwInfo = bmwInfo(), bmwFaultKm = faults.orEmpty().mapNotNull { fault -> faultKm(fault.code)?.let { fault.code to it } }.toMap())
+        val report = withSteadyWait {
+            val status = steadyPayloads("0101", "4101").firstOrNull { it.isNotEmpty() }
+            val stored = dtcs("03", "43")
+            val freezeDtc = if (stored.isNullOrEmpty()) null else freezeDtc()
+            DiagnosticsReport(
+                milOn = status?.let { it[0] and 0x80 != 0 },
+                dtcCount = status?.let { it[0] and 0x7F },
+                stored = stored,
+                pending = dtcs("07", "47"),
+                permanent = dtcs("0A", "4A"),
+                freezeDtc = freezeDtc,
+                freeze = if (freezeDtc == null) emptyMap() else freezeFrame(),
+                vin = text("0902", "4902"),
+                calibration = text("0904", "4904"),
+                readiness = status?.let(Readiness::parse),
+            )
+        }
+        if (!bmw) return report
+        val faults = bmwFaults()
+        return report.copy(bmwFaults = faults, bmwInfo = bmwInfo(), bmwFaultKm = faults.orEmpty().mapNotNull { fault -> faultKm(fault.code)?.let { fault.code to it } }.toMap())
+    }
+
+    /**
+     * Las averias y las pruebas son pocas preguntas y no pueden perder una respuesta: se hacen con
+     * la espera fija aunque la lectura normal use la adaptativa, y al acabar se deja como estaba.
+     */
+    private suspend fun <T> withSteadyWait(block: suspend () -> T): T {
+        if (fixedWait) return block()
+        for (command in FIXED_WAIT) attempt(command)
+        try {
+            return block()
+        } finally {
+            for (command in ADAPTIVE_WAIT) attempt(command)
         }
     }
+
+    /** Las respuestas a [command]; si no llega ninguna, se pregunta una vez mas. */
+    private suspend fun steadyPayloads(command: String, prefix: String): List<IntArray> =
+        ObdParser.payloads(elm.send(command, READ_TIMEOUT_MS), prefix).ifEmpty {
+            ObdParser.payloads(elm.send(command, READ_TIMEOUT_MS), prefix)
+        }
 
     private suspend fun bmwInfo(): List<BmwFault>? = bmwAsk(BmwFault.INFO_QUERY, BmwFault.INFO_ANSWER)?.let(BmwFault::parse)
 
@@ -499,12 +550,12 @@ class ObdSession(
      * Las pruebas internas del coche con sus limites (modo 06). Primero se pregunta que monitores
      * existen, igual que con los PIDs, y luego se pide cada uno.
      */
-    suspend fun monitorTests(): List<MonitorTest> {
+    suspend fun monitorTests(): List<MonitorTest> = withSteadyWait {
         val monitors = mutableSetOf<Int>()
         var base = 0x00
         while (base <= LAST_MONITOR_BLOCK) {
             val request = "06%02X".format(base)
-            val data = ObdParser.payloads(elm.send(request, READ_TIMEOUT_MS), "4" + request.substring(1))
+            val data = steadyPayloads(request, "4" + request.substring(1))
                 .firstOrNull { it.size >= 4 } ?: break
             val found = ObdParser.supportedFrom(base, data)
             monitors += found
@@ -513,10 +564,9 @@ class ObdSession(
         }
         val tests = mutableListOf<MonitorTest>()
         for (monitor in monitors.filter { it % 0x20 != 0 }.sorted()) {
-            val response = elm.send("06%02X".format(monitor), READ_TIMEOUT_MS)
-            for (payload in ObdParser.payloads(response, "46")) tests += Mode06.parse(payload)
+            for (payload in steadyPayloads("06%02X".format(monitor), "46")) tests += Mode06.parse(payload)
         }
-        return tests
+        tests
     }
 
     /** Borra las averias y los datos asociados. Devuelve si el coche lo ha aceptado. */
@@ -526,13 +576,13 @@ class ObdSession(
     fun close() = transport.close()
 
     private suspend fun dtcs(mode: String, prefix: String): List<String>? {
-        val payloads = ObdParser.payloads(elm.send(mode, READ_TIMEOUT_MS), prefix)
+        val payloads = steadyPayloads(mode, prefix)
         return if (payloads.isEmpty()) null else Dtcs.parse(payloads)
     }
 
     /** La averia que provoco la foto del modo 02, si hay alguna. */
     private suspend fun freezeDtc(): String? {
-        val data = ObdParser.payloads(elm.send("020200", READ_TIMEOUT_MS), "420200").firstOrNull() ?: return null
+        val data = steadyPayloads("020200", "420200").firstOrNull() ?: return null
         if (data.size < 2 || (data[0] == 0 && data[1] == 0)) return null
         return Dtcs.code(data[0], data[1])
     }
@@ -542,8 +592,7 @@ class ObdSession(
         for (id in FREEZE_PIDS) {
             val def = Pids.byId.getValue(id)
             val request = "02%02X00".format(id)
-            val data = ObdParser.payloads(elm.send(request, READ_TIMEOUT_MS), "4" + request.substring(1))
-                .firstOrNull() ?: continue
+            val data = steadyPayloads(request, "4" + request.substring(1)).firstOrNull() ?: continue
             def.decodeOrNull(data)?.let { values[id] = it }
         }
         return values
@@ -551,7 +600,7 @@ class ObdSession(
 
     /** Texto de una respuesta del modo 09: tras el prefijo va un contador y luego caracteres. */
     private suspend fun text(request: String, prefix: String): String? {
-        val data = ObdParser.payloads(elm.send(request, READ_TIMEOUT_MS), prefix).firstOrNull() ?: return null
+        val data = steadyPayloads(request, prefix).firstOrNull() ?: return null
         val text = data.drop(1).filter { it in 0x20..0x7E }.joinToString("") { it.toChar().toString() }.trim()
         return text.ifEmpty { null }
     }
@@ -647,8 +696,13 @@ class ObdSession(
         val FORD_QUERIES = listOf("22F113", "22F188", "1902FF", "22DD01")
         const val SCAN_TIMEOUT_MS = 1_500L
 
-        // Espera fija de 400 ms en vez de la adaptativa.
+        // Espera fija de 400 ms en vez de la adaptativa, y la vuelta a la de siempre (200 ms, adaptativa).
         val FIXED_WAIT = listOf("ATAT0", "ATST64")
+        val ADAPTIVE_WAIT = listOf("ATST32", "ATAT1")
+
+        // Si de las ultimas 30 preguntas del OBD estandar quedan sin contestar mas del 20 %.
+        const val SLOW_WINDOW = 30
+        const val SLOW_PERCENT = 20
 
         // Lo que estaba puesto en el sondeo cuando la centralita contesto por primera vez.
         val BMW_PROBE_SETUP = listOf(

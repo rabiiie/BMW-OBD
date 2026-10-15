@@ -181,7 +181,7 @@ class ObdController(
                 val defs = (standard + own).filterNot { it.id in blind }
                 // Las medidas de los casos tienen su columna desde el principio, aunque no se pidan.
                 val extras = if (own.isEmpty()) emptyList() else profile.caseMeasures
-                appendLog("## Coche: ${vehicle.name} · ${if (vehicle.diesel) "diésel" else "gasolina"} · bastidor ${info.vin ?: "no leído"}")
+                appendLog("$CAR_LINE${vehicle.name} · ${if (vehicle.diesel) "diésel" else "gasolina"} · bastidor ${info.vin ?: "no leído"}")
                 appendLog("## Perfil: ${profile.title}")
                 val started = withContext(Dispatchers.IO) {
                     TripRecorder(trips.newFile(simulated, vehicle.key), (defs + extras).map { it.id }.distinct())
@@ -429,7 +429,8 @@ class ObdController(
                         val file = java.io.File(context.filesDir, MODULES_FILE)
                         file.parentFile?.mkdirs()
                         val stamp = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.US).format(java.util.Date())
-                        file.writeText((listOf("## Centralitas guardadas de la conexión del $stamp") + answered).joinToString("\n"))
+                        val owner = SAVED_FOR + _state.value.vehicle.name
+                        file.writeText((listOf(owner, "## Centralitas guardadas de la conexión del $stamp") + answered).joinToString("\n"))
                     }
                 }
             }
@@ -444,6 +445,9 @@ class ObdController(
         if (!isLive() || _diagnostics.value.busy) return
         _diagnostics.update { it.copy(busy = true, message = null) }
         tasks.trySend { session ->
+            // Lo que contesta queda fijo en el registro: las lecturas siguientes no lo echan fuera.
+            logBuffer.pin()
+            appendLog("## Averías: inicio")
             try {
                 val message = when {
                     !clearFirst -> null
@@ -457,6 +461,9 @@ class ObdController(
             } catch (e: IOException) {
                 appendLog("!! ${e.message}")
                 _diagnostics.update { it.copy(busy = false, message = "El adaptador no ha contestado.") }
+            } finally {
+                appendLog("## Averías: fin")
+                logBuffer.unpin()
             }
         }
     }
@@ -466,6 +473,8 @@ class ObdController(
         if (!isLive() || _diagnostics.value.busy) return
         _diagnostics.update { it.copy(busy = true, message = null) }
         tasks.trySend { session ->
+            logBuffer.pin()
+            appendLog("## Pruebas internas: inicio")
             try {
                 val tests = session.monitorTests()
                 val message = if (tests.isEmpty()) "El coche no publica pruebas internas por el OBD estándar." else null
@@ -473,6 +482,9 @@ class ObdController(
             } catch (e: IOException) {
                 appendLog("!! ${e.message}")
                 _diagnostics.update { it.copy(busy = false, message = "El adaptador no ha contestado.") }
+            } finally {
+                appendLog("## Pruebas internas: fin")
+                logBuffer.unpin()
             }
         }
     }
@@ -556,7 +568,7 @@ class ObdController(
             val snapshot = values.toMap()
             jumps?.found?.takeIf { it.size > jumpsSaved }?.let { found ->
                 jumpsSaved = found.size
-                val text = (listOf(JUMPS_TITLE) + found + JUMPS_END).joinToString("\n")
+                val text = (listOf(SAVED_FOR + _state.value.vehicle.name, JUMPS_TITLE) + found + JUMPS_END).joinToString("\n")
                 withContext(Dispatchers.IO) {
                     runCatching { java.io.File(context.filesDir, JUMPS_FILE).apply { parentFile?.mkdirs() }.writeText(text) }
                 }
@@ -687,9 +699,24 @@ class ObdController(
         const val JUMPS_END = "## Saltos: fin"
         private const val JUMPS_TITLE = "## Saltos sueltos de las medidas de BMW en la última conexión"
 
-        /** [lines] con lo guardado en [saved] detras, si no lo llevan ya: se reconoce por su ultima linea, [end]. */
-        fun withSaved(lines: List<String>, saved: List<String>, end: String): List<String> =
-            if (saved.isEmpty() || lines.any { it.startsWith(end) }) lines else lines + saved
+        /** La linea del registro que dice con que coche se ha conectado. */
+        const val CAR_LINE = "## Coche: "
+
+        /** La primera linea de lo guardado: de que coche es. */
+        const val SAVED_FOR = "## Guardado del coche: "
+
+        /**
+         * [lines] con lo guardado en [saved] detras, si no lo llevan ya (se reconoce por su ultima
+         * linea, [end]) y si es del mismo coche del registro. Lo guardado sin coche es de antes de
+         * apuntarlo y solo se añade a un registro que tampoco dice el coche.
+         */
+        fun withSaved(lines: List<String>, saved: List<String>, end: String): List<String> {
+            if (saved.isEmpty() || lines.any { it.startsWith(end) }) return lines
+            val car = lines.lastOrNull { it.startsWith(CAR_LINE) }?.removePrefix(CAR_LINE)?.substringBefore(" · ")
+            val owner = saved.firstOrNull()?.takeIf { it.startsWith(SAVED_FOR) }?.removePrefix(SAVED_FOR)
+            if (car != null && car != owner) return lines
+            return lines + saved.filterNot { it.startsWith(SAVED_FOR) }
+        }
 
         private val SOUNDING = setOf("lugging")
         private const val IDLE_DELAY_MS = 200L
