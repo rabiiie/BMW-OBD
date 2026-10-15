@@ -390,17 +390,24 @@ class ObdController(
      * cambia la configuracion del adaptador mientras dura, solo se hace con el coche parado; lo
      * que contesten queda fijo en el registro y guardado en el movil.
      */
+    private val _modulesRunning = MutableStateFlow(false)
+
+    /** Si se esta preguntando a las otras centralitas: el boton lo dice y no deja pulsar otra vez. */
+    val modulesRunning: StateFlow<Boolean> = _modulesRunning.asStateFlow()
+
     fun probeModules() {
         val probe = ModuleProbe.of(_state.value.vehicle)
-        if (!isLive() || probe == null) return
+        if (!isLive() || probe == null || _modulesRunning.value) return
         if ((_state.value.values[Pids.SPEED] ?: 0.0) >= 1.0) {
             appendLog("!! Las otras centralitas solo se preguntan con el coche parado.")
             return
         }
+        _modulesRunning.value = true
         tasks.trySend { session ->
             logBuffer.pin()
+            var result: Pair<Int, Int>? = null
             try {
-                when (probe) {
+                result = when (probe) {
                     ModuleProbe.BMW -> session.probeModules()
                     ModuleProbe.FORD -> session.probeFordModules()
                 }
@@ -409,6 +416,12 @@ class ObdController(
                 throw e
             } finally {
                 logBuffer.unpin()
+                _modulesRunning.value = false
+                // Al final del registro, donde se esta mirando; el detalle queda fijo mas arriba.
+                appendLog(
+                    result?.let { (heard, asked) -> "## Otras centralitas: contestaron $heard de $asked. El detalle está más arriba en el registro." }
+                        ?: "## Otras centralitas: se cortó a medias. Lo que contestaron está más arriba en el registro.",
+                )
                 val answered = logBuffer.pinned()
                 withContext(Dispatchers.IO) {
                     runCatching {

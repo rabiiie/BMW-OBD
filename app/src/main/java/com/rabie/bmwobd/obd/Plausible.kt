@@ -19,7 +19,12 @@ object Plausible {
             if (error <= EGR_ERROR_MARK && (values[EGR_SENT] ?: 0.0) < EGR_OPEN) values.remove(EGR_ERROR)
         }
         values[TURBO_INLET]?.let { if (it >= TURBO_INLET_TOP) values.remove(TURBO_INLET) }
+        // El modo del motor dio 0x7FFFFFFF el 15 de octubre, con el contacto recien puesto: el
+        // numero mas alto que cabe, que no es ningun modo.
+        values[Pids.BMW_ENGINE_MODE]?.let { if (it == ENGINE_MODE_NONE) values.remove(Pids.BMW_ENGINE_MODE) }
     }
+
+    private const val ENGINE_MODE_NONE = 2_147_483_647.0
 
     private val LAMBDA = Pids.bmw(0x0A29)
     private const val LAMBDA_TOP = 32.76

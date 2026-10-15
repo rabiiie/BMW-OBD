@@ -20,6 +20,19 @@ class Elm327(
         return clean
     }
 
+    /**
+     * Lee y tira lo que el adaptador tuviera pendiente: la respuesta a una consulta que se dio por
+     * perdida y llego despues. Sin esto, cada respuesta siguiente sale desplazada una posicion, como
+     * paso el 15 de octubre al reiniciarlo tras preguntar a las otras centralitas.
+     */
+    suspend fun drain(timeoutMs: Long = DRAIN_TIMEOUT_MS) {
+        try {
+            transport.readUntilPrompt(timeoutMs)
+        } catch (e: java.net.SocketTimeoutException) {
+            // No habia nada pendiente.
+        }
+    }
+
     /** Reinicia el adaptador y lo deja sin eco, sin espacios ni cabeceras. Devuelve su version. */
     suspend fun initialize(): String {
         val version = send("ATZ", RESET_TIMEOUT_MS).lines().lastOrNull().orEmpty()
@@ -35,6 +48,7 @@ class Elm327(
     private companion object {
         const val DEFAULT_TIMEOUT_MS = 2_000L
         const val RESET_TIMEOUT_MS = 4_000L
+        const val DRAIN_TIMEOUT_MS = 1_500L
 
         // Eco, saltos de linea y espacios fuera, sin cabeceras, tiempo adaptativo, protocolo automatico.
         val SETUP_COMMANDS = listOf("ATE0", "ATL0", "ATS0", "ATH0", "ATAT1", "ATSP0")

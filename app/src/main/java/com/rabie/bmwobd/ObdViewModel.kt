@@ -97,6 +97,8 @@ class ObdViewModel(app: Application) : AndroidViewModel(app) {
 
     fun probeModules() = controller.probeModules()
 
+    val modulesRunning: StateFlow<Boolean> = controller.modulesRunning
+
     /** Las otras centralitas que se saben preguntar en este coche, o null si ninguna. */
     fun moduleProbe(vehicle: Vehicle) = ModuleProbe.of(vehicle)
     val probeState: StateFlow<ProbeState> = controller.probeState

@@ -12,7 +12,7 @@ class PlausibleTest {
         val lambda = Pids.bmw(0x0A29)
         val inlet = Pids.bmw(0x03E0)
         // Lo que dio el coche el 12 y el 13 de octubre.
-        val marks = hashMapOf(lambda to 32.77, 0x2D to -100.0, 0x2C to 0.0, inlet to 3000.03)
+        val marks = hashMapOf(lambda to 32.77, 0x2D to -100.0, 0x2C to 0.0, inlet to 3000.03, Pids.BMW_ENGINE_MODE to 2_147_483_647.0)
         Plausible.clean(marks)
         assertEquals(setOf(0x2C), marks.keys)
 

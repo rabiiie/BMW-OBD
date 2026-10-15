@@ -166,6 +166,7 @@ class ObdSession(
 
     /** Reinicia el adaptador y lo deja como lo espera la lectura normal. */
     private suspend fun restore() {
+        elm.drain()
         elm.initialize()
         attempt("0100", FIRST_QUERY_TIMEOUT_MS)
         applyWait()
@@ -301,23 +302,53 @@ class ObdSession(
      * para hablar con ella de la forma en que contesto la del motor en el primer sondeo. Lo que
      * contesten queda en el registro tal cual. Al acabar el adaptador vuelve a la lectura normal.
      */
-    suspend fun probeModules() {
-        log("## Centralitas: inicio")
+    suspend fun probeModules(): Pair<Int, Int> = askModules("## Centralitas: inicio", MODULES.map { (address, name) ->
+        Triple("%02X".format(address), name, listOf(
+            "ATSP6", "ATSH6F1", "ATCEA%02X".format(address), "ATFCSH6F1", "ATFCSD%02X3000".format(address),
+            "ATFCSM1", "ATCRA6%02X".format(address), "ATAT0", "ATSTFF",
+        ))
+    }, MODULE_QUERIES)
+
+    /**
+     * Prepara el adaptador para cada centralita y le hace las consultas. La primera es siempre la
+     * del motor, que contesta seguro: si ni ella contesta, este adaptador no admite esa forma de
+     * preguntar y no se sigue. Devuelve cuantas contestaron de las preguntadas.
+     */
+    private suspend fun askModules(title: String, modules: List<Triple<String, String, List<String>>>, queries: List<String>): Pair<Int, Int> {
+        log(title)
+        var answered = 0
+        var asked = 0
         try {
-            for ((address, name) in MODULES) {
-                log("## Centralita %02X: %s".format(address, name))
-                val setup = listOf(
-                    "ATSP6", "ATSH6F1", "ATCEA%02X".format(address), "ATFCSH6F1", "ATFCSD%02X3000".format(address),
-                    "ATFCSM1", "ATCRA6%02X".format(address), "ATAT0", "ATSTFF",
-                )
+            for ((index, module) in modules.withIndex()) {
+                val (address, name, setup) = module
+                log("## Centralita $address: $name")
                 for (command in setup) attempt(command)
-                for (query in MODULE_QUERIES) attempt(query, RAW_TIMEOUT_MS)
+                asked++
+                var heard = false
+                for (query in queries) if (answers(tryAsk(query))) heard = true
+                if (heard) answered++
+                if (index == 0 && !heard) {
+                    log("## Ni la centralita del motor contesta así: este adaptador no admite esta forma de preguntar. No se sigue.")
+                    break
+                }
             }
         } finally {
             restoreOrFail()
         }
         log("## Centralitas: fin")
+        return answered to asked
     }
+
+    private suspend fun tryAsk(command: String): String? = try {
+        elm.send(command, RAW_TIMEOUT_MS)
+    } catch (e: SocketTimeoutException) {
+        log("!! Sin respuesta a $command")
+        null
+    }
+
+    /** Si en la respuesta hay datos de la centralita, aunque sea una negativa: eso ya es que contesta. */
+    private fun answers(response: String?): Boolean =
+        response?.lines()?.any { line -> ANSWER_LINE.matches(line.trim().uppercase()) } == true
 
     /**
      * Pregunta a otras centralitas de un Ford quienes son y que averias guardan. Ford usa el
@@ -326,20 +357,9 @@ class ObdSession(
      * (22 F113, 22 F188) y averias (19 02). El bastidor no se pide. Al acabar el adaptador vuelve a
      * la lectura normal.
      */
-    suspend fun probeFordModules() {
-        log("## Centralitas Ford: inicio")
-        try {
-            for ((address, name) in FORD_MODULES) {
-                log("## Centralita %03X: %s".format(address, name))
-                val setup = listOf("ATSP6", "ATSH%03X".format(address), "ATCRA%03X".format(address + FORD_ANSWER_OFFSET), "ATAT0", "ATSTFF")
-                for (command in setup) attempt(command)
-                for (query in FORD_QUERIES) attempt(query, RAW_TIMEOUT_MS)
-            }
-        } finally {
-            restoreOrFail()
-        }
-        log("## Centralitas: fin")
-    }
+    suspend fun probeFordModules(): Pair<Int, Int> = askModules("## Centralitas Ford: inicio", FORD_MODULES.map { (address, name) ->
+        Triple("%03X".format(address), name, listOf("ATSP6", "ATSH%03X".format(address), "ATCRA%03X".format(address + FORD_ANSWER_OFFSET), "ATAT0", "ATSTFF"))
+    }, FORD_QUERIES)
 
     /**
      * Deja el adaptador como lo espera la lectura normal y comprueba que el coche vuelve a
@@ -543,6 +563,9 @@ class ObdSession(
             0x720 to "cuadro de instrumentos",
         )
         const val FORD_ANSWER_OFFSET = 8
+
+        // Una linea con bytes: la de una trama troceada ("0: 5A80...") o una respuesta entera.
+        private val ANSWER_LINE = Regex("^([0-9A-F]:)?[0-9A-F]{4,}$")
 
         // Referencia de la pieza, version del programa y averias guardadas con cualquier estado.
         val FORD_QUERIES = listOf("22F113", "22F188", "1902FF")
