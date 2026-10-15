@@ -175,6 +175,9 @@ object Pids {
     /** Lo que marcaba la distancia total en cada una de las cinco ultimas regeneraciones, de la mas reciente a la mas antigua. */
     val BMW_REGENERATION_ADDRESSES = listOf(0x03FD, 0x03FE, 0x03FF, 0x0400, 0x0401)
 
+    /** Cuantos contadores de regeneracion por tipo tiene la tabla, desde 03F5. */
+    const val BMW_REGEN_STEP_COUNTERS = 8
+
     /** La tension que mide el propio adaptador con ATRV: no es un PID y no depende del coche. */
     const val ADAPTER_PID = -1
     const val ADAPTER_VOLTAGE = 0x10000
@@ -390,6 +393,8 @@ object Pids {
         bmwDef(0x03E8, "Filtro: gasóleo desde la última regeneración", "L", 1, PidGroup.EXHAUST) { it * 0.01 },
         bmwDef(0x0424, "Filtro: presión diferencial", "hPa", 0, PidGroup.EXHAUST) { it * 0.045777 - 1000.0 },
         bmwDef(0x0404, "Filtro: regeneración pedida (0 = no)", "", 0, PidGroup.EXHAUST, size = 1) { it.toDouble() },
+        bmwDef(0x0405, "Filtro: hollín medido corregido", "g", 1, PidGroup.EXHAUST) { it * 0.01 },
+        bmwDef(0x0406, "Filtro: hollín calculado de forma continua", "g", 1, PidGroup.EXHAUST) { it * 0.01 },
         bmwDef(0x01B2, "Corriente de batería", "A", 1, PidGroup.ELECTRIC) { it * 0.08 - 200.0 },
         bmwDef(0x09C4, "Ventilador", "%", 0, PidGroup.ENGINE) { it * 0.001526 },
         bmwDef(0x0839, "Control de crucero (1 = puesto)", "", 0, PidGroup.ENGINE, size = 1) { it.toDouble() },
@@ -429,7 +434,12 @@ object Pids {
         bmwDef(0x0BBD, "EGR: cero aprendido, el primero", "%", 2, PidGroup.AIR, Tier.ONCE) { it * 0.003052 - 100.0 },
         bmwDef(0x0BBE, "EGR: cero aprendido, el último", "%", 2, PidGroup.AIR, Tier.ONCE) { it * 0.003052 - 100.0 },
         bmwDef(0x0428, "Filtro: cero aprendido del sensor de presión", "hPa", 1, PidGroup.EXHAUST, Tier.ONCE) { it * 0.030518 - 1000.0 },
-    ) + BMW_REGENERATION_ADDRESSES.mapIndexed { index, address ->
+    ) + (0 until BMW_REGEN_STEP_COUNTERS).map { step ->
+        // Contadores de un byte de la tabla ("Regenerationszähler Typ 1" a 8). Que uno suba durante
+        // un trayecto dice que se ha completado una regeneracion de ese tipo; los que estan en 255
+        // ya no suben.
+        bmwDef(0x03F5 + step, "Filtro: regeneraciones de tipo ${step + 1}", "", 0, PidGroup.EXHAUST, size = 1) { it.toDouble() }
+    } + BMW_REGENERATION_ADDRESSES.mapIndexed { index, address ->
         bmwDef(address, "Filtro: km en la regeneración ${index + 1} hacia atrás", "km", 0, PidGroup.EXHAUST, Tier.ONCE, size = 4) {
             it / 1000.0
         }
@@ -440,7 +450,6 @@ object Pids {
      * barrido completo del coche. La resistencia va en Pa para que quepa en dos decimales.
      */
     val bmwCases: List<PidDef> = listOf(
-        bmwDef(0x0405, "Filtro: hollín medido corregido", "g", 1, PidGroup.EXHAUST) { it * 0.01 },
         bmwDef(0x03F1, "Filtro: resistencia al paso", "Pa·h/m³", 1, PidGroup.EXHAUST) { it * 0.01 },
         bmwDef(0x0420, "Filtro: presión delante", "hPa", 0, PidGroup.EXHAUST) { it * 0.091554 },
         bmwDef(0x041E, "Escape antes del catalizador", "°C", 0, PidGroup.EXHAUST) { it * 0.031281 - 50.0 },
