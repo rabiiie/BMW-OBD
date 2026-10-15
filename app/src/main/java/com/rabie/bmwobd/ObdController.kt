@@ -408,7 +408,8 @@ class ObdController(
             var result: Pair<Int, Int>? = null
             try {
                 result = when (probe) {
-                    ModuleProbe.BMW -> session.probeModules()
+                    // Si ni la del motor contesta con la direccion por centralita, en crudo.
+                    ModuleProbe.BMW -> session.probeModules().let { tried -> if (tried.first == 0) session.probeModulesRaw() else tried }
                     ModuleProbe.FORD -> session.probeFordModules()
                 }
             } catch (e: IOException) {

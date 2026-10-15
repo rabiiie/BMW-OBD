@@ -339,6 +339,69 @@ class ObdSession(
         return answered to asked
     }
 
+    /**
+     * La otra forma de preguntar a las centralitas de BMW: el adaptador manda las tramas CAN tal
+     * cual, sin darles formato, y la app pone la direccion de la centralita en el primer byte, la
+     * longitud y el control de flujo. Es como se hablo con la del motor en las primeras pruebas, y
+     * sirve con adaptadores que no admiten la direccion por centralita. Solo consultas.
+     */
+    suspend fun probeModulesRaw(): Pair<Int, Int> {
+        log("## Centralitas, con tramas en crudo: inicio")
+        var answered = 0
+        var asked = 0
+        try {
+            for (command in RAW_MODULE_SETUP) attempt(command)
+            for ((index, module) in MODULES.withIndex()) {
+                val (address, name) = module
+                log("## Centralita %02X: %s".format(address, name))
+                asked++
+                var heard = false
+                for (query in RAW_MODULE_QUERIES) {
+                    val data = rawExchange(address, query) ?: continue
+                    heard = true
+                    log("## Contesta: " + data.joinToString("") { "%02X".format(it) })
+                }
+                if (heard) answered++
+                if (index == 0 && !heard) {
+                    log("## Ni la centralita del motor contesta en crudo: este adaptador tampoco admite esta forma. No se sigue.")
+                    break
+                }
+            }
+        } finally {
+            restoreOrFail()
+        }
+        log("## Centralitas: fin")
+        return answered to asked
+    }
+
+    /**
+     * Una consulta en crudo a la centralita [target] y su respuesta entera. Si viene troceada, se
+     * pide el resto con el control de flujo. Null si no contesta.
+     */
+    private suspend fun rawExchange(target: Int, request: IntArray): IntArray? {
+        val from = RAW_ANSWER_BASE + target
+        fun mine(frames: List<BmwProbe.Frame>) = frames.filter { it.id == from && it.bytes.size >= 2 && it.bytes[0] == TESTER }
+        val first = mine(rawSend(intArrayOf(target, request.size) + request) ?: return null)
+        val head = first.firstOrNull() ?: return null
+        return when (head.bytes[1] shr 4) {
+            SINGLE_FRAME -> head.bytes.drop(2).take(head.bytes[1] and 0x0F).toIntArray()
+            FIRST_FRAME -> {
+                if (head.bytes.size < 3) return null
+                val total = (head.bytes[1] and 0x0F) * 256 + head.bytes[2]
+                val data = head.bytes.drop(3).toMutableList()
+                val rest = (first - head) + mine(rawSend(intArrayOf(target, FLOW_CONTROL_GO, 0x00, 0x00)).orEmpty())
+                for (frame in rest) if (frame.bytes[1] shr 4 == CONSECUTIVE_FRAME) data += frame.bytes.drop(2)
+                data.take(total).toIntArray()
+            }
+            else -> null
+        }
+    }
+
+    private suspend fun rawSend(bytes: IntArray): List<BmwProbe.Frame>? {
+        val text = (bytes.toList() + List(RAW_FRAME_BYTES) { 0 }).take(RAW_FRAME_BYTES).joinToString("") { "%02X".format(it) }
+        return tryAsk(text)?.let(BmwProbe::frames)
+    }
+
     private suspend fun tryAsk(command: String): String? = try {
         elm.send(command, RAW_TIMEOUT_MS)
     } catch (e: SocketTimeoutException) {
@@ -553,6 +616,17 @@ class ObdSession(
 
         // Solo servicios de lectura: identidad, averias y los cuatro primeros bloques de configuracion.
         val MODULE_QUERIES = listOf("1A80", "1802FFFF", "223000", "223001", "223002", "223003")
+
+        // En crudo: sin formato, cabecera del equipo de diagnosis y que pasen las respuestas 6xx.
+        val RAW_MODULE_SETUP = listOf("ATSP6", "ATCAF0", "ATSH6F1", "ATCF600", "ATCM700", "ATH1", "ATS0", "ATAL", "ATAT0", "ATSTFF")
+        val RAW_MODULE_QUERIES = listOf(intArrayOf(0x1A, 0x80), intArrayOf(0x18, 0x02, 0xFF, 0xFF), intArrayOf(0x22, 0x30, 0x00))
+        const val RAW_ANSWER_BASE = 0x600
+        const val RAW_FRAME_BYTES = 8
+        const val TESTER = 0xF1
+        const val SINGLE_FRAME = 0
+        const val FIRST_FRAME = 1
+        const val CONSECUTIVE_FRAME = 2
+        const val FLOW_CONTROL_GO = 0x30
 
         // Las direcciones de envio de un Focus de esa epoca, de memoria: hay que confirmarlas con lo
         // que contesten. La primera es la del motor, que contesta seguro: sirve de control.
