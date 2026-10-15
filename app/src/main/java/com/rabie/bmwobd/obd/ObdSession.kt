@@ -641,8 +641,10 @@ class ObdSession(
         // Una linea con bytes: la de una trama troceada ("0: 5A80...") o una respuesta entera.
         private val ANSWER_LINE = Regex("^([0-9A-F]:)?[0-9A-F]{4,}$")
 
-        // Referencia de la pieza, version del programa y averias guardadas con cualquier estado.
-        val FORD_QUERIES = listOf("22F113", "22F188", "1902FF")
+        // Referencia de la pieza, version del programa, averias guardadas con cualquier estado y los
+        // kilometros que guarda cada centralita (DD01, de memoria: hay que confirmarlo con lo que
+        // contesten). Compararlos entre centralitas dice si alguien cambio el del cuadro.
+        val FORD_QUERIES = listOf("22F113", "22F188", "1902FF", "22DD01")
         const val SCAN_TIMEOUT_MS = 1_500L
 
         // Espera fija de 400 ms en vez de la adaptativa.
