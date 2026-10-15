@@ -134,4 +134,18 @@ class BmwMeasuresTest {
         assertFalse(Pids.hasBmwMeasures("Volkswagen", diesel = true))
         assertFalse(Pids.hasBmwMeasures(null, diesel = true))
     }
+
+    @Test
+    fun `el filtro por el OBD estandar, para los coches que no son BMW`() {
+        // 7A: soporta la diferencial, 0x0096 = 150 centesimas de kPa = 1,5 kPa = 15 hPa.
+        assertEquals(1.5, Pids.byId.getValue(Pids.OBD_FILTER_PRESSURE).decodeOrNull(intArrayOf(0x01, 0x00, 0x96, 0, 0, 0, 0))!!, 0.001)
+        // 8B: soporta el estado y la distancia media; regenerando, y 517 km entre regeneraciones.
+        val status = intArrayOf(0x41, 0x01, 0x00, 0x00, 0x00, 0x02, 0x05)
+        assertEquals(1.0, Pids.byId.getValue(Pids.OBD_REGENERATING).decodeOrNull(status)!!, 0.0)
+        assertEquals(517.0, Pids.byId.getValue(Pids.part(0x8B, 1)).decodeOrNull(status)!!, 0.0)
+        assertTrue(Pids.regenerating(mapOf(Pids.OBD_REGENERATING to 1.0)))
+        assertFalse(Pids.regenerating(mapOf(Pids.OBD_REGENERATING to 0.0)))
+        // Sin ese dato, un coche que no publica nada no regenera para la app.
+        assertFalse(Pids.regenerating(mapOf(Pids.RPM to 850.0)))
+    }
 }

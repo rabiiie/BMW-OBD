@@ -114,7 +114,19 @@ object Pids {
         else -> request != null && request >= BMW_REGEN_ACTIVE
     }
 
-    fun regenerating(values: Map<Int, Double>): Boolean = regenerating(values[BMW_REGEN_REQUEST], values[BMW_ENGINE_MODE])
+    fun regenerating(values: Map<Int, Double>): Boolean =
+        if (BMW_REGEN_REQUEST in values || BMW_ENGINE_MODE in values) {
+            regenerating(values[BMW_REGEN_REQUEST], values[BMW_ENGINE_MODE])
+        } else {
+            // En los demas coches, lo que diga el OBD estandar si lo publica.
+            values[OBD_REGENERATING] == 1.0
+        }
+
+    /** Si el filtro regenera segun el OBD estandar (PID 8B), en los coches que lo publican. */
+    val OBD_REGENERATING = part(0x8B, 0)
+
+    /** La presion diferencial del filtro segun el OBD estandar (PID 7A), en kPa. */
+    val OBD_FILTER_PRESSURE = part(0x7A, 0)
 
     /** Los minutos que llevaba el coche parado antes de este arranque, segun la centralita. */
     val BMW_PARKED_MINUTES = bmw(0x10CE)
@@ -288,6 +300,15 @@ object Pids {
         },
         PidDef(part(0x7C, 1), "Filtro: temp. salida", "°C", 5, 0, pid = 0x7C) {
             if (has(it, 1)) wideTemp(it, 3) else null
+        },
+        // El estado del tratamiento de gases de los diesel, segun la norma: el primer byte dice que
+        // datos da el coche; el segundo, en su primer bit, si esta regenerando; los dos ultimos, la
+        // distancia media entre regeneraciones. Sin comprobar todavia en un coche que lo publique.
+        PidDef(part(0x8B, 0), "Filtro: regenerando (1 = sí, OBD)", "", 2, 0, pid = 0x8B) {
+            if (has(it, 0)) (it[1] and 1).toDouble() else null
+        },
+        PidDef(part(0x8B, 1), "Filtro: km medios entre regeneraciones (OBD)", "km", 7, 0, pid = 0x8B) {
+            if (has(it, 6)) word(it, 5).toDouble() else null
         },
         PidDef(part(0x83, 0), "NOx", "ppm", 3, 0, pid = 0x83) {
             if (has(it, 0)) word(it, 1).toDouble() else null

@@ -268,7 +268,9 @@ data class TripHealth(
         }
 
         private fun filter(data: TripData): FilterCheck? {
+            // La de BMW en hPa; en los demas coches la del OBD estandar, que va en kPa.
             val pressure = data.series[FILTER_PRESSURE]
+                ?: data.series[Pids.OBD_FILTER_PRESSURE]?.let { kpa -> DoubleArray(kpa.size) { kpa[it] * HPA_PER_KPA } }
             val atIdle = if (pressure == null) emptyList() else warmIdleRows(data).map { pressure[it] }.filter { !it.isNaN() }.sorted()
             val marks = Pids.BMW_REGENERATION_ADDRESSES.take(2).map { address ->
                 data.series[Pids.bmw(address)]?.lastOrNull { !it.isNaN() }
@@ -401,6 +403,7 @@ data class TripHealth(
         }
 
         private const val OUTSIDE = 0x46
+        private const val HPA_PER_KPA = 10.0
         private val TORQUE = Pids.bmw(0x07D1)
         private const val RPM_NM_PER_KW = 9549.0
         private const val HP_PER_KW = 1.36
