@@ -89,6 +89,13 @@ object Limits {
     const val BOOST_DEFICIT_ALERT_KPA = 40.0
     const val BOOST_EXCESS_ALERT_KPA = 30.0
     const val BOOST_MIN_AT_FULL_LOAD_KPA = 50.0
+
+    // Turbo sin regular: pide al menos 60 kPa sobre la presion de la calle y no pasa de 15.
+    const val BOOST_UNCONTROLLED_ASKED_KPA = 60.0
+    const val BOOST_UNCONTROLLED_GOT_KPA = 15.0
+    const val BOOST_UNCONTROLLED_MIN_RPM = 1700.0
+    const val BOOST_UNCONTROLLED_HOLD_MS = 10_000L
+    const val SEA_LEVEL_KPA = 101.0
     const val RAIL_DEVIATION_WARN = 0.10
     const val RAIL_DEVIATION_ALERT = 0.20
     const val EGR_ERROR_WARN = 15.0
@@ -196,6 +203,8 @@ class Moment(
         val EXHAUST_TEMPS = (0..3).map { Pids.part(0x78, it) } + CATALYST_TEMP
         val BOOST_COMMANDED = Pids.part(0x70, 0)
         val BOOST_ACTUAL = Pids.part(0x70, 1)
+        val BMW_BOOST_COMMANDED = Pids.bmw(0x01F4)
+        const val BAROMETRIC = 0x33
         val RAIL_COMMANDED = Pids.part(0x6D, 0)
         val RAIL_ACTUAL = Pids.part(0x6D, 1)
     }
@@ -509,6 +518,23 @@ class Advisor {
                 Advice(
                     "boost_low", Severity.WARN, "Poco turbo acelerando a fondo",
                     "Solo ${n(boost / 100, 2)} bar con carga alta. Puede haber una fuga en la admisión.",
+                )
+            },
+            // Pide turbo y no llega nada: la presion se queda en la de la calle. Es lo que pasa cuando
+            // la centralita deja el turbo en emergencia, sin regular. Con poco aire y mucho gasoleo
+            // el filtro se llena de hollin en pocos minutos.
+            Rule("boost_uncontrolled", Limits.BOOST_UNCONTROLLED_HOLD_MS) { m ->
+                if ((m.rpm ?: 0.0) < Limits.BOOST_UNCONTROLLED_MIN_RPM) return@Rule null
+                val commanded = m.values[Moment.BOOST_COMMANDED] ?: m.values[Moment.BMW_BOOST_COMMANDED] ?: return@Rule null
+                val actual = m.values[Moment.BOOST_ACTUAL] ?: m.values[Pids.MAP] ?: return@Rule null
+                val outside = m.values[Moment.BAROMETRIC] ?: Limits.SEA_LEVEL_KPA
+                if (commanded - outside < Limits.BOOST_UNCONTROLLED_ASKED_KPA) return@Rule null
+                if (actual - outside > Limits.BOOST_UNCONTROLLED_GOT_KPA) return@Rule null
+                Advice(
+                    "boost_uncontrolled", Severity.ALERT, "Turbo sin regular",
+                    "Pide ${n(commanded)} kPa y hay ${n(actual)}: el turbo no sopla. La centralita puede haberlo dejado en " +
+                        "emergencia. No pises fuerte, que con poco aire se llena el filtro de hollín. Mira la abrazadera " +
+                        "entre turbo y filtro, manguitos e intercooler, y lee las averías.",
                 )
             },
             Rule("air_full", 3_000) { m ->

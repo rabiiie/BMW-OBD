@@ -91,6 +91,22 @@ class AdvisorTest {
     }
 
     @Test
+    fun `turbo que no sopla mientras se le pide va en rojo`() {
+        // Lo grabado el dia de la abrazadera suelta: pide 213 kPa, hay 81 y la calle esta a 95.
+        val asking = mapOf(
+            Pids.RPM to 2000.0, Pids.SPEED to 75.0, Pids.COOLANT to 85.0, Pids.LOAD to 90.0,
+            Moment.BMW_BOOST_COMMANDED to 213.0, Moment.BAROMETRIC to 95.0,
+        )
+        assertEquals(Severity.ALERT, hold(asking + (Pids.MAP to 81.0), 15).find("boost_uncontrolled")?.severity)
+        // Unos segundos mientras el turbo coge vueltas no cuentan.
+        assertNull(hold(asking + (Pids.MAP to 81.0), 6).find("boost_uncontrolled"))
+        // Con el turbo soplando, aunque llegue algo menos de lo pedido, no es este aviso.
+        assertNull(hold(asking + (Pids.MAP to 190.0), 10).find("boost_uncontrolled"))
+        // Si no pide turbo, no hay nada que regular.
+        assertNull(hold(asking + (Moment.BMW_BOOST_COMMANDED to 120.0) + (Pids.MAP to 98.0), 10).find("boost_uncontrolled"))
+    }
+
+    @Test
     fun `el motor que no coge temperatura tras un cuarto de hora rodando`() {
         val cruising = mapOf(Pids.RPM to 2000.0, Pids.SPEED to 100.0, Pids.COOLANT to 65.0, Pids.LOAD to 40.0)
         assertNull(hold(cruising, 10 * 60).find("thermostat"))

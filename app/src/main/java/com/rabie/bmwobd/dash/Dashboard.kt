@@ -202,7 +202,7 @@ object Dashboard {
     /** El grupo al que toca un aviso: es el que se queda fijo mientras dura. */
     fun group(advice: Advice): DashGroup? = when (advice.id) {
         "regeneration", "regen_stop", "regen_pending", "filter_faults", "regen_overdue", "soot_gap", "filter_idle", "filter_load", "exhaust_hot" -> DashGroup.FILTER
-        "boost_low", "boost_high", "air_full" -> DashGroup.TURBO
+        "boost_low", "boost_high", "boost_uncontrolled", "air_full" -> DashGroup.TURBO
         "rail", "rail_high", "idle_rail" -> DashGroup.INJECTORS
         "voltage" -> DashGroup.ELECTRIC
         "egr", "air", "idle_air", "intake_hot", "intake_delta" -> DashGroup.AIR
