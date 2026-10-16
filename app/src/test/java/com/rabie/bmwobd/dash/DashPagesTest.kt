@@ -23,7 +23,7 @@ class DashPagesTest {
         val values = mapOf(Pids.BMW_REGEN_REQUEST to 7.0, Pids.BMW_FILTER_FAULTS to 2.0)
         val filter = DashPages.pages(values, trip, emptyList(), bmw = true)[1]
         assertEquals(
-            "Petición 7: protección del motor por filtro muy cargado; sin regeneración normal · 481A presente: filtro por encima del máximo",
+            "Petición 7: protección: filtro muy cargado, sin regeneración normal · 481A presente: filtro por encima del máximo",
             filter.status,
         )
         assertNull(filter.alert)

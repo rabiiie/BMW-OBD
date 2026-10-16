@@ -621,7 +621,7 @@ class Advisor {
             },
             Rule("filter_faults", Limits.REGEN_STOP_HOLD_MS) { m ->
                 val level = m.values[Pids.BMW_FILTER_FAULTS] ?: return@Rule null
-                if (level < 1 || !m.running) return@Rule null
+                if (level < 1) return@Rule null
                 Advice(
                     "filter_faults", Severity.WARN,
                     if (level >= 2) "481A: filtro por encima del máximo" else "480A: filtro muy cargado",

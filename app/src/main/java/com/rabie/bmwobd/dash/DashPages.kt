@@ -109,7 +109,8 @@ object DashPages {
         calculated(Dashboard.horsepower(values), 0, "CV"),
         cell(values[Pids.LOAD], 0, "% carga"),
         cell(values[FUEL_TEMP], 0, "°C gasóleo"),
-        cell(values[Pids.bmw(Pids.BMW_TIMING_OFFSET_ADDRESS)]?.takeIf { it != 0.0 }, 2, "° cadena"),
+        // Parado la centralita no tiene desfase y da su valor de sin dato, que sale como 0.
+        cell(values[Pids.bmw(Pids.BMW_TIMING_OFFSET_ADDRESS)]?.takeIf { (values[Pids.RPM] ?: 0.0) > 0 }, 2, "° cadena"),
         cell(values[SMOKE_LIMIT], 1, "mg límite humo"),
     )
 

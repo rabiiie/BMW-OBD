@@ -201,7 +201,7 @@ object Pids {
         0 -> "no pide regenerar"
         1 -> "pendiente: la hará en cuanto pueda"
         5 -> "regenerando"
-        7 -> "protección del motor por filtro muy cargado; sin regeneración normal"
+        7 -> "protección: filtro muy cargado, sin regeneración normal"
         else -> "código sin identificar"
     }
 
