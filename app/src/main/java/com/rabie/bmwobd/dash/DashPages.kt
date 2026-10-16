@@ -95,6 +95,7 @@ object DashPages {
         val request = values[Pids.BMW_REGEN_REQUEST]
         return listOf(
             cell(request, 0, "Regeneración", request?.let(Pids::regenRequestShort).orEmpty()),
+            DashItem("Avería filtro", filterFault(values[Pids.BMW_FILTER_FAULTS]), ""),
             cell(values[Pids.BMW_SOOT_MEASURED], 1, "Hollín medido", "g"),
             cell(values[Pids.BMW_SOOT_MODEL], 1, "Hollín calculado", "g"),
             cell(values[SINCE_REGEN], 0, "Sin regenerar", "km"),
@@ -104,6 +105,14 @@ object DashPages {
             calculated(if (pressure != null && flow != null && flow >= MIN_FLOW) pressure / flow * PER_100 else null, 1, "Resistencia", ""),
             calculated(if (turbine != null && boost != null && boost >= BOOSTING_KPA) turbine / (boost * HPA_PER_KPA) else null, 2, "Escape / admisión", ""),
         )
+    }
+
+    /** La mas grave de 480A y 481A presente, o ninguna; sin leer, el guion de siempre. */
+    private fun filterFault(level: Double?): String = when {
+        level == null -> Dashboard.MISSING
+        level >= 2 -> "481A"
+        level >= 1 -> "480A"
+        else -> "ninguna"
     }
 
     private fun turboCells(values: Map<Int, Double>): List<DashItem> {
