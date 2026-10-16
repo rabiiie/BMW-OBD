@@ -118,6 +118,21 @@ class AdvisorTest {
     }
 
     @Test
+    fun `mezcla muy rica un rato seguido es humo negro`() {
+        // Lo grabado el dia de la abrazadera suelta: 34 g/s de aire con 56 mg a 2000 rpm, unos 9 a 1.
+        val rich = mapOf(
+            Pids.RPM to 2000.0, Pids.SPEED to 80.0, Pids.COOLANT to 85.0, Pids.LOAD to 90.0,
+            Moment.MAF to 34.0, Pids.BMW_INJECTION to 56.0,
+        )
+        assertEquals(Severity.WARN, hold(rich, 20).find("rich_mix")?.severity)
+        assertNull(hold(rich, 10).find("rich_mix"))
+        // Con el turbo soplando entra el doble de aire: unos 18 a 1, normal a fondo.
+        assertNull(hold(rich + (Moment.MAF to 68.0), 20).find("rich_mix"))
+        // Inyectando poco no cuenta: los valores leidos a destiempo dan cuentas raras.
+        assertNull(hold(rich + (Pids.BMW_INJECTION to 10.0) + (Moment.MAF to 5.0), 20).find("rich_mix"))
+    }
+
+    @Test
     fun `turbo que no sopla mientras se le pide va en rojo`() {
         // Lo grabado el dia de la abrazadera suelta: pide 213 kPa, hay 81 y la calle esta a 95.
         val asking = mapOf(

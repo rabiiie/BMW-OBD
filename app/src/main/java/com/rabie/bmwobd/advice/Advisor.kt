@@ -90,6 +90,15 @@ object Limits {
     const val BOOST_EXCESS_ALERT_KPA = 30.0
     const val BOOST_MIN_AT_FULL_LOAD_KPA = 50.0
 
+    // Mezcla rica: menos de 13 de aire por 1 de gasoleo, inyectando de verdad y 15 s seguidos. En
+    // los trayectos grabados solo pasa el dia de la abrazadera del escape suelta (71 s seguidos);
+    // en los demas, como mucho 10 s.
+    const val RICH_RATIO = 13.0
+    const val RICH_MIN_MG = 15.0
+    const val RICH_MIN_RPM = 1200.0
+    const val RICH_HOLD_MS = 15_000L
+    const val N47_CYLINDERS = 4
+
     // Mientras el turbo coge vueltas falta presion unos segundos; eso no es un aviso.
     const val BOOST_LOW_HOLD_MS = 5_000L
 
@@ -589,6 +598,23 @@ class Advisor {
                     "Pide ${n(commanded)} kPa y hay ${n(actual)}: el turbo no sopla. La centralita puede haberlo dejado en " +
                         "emergencia. No pises fuerte, que con poco aire se llena el filtro de hollín. Mira la abrazadera " +
                         "entre turbo y filtro, manguitos e intercooler, y lee las averías.",
+                )
+            },
+            // Aire que entra frente al gasoleo que se inyecta. Un diesel quema limpio con bastante
+            // aire de sobra; por debajo de unos 14,5 kg de aire por kg de gasoleo sale humo negro.
+            Rule("rich_mix", Limits.RICH_HOLD_MS) { m ->
+                val air = m.values[Moment.MAF] ?: return@Rule null
+                val mg = m.values[Pids.BMW_INJECTION] ?: return@Rule null
+                val rpm = m.rpm ?: return@Rule null
+                if (mg < Limits.RICH_MIN_MG || rpm < Limits.RICH_MIN_RPM) return@Rule null
+                val fuel = mg / 1000.0 * rpm / 2.0 * Limits.N47_CYLINDERS / 60.0
+                val ratio = air / fuel
+                if (ratio >= Limits.RICH_RATIO) return@Rule null
+                Advice(
+                    "rich_mix", Severity.WARN, "Mezcla muy rica: humo negro",
+                    "Entran ${n(air)} g/s de aire para ${n(mg)} mg por inyección: ${n(ratio, 1)} de aire por 1 de gasóleo, " +
+                        "y quemar limpio pide unos 14,5. Sale hollín de más y llena el filtro. Levanta el pie; si se repite, " +
+                        "mira fugas del escape o de la admisión, el turbo y el caudalímetro.",
                 )
             },
             Rule("air_full", 3_000) { m ->
