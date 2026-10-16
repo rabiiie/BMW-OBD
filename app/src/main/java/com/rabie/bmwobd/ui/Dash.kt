@@ -1,6 +1,7 @@
 package com.rabie.bmwobd.ui
 
 import android.os.SystemClock
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.text.style.TextAlign
 import kotlin.math.roundToInt
 import androidx.compose.ui.graphics.drawscope.clipPath
@@ -10,7 +11,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import com.rabie.bmwobd.cases.Case
 import com.rabie.bmwobd.dash.DashPage
@@ -93,7 +93,12 @@ private const val MARK_TEXT_FROM_MIDDLE = 0.15f
 private const val GLOW_ALPHA = 0.32f
 
 // Hasta donde llega la luz de cada reloj, en parte del ancho del panel.
-private const val GLOW_REACH = 0.34f
+private const val GLOW_REACH = 0.36f
+private val GRID = Color(0x14FFFFFF)
+private val GRID_STEP = 26.dp
+
+// La reticula se apaga del todo a esta parte del ancho, antes de la tarjeta.
+private const val GRID_FADE = 0.24f
 private const val PER_100_FULL = 20.0
 private const val PER_HOUR_FULL = 10.0
 private const val TANK_LITERS = 53.0
@@ -116,7 +121,8 @@ private const val MINI_SEGMENTS = 5
 
 // Donde va la barra de segmentos, contado desde el lado del pico.
 private const val MINI_AT = 0.66f
-private val WING_CORNER = 12.dp
+// Hasta donde llega el resplandor del remate de arriba y abajo, en parte del ancho.
+private const val WING_CAP = 0.6f
 private val WING_POOL = 14.dp
 private const val COOLANT_FROM = 50.0
 private const val COOLANT_TO = 150.0
@@ -125,7 +131,8 @@ private val CONSUMPTION_HEIGHT = 18.dp
 private val STRIP_HEIGHT = 38.dp
 private val INFO_HEIGHT = 24.dp
 private val CARD_RADIUS = 18.dp
-private val CARD_SHADOW = 18.dp
+private val CARD_HALO = 14.dp
+private const val CARD_HALO_STEPS = 7
 private val CARD_SIDE = 22.dp
 
 /**
@@ -148,28 +155,48 @@ internal fun DashPanel(
     val rpm = values[Pids.RPM]
     val speed = values[Pids.SPEED]
 
+    val left = Bmw.MBlueLight
+    val right = Bmw.MRed
     Column(
-        Modifier.fillMaxSize().background(Bmw.Background).padding(horizontal = 8.dp, vertical = 6.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        Strip(state, onMenu)
-        val left = Bmw.MBlueLight
-        val right = Bmw.MRed
-        Box(
-            Modifier.fillMaxWidth().weight(1f).drawBehind {
+        Modifier
+            .fillMaxSize()
+            .background(Bmw.Background)
+            .drawBehind {
                 // La luz de cada reloj se extiende por el fondo y se apaga hacia el centro, para que
                 // los relojes no parezcan pegados encima.
                 for ((color, x) in listOf(left to 0f, right to size.width)) {
                     drawRect(
                         Brush.radialGradient(
-                            listOf(color.copy(alpha = GLOW_ALPHA), color.copy(alpha = GLOW_ALPHA * 0.35f), Color.Transparent),
+                            listOf(color.copy(alpha = GLOW_ALPHA), color.copy(alpha = GLOW_ALPHA * 0.4f), Color.Transparent),
                             center = Offset(x, size.height * 0.4f),
                             radius = size.width * GLOW_REACH,
                         ),
                     )
                 }
-            },
-        ) {
+                // La reticula de fondo, solo a los lados.
+                val step = GRID_STEP.toPx()
+                val fade = Brush.horizontalGradient(
+                    0f to GRID, GRID_FADE to Color.Transparent, 1f - GRID_FADE to Color.Transparent, 1f to GRID,
+                )
+                var y = step
+                while (y < size.height) {
+                    drawLine(fade, Offset(0f, y), Offset(size.width, y), 1f)
+                    y += step
+                }
+                var x = step
+                while (x < size.width) {
+                    val side = minOf(x, size.width - x) / size.width
+                    if (side < GRID_FADE) {
+                        drawLine(GRID.copy(alpha = GRID.alpha * (1f - side / GRID_FADE)), Offset(x, 0f), Offset(x, size.height), 1f)
+                    }
+                    x += step
+                }
+            }
+            .padding(horizontal = 8.dp, vertical = 6.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Strip(state, onMenu)
+        Box(Modifier.fillMaxWidth().weight(1f)) {
         Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
             val tank = values[Pids.bmw(Pids.BMW_TANK_ADDRESS)]
             SideWing(
@@ -271,23 +298,21 @@ private fun SideWing(
             fun peakAt(y: Float) = scale + arm * abs(y - mid) / half
             fun yAt(t: Float) = bottom - t * (bottom - top)
 
-            // El panel de cristal: del marco hasta el canto de dentro.
+            // Dentro, solo un velo de luz pegado al marco que se pierde en el fondo.
             val panel = Path().apply {
                 moveTo(x(scale + inset), mid)
                 lineTo(x(scale + arm + inset), top + inset)
-                lineTo(x(edge - inset), top + inset)
-                lineTo(x(edge - inset), bottom - inset)
+                lineTo(x(edge), top + inset)
+                lineTo(x(edge), bottom - inset)
                 lineTo(x(scale + arm + inset), bottom - inset)
                 close()
             }
-            drawPath(panel, Brush.verticalGradient(listOf(deep.copy(alpha = 0.35f), Color.Transparent, deep.copy(alpha = 0.3f)), top, bottom))
             clipPath(panel) {
-                // Un brillo suave pegado al marco, como luz que entra por el cristal.
                 drawRect(
                     Brush.horizontalGradient(
-                        listOf(color.copy(alpha = 0.18f), Color.Transparent),
+                        listOf(color.copy(alpha = 0.16f), Color.Transparent),
                         startX = x(scale + inset),
-                        endX = x(scale + arm + inset + w * 0.35f),
+                        endX = x(scale + arm + inset + w * 0.45f),
                     ),
                 )
             }
@@ -314,16 +339,11 @@ private fun SideWing(
                 size = Size(w, WING_POOL.toPx() * 2),
             )
 
-            // El marco de fuera, que se cierra arriba y abajo hasta el canto, y el trazo de dentro.
-            val corner = WING_CORNER.toPx()
+            // El marco de fuera con su doble trazo.
             val outer = Path().apply {
-                moveTo(x(edge), top + corner)
-                quadraticTo(x(edge), top, x(edge - corner), top)
-                lineTo(x(scale + arm), top)
+                moveTo(x(scale + arm), top)
                 lineTo(x(scale), mid)
                 lineTo(x(scale + arm), bottom)
-                lineTo(x(edge - corner), bottom)
-                quadraticTo(x(edge), bottom, x(edge), bottom - corner)
             }
             val frameInner = Path().apply {
                 moveTo(x(scale + arm + inset - gap), top + inset - gap)
@@ -332,14 +352,13 @@ private fun SideWing(
             }
             drawPath(outer, color.copy(alpha = 0.22f), style = Stroke(WING_GLOW.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
             drawPath(outer, color, style = Stroke(WING_STROKE.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
-            drawPath(frameInner, color.copy(alpha = 0.7f), style = Stroke(1.dp.toPx(), join = StrokeJoin.Round))
-            // El canto de dentro, tenue: se apaga hacia el centro.
-            drawLine(
-                Brush.verticalGradient(listOf(color.copy(alpha = 0.6f), color.copy(alpha = 0.15f), color.copy(alpha = 0.6f)), top, bottom),
-                Offset(x(edge), top + corner),
-                Offset(x(edge), bottom - corner),
-                1.dp.toPx(),
-            )
+            drawPath(frameInner, color.copy(alpha = 0.6f), style = Stroke(1.dp.toPx(), join = StrokeJoin.Round))
+            // Arriba y abajo, el remate hacia dentro, que se apaga.
+            val cap = Brush.horizontalGradient(listOf(color, Color.Transparent), startX = x(scale + arm), endX = x(edge))
+            for (y in listOf(top, bottom)) {
+                drawLine(color.copy(alpha = 0.18f), Offset(x(scale + arm), y), Offset(x(edge * WING_CAP), y), WING_GLOW.toPx(), StrokeCap.Round)
+                drawLine(cap, Offset(x(scale + arm), y), Offset(x(edge), y), WING_STROKE.toPx(), StrokeCap.Round)
+            }
 
             // La raya que marca por donde va.
             val level = yAt(shown)
@@ -529,7 +548,20 @@ private fun PageCard(page: DashPage, modifier: Modifier) {
             Modifier
                 .fillMaxWidth()
                 .weight(1f)
-                .shadow(CARD_SHADOW, shape, ambientColor = glow, spotColor = glow)
+                .drawBehind {
+                    // Un halo por fuera, en capas que se apagan; una sombra se veria a traves del cristal.
+                    val radius = CARD_RADIUS.toPx()
+                    for (i in 1..CARD_HALO_STEPS) {
+                        val grow = i * CARD_HALO.toPx() / CARD_HALO_STEPS
+                        drawRoundRect(
+                            glow.copy(alpha = 0.10f * (1f - i.toFloat() / (CARD_HALO_STEPS + 1))),
+                            topLeft = Offset(-grow, -grow),
+                            size = Size(size.width + grow * 2, size.height + grow * 2),
+                            cornerRadius = CornerRadius(radius + grow),
+                            style = Stroke(CARD_HALO.toPx() / CARD_HALO_STEPS),
+                        )
+                    }
+                }
                 .clip(shape)
                 .background(Brush.verticalGradient(listOf(CARD_TOP, CARD_BOTTOM)))
                 .border(1.dp, accent ?: CARD_EDGE, shape)
@@ -556,12 +588,20 @@ private fun PageCard(page: DashPage, modifier: Modifier) {
                         pair.forEachIndexed { column, cell ->
                             if (column > 0) Box(Modifier.width(1.dp).fillMaxHeight(0.6f).background(CARD_RULE))
                             Row(
-                                Modifier.weight(1f).padding(horizontal = 8.dp),
-                                verticalAlignment = Alignment.Bottom,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                Modifier.weight(1f).padding(horizontal = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
                             ) {
-                                Text(cell.value, color = Bmw.Text, fontSize = 22.sp, fontWeight = FontWeight.Light, maxLines = 1)
-                                Text(cell.tag, color = Bmw.TextDim, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(bottom = 3.dp))
+                                Text(
+                                    cell.tag.uppercase(),
+                                    color = Bmw.TextDim,
+                                    fontSize = 11.sp,
+                                    letterSpacing = 0.5.sp,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                Text(cell.value, color = Bmw.Text, fontSize = 22.sp, maxLines = 1)
                             }
                         }
                         if (pair.size == 1) Spacer(Modifier.weight(1f))
