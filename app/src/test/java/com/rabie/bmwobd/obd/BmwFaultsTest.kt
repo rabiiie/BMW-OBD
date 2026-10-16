@@ -89,4 +89,12 @@ class BmwFaultsTest {
         assertEquals(listOf(BmwFault(0x4CE0, 0x21)), info)
         assertEquals("Sistema del filtro de partículas", info.single().text)
     }
+
+    @Test
+    fun `como estan 480A y 481A`() {
+        assertEquals(null, BmwFault.filterLevel(null))
+        assertEquals(0.0, BmwFault.filterLevel(listOf(BmwFault(0x480A, 0x21), BmwFault(0x498E, 0x61)))!!, 0.0)
+        assertEquals(1.0, BmwFault.filterLevel(listOf(BmwFault(0x480A, 0x61), BmwFault(0x481A, 0x21)))!!, 0.0)
+        assertEquals(2.0, BmwFault.filterLevel(listOf(BmwFault(0x480A, 0x61), BmwFault(0x481A, 0x61)))!!, 0.0)
+    }
 }

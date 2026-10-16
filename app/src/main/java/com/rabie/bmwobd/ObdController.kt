@@ -180,6 +180,8 @@ class ObdController(
                 val ownFaults = if (profile.ownDiagnostics) session.ownFaults() else null
                 val blind = BmwFault.unreadable(ownFaults)
                 if (blind.isNotEmpty()) appendLog("## Aceite: el sensor de nivel tiene una avería presente; no se enseñan su nivel ni su temperatura")
+                filterFaults = BmwFault.filterLevel(ownFaults)
+                filterFaults?.let { appendLog("## Filtro: " + BmwFault.filterLevelText(it)) }
                 if (profile.ownDiagnostics) {
                     val car = session.carInfo()
                     _diagnostics.update { it.copy(car = car) }
@@ -190,7 +192,10 @@ class ObdController(
                 appendLog("$CAR_LINE${vehicle.name} · ${if (vehicle.diesel) "diésel" else "gasolina"} · bastidor ${info.vin ?: "no leído"}")
                 appendLog("## Perfil: ${profile.title}")
                 val started = withContext(Dispatchers.IO) {
-                    TripRecorder(trips.newFile(simulated, vehicle.key), (defs + extras).map { it.id }.distinct())
+                    TripRecorder(
+                        trips.newFile(simulated, vehicle.key),
+                        (defs + extras).map { it.id }.distinct() + listOfNotNull(Pids.BMW_FILTER_FAULTS.takeIf { profile.ownDiagnostics }),
+                    )
                 }
                 recorder = started
                 lastError = null
@@ -208,7 +213,7 @@ class ObdController(
                     appendLog("## Escaneo: sigue por donde iba")
                     openScan(vehicle.key)
                 }
-                poll(session, defs, extras, started)
+                poll(session, defs, extras, started, profile.ownDiagnostics)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -497,7 +502,10 @@ class ObdController(
 
     private fun isLive() = _state.value.phase == Phase.LIVE
 
-    private suspend fun poll(session: ObdSession, defs: List<PidDef>, extras: List<PidDef>, recorder: TripRecorder) {
+    // Lo que dicen 480A y 481A ahora (BmwFault.filterLevel); null si este coche no las da.
+    private var filterFaults: Double? = null
+
+    private suspend fun poll(session: ObdSession, defs: List<PidDef>, extras: List<PidDef>, recorder: TripRecorder, ownDiagnostics: Boolean) {
         val turns = Turns(defs, extras, Dashboard.background)
         silence = Silence()
         jumps = Jumps { id -> Pids.byId[id]?.name ?: "%X".format(id) }
@@ -518,6 +526,7 @@ class ObdController(
 
         for (request in turns.requests) read(session, request, values, first = true)
         var lastAnswerNanos = System.nanoTime()
+        var lastFaultCheckNanos = lastAnswerNanos
         var windowStartNanos = lastAnswerNanos
         var cyclesInWindow = 0
         var rate = 0.0
@@ -559,6 +568,16 @@ class ObdController(
 
             val now = System.nanoTime()
             if (answered) lastAnswerNanos = now
+            // 480A y 481A se releen cada pocos minutos: el procedimiento de BMW para salir de ellas
+            // es conducir hasta que pasen a no presentes, y eso hay que verlo en el trayecto.
+            if (ownDiagnostics && now - lastFaultCheckNanos >= FAULT_CHECK_NANOS) {
+                lastFaultCheckNanos = now
+                val level = BmwFault.filterLevel(session.ownFaults())
+                if (level != null && level != filterFaults) {
+                    appendLog("## Filtro: " + BmwFault.filterLevelText(level))
+                    filterFaults = level
+                }
+            }
             if (now - lastAnswerNanos > SILENCE_LIMIT_NANOS) {
                 throw IOException("El coche ha dejado de responder. ¿Contacto quitado?")
             }
@@ -571,7 +590,7 @@ class ObdController(
             }
 
             Plausible.clean(values)
-            val snapshot = values.toMap()
+            val snapshot = filterFaults?.let { values + (Pids.BMW_FILTER_FAULTS to it) } ?: values.toMap()
             jumps?.found?.takeIf { it.size > jumpsSaved }?.let { found ->
                 jumpsSaved = found.size
                 val text = (listOf(SAVED_FOR + _state.value.vehicle.name, JUMPS_TITLE) + found + JUMPS_END).joinToString("\n")
@@ -726,6 +745,7 @@ class ObdController(
 
         private val SOUNDING = setOf("lugging")
         private const val IDLE_DELAY_MS = 200L
+        private const val FAULT_CHECK_NANOS = 180_000_000_000L
         private const val SCAN_PER_TURN = 3
         private const val SCAN_SLOW_QUERY_NANOS = 700_000_000L
         private const val BEEP_MS = 600

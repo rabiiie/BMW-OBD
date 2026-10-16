@@ -185,6 +185,22 @@ object Pids {
     const val ADAPTER_PID = -1
     const val ADAPTER_VOLTAGE = 0x10000
 
+    /** No se pide al coche: lo apunta la app con las averias del filtro, que relee cada pocos minutos. */
+    const val BMW_FILTER_FAULTS = 0x10001
+    private const val APP_PID = -2
+
+    /**
+     * Lo que significa la peticion de regeneracion (0404). No esta en la documentacion: es lo visto
+     * en este coche. El 7 aparecio con 480A y 481A presentes y el motor en regeneracion de proteccion.
+     */
+    fun regenRequestText(code: Double): String = when (code.toInt()) {
+        0 -> "no pide regenerar"
+        1 -> "pendiente: la hará en cuanto pueda"
+        5 -> "regenerando"
+        7 -> "protección del motor por filtro muy cargado; sin regeneración normal"
+        else -> "código sin identificar"
+    }
+
     private fun word(d: IntArray, i: Int = 0) = d[i] * 256 + d[i + 1]
     private fun signedWord(d: IntArray, i: Int) = word(d, i).let { if (it >= 0x8000) it - 0x10000 else it }
     private fun long(d: IntArray, i: Int) = d[i].toLong() shl 24 or (d[i + 1].toLong() shl 16) or (word(d, i + 2).toLong())
@@ -324,6 +340,7 @@ object Pids {
     private val electric = listOf(
         PidDef(0x42, "Tensión módulo", "V", 2, 1, tier = Tier.MEDIUM) { word(it) / 1000.0 },
         PidDef(ADAPTER_VOLTAGE, "Batería (adaptador)", "V", 0, 1, pid = ADAPTER_PID) { null },
+        PidDef(BMW_FILTER_FAULTS, "Filtro: averías 480A/481A (0 ninguna, 1 480A, 2 481A)", "", 0, 0, pid = APP_PID) { null },
         PidDef(0x46, "Temp. ambiente", "°C", 1, 0) { temp(it) },
     )
 

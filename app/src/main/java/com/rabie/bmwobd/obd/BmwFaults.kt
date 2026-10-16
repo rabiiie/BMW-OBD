@@ -31,6 +31,29 @@ data class BmwFault(val code: Int, val status: Int) {
             if (faults.orEmpty().any { it.active && it.code in OIL_SENSOR }) OIL_MEASURES else emptySet()
 
         private val OIL_SENSOR = setOf(0x498E, 0x3EFC)
+
+        /** Filtro muy cargado (contrapresion alta) y por encima del maximo. */
+        const val FILTER_HIGH = 0x480A
+        const val FILTER_MAX = 0x481A
+
+        /**
+         * 2 si 481A esta presente, 1 si solo lo esta 480A, 0 si ninguna; null si no se leyeron.
+         * Mientras una de las dos este presente la centralita no hace regeneraciones normales
+         * (boletin de BMW SI B18 03 10).
+         */
+        fun filterLevel(faults: List<BmwFault>?): Double? = faults?.let { list ->
+            when {
+                list.any { it.active && it.code == FILTER_MAX } -> 2.0
+                list.any { it.active && it.code == FILTER_HIGH } -> 1.0
+                else -> 0.0
+            }
+        }
+
+        fun filterLevelText(level: Double): String = when {
+            level >= 2 -> "481A presente: filtro por encima del máximo"
+            level >= 1 -> "480A presente: filtro muy cargado"
+            else -> "480A y 481A no presentes"
+        }
         private val OIL_MEASURES = setOf(Pids.bmw(Pids.BMW_OIL_LEVEL_ADDRESS), Pids.OIL)
 
         /** La consulta que las pide todas, con cualquier estado. */

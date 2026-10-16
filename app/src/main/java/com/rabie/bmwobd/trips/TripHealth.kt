@@ -2,6 +2,7 @@ package com.rabie.bmwobd.trips
 
 import com.rabie.bmwobd.advice.Limits
 import com.rabie.bmwobd.advice.Moment
+import com.rabie.bmwobd.obd.BmwFault
 import com.rabie.bmwobd.obd.Pids
 import java.util.Locale
 
@@ -41,6 +42,15 @@ data class FilterCheck(
     val lastInterval: Double?,
     val resistance: Double? = null,
     val turbineRatio: Double? = null,
+    /** Minutos con el escape de 280 a 350 °C y a mas de 60 km/h: la regeneracion continua de BMW. */
+    val continuousMinutes: Double? = null,
+    /** Minutos con el escape por encima de 500 °C, donde BMW da por lograda la regeneracion. */
+    val hotMinutes: Double? = null,
+    /** El tramo seguido mas largo a mas de 88 km/h; BMW pide unos 45 min para salir de 480A/481A. */
+    val longestFastMinutes: Double? = null,
+    /** Como estaban 480A y 481A al empezar y al acabar (BmwFault.filterLevel). */
+    val faultsStart: Double? = null,
+    val faultsEnd: Double? = null,
 )
 
 /**
@@ -100,6 +110,14 @@ data class TripHealth(
         filter?.idlePressure?.let { "Filtro de partículas: presión a ralentí en caliente" to n(it) + " hPa" },
         filter?.lastInterval?.let { "Filtro de partículas: entre las dos últimas regeneraciones" to n(it) + " km" },
         filter?.resistance?.let { "Filtro de partículas: resistencia al paso" to "≈ " + n(it, 1) + " hPa por cada 100 m³/h de gas (mediana)" },
+        filter?.continuousMinutes?.let { "Escape de 280 a 350 °C a más de 60 km/h (regeneración continua)" to n(it, 1) + " min" },
+        filter?.hotMinutes?.let { "Escape por encima de 500 °C" to n(it, 1) + " min" },
+        filter?.longestFastMinutes?.let { "Tramo seguido más largo a más de 90 km/h" to n(it, 1) + " min (BMW pide unos 45 para salir de 480A/481A)" },
+        filter?.faultsEnd?.let { end ->
+            "Averías del filtro" to (filter.faultsStart?.takeIf { it != end }?.let { start ->
+                BmwFault.filterLevelText(start) + " al empezar; " + BmwFault.filterLevelText(end) + " al acabar"
+            } ?: (BmwFault.filterLevelText(end) + " todo el trayecto"))
+        },
         filter?.turbineRatio?.let { "Escape antes de la turbina frente al turbo" to "≈ " + n(it, 2) + " veces, cuando el turbo sopla (mediana)" },
         coldPushSeconds?.let {
             "Motor frío exigido" to if (it == 0L) "nada: no se le pidió fuerza por debajo de ${n(Limits.COLD_OIL)} °C" else
@@ -291,8 +309,46 @@ data class TripHealth(
                 interval,
                 resistance(data),
                 turbineRatio(data),
+                continuousMinutes = exhaustMinutes(data) { temp, speed -> temp in CONTINUOUS_FROM..CONTINUOUS_TO && speed >= CONTINUOUS_SPEED },
+                hotMinutes = exhaustMinutes(data) { temp, _ -> temp > REGEN_DONE },
+                longestFastMinutes = longestFast(data),
+                faultsStart = data.series[Pids.BMW_FILTER_FAULTS]?.firstOrNull { !it.isNaN() },
+                faultsEnd = data.series[Pids.BMW_FILTER_FAULTS]?.lastOrNull { !it.isNaN() },
             )
-            return check.takeIf { it.idlePressure != null || it.lastInterval != null || it.resistance != null || it.turbineRatio != null }
+            return check.takeIf {
+                listOf(it.idlePressure, it.lastInterval, it.resistance, it.turbineRatio, it.continuousMinutes, it.longestFastMinutes, it.faultsEnd)
+                    .any { value -> value != null }
+            }
+        }
+
+        /** Minutos en que el escape antes del catalizador y la velocidad cumplen [match]. */
+        private fun exhaustMinutes(data: TripData, match: (Double, Double) -> Boolean): Double? {
+            val exhaust = data.series[Pids.bmw(BEFORE_CATALYST)] ?: data.series[OBD_CATALYST] ?: return null
+            val speed = data.series[Pids.SPEED] ?: return null
+            var ms = 0L
+            for (i in 1 until data.size) {
+                val temp = exhaust[i - 1]
+                if (temp.isNaN() || speed[i - 1].isNaN() || !match(temp, speed[i - 1])) continue
+                ms += (data.tMs[i] - data.tMs[i - 1]).coerceIn(0L, MAX_GAP_MS)
+            }
+            return ms / MS_PER_MINUTE
+        }
+
+        /** El tramo mas largo a mas de 88 km/h; una bajada de menos de medio minuto no lo corta. */
+        private fun longestFast(data: TripData): Double? {
+            val speed = data.series[Pids.SPEED] ?: return null
+            var best = 0L
+            var start = -1L
+            var lastFast = -1L
+            for (i in 0 until data.size) {
+                val t = data.tMs[i]
+                if (speed[i] >= FAST_SPEED) {
+                    if (start < 0 || t - lastFast > FAST_GAP_MS) start = t
+                    lastFast = t
+                    best = maxOf(best, t - start)
+                }
+            }
+            return best / MS_PER_MINUTE
         }
 
         /**
@@ -476,6 +532,15 @@ data class TripHealth(
         private const val EGR_STILL = 5.0
         private val FILTER_PRESSURE = Pids.bmw(0x0424)
         private val FILTER_FLOW = Pids.bmw(0x0C83)
+        private const val BEFORE_CATALYST = 0x041E
+        private const val OBD_CATALYST = 0x3C
+        private const val CONTINUOUS_FROM = 280.0
+        private const val CONTINUOUS_TO = 350.0
+        private const val CONTINUOUS_SPEED = 60.0
+        private const val REGEN_DONE = 500.0
+        private const val FAST_SPEED = 88.0
+        private const val FAST_GAP_MS = 30_000L
+        private const val MS_PER_MINUTE = 60_000.0
         private val TURBINE_PRESSURE = Pids.bmw(0x03E0)
         private const val MIN_FLOW = 150.0
         private const val PER_100_FLOW = 100.0

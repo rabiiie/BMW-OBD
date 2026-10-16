@@ -127,4 +127,27 @@ class TripHealthTest {
         // 2.340 hPa antes de la turbina con 180 kPa de turbo: 1,3 veces.
         assertEquals(1.3, filter.turbineRatio!!, 0.001)
     }
+
+    @Test
+    fun `lo que pide el boletin de BMW para salir de 480A y 481A`() {
+        // Diez minutos a 95 km/h con el escape a 300 °C, luego dos a 40 km/h, luego tres a 100 km/h a 550 °C.
+        val seconds = 15 * 60
+        val speed = DoubleArray(seconds) { if (it < 600) 95.0 else if (it < 720) 40.0 else 100.0 }
+        val exhaust = DoubleArray(seconds) { if (it < 720) 300.0 else 550.0 }
+        val faults = DoubleArray(seconds) { if (it < 800) 2.0 else 0.0 }
+        val data = TripData(
+            listOf(Pids.SPEED, 0x3C, Pids.BMW_FILTER_FAULTS),
+            LongArray(seconds) { it * 1000L },
+            mapOf(Pids.SPEED to speed, 0x3C to exhaust, Pids.BMW_FILTER_FAULTS to faults),
+        )
+        val filter = TripHealth.of(data)!!.filter!!
+        assertEquals(10.0, filter.continuousMinutes!!, 0.05)
+        assertEquals(3.0, filter.hotMinutes!!, 0.05)
+        // Los dos minutos a 40 km/h cortan el tramo: el mas largo es el primero.
+        assertEquals(10.0, filter.longestFastMinutes!!, 0.05)
+        assertEquals(2.0, filter.faultsStart!!, 0.0)
+        assertEquals(0.0, filter.faultsEnd!!, 0.0)
+        val text = TripHealth.of(data)!!.facts().toMap()
+        assertEquals("481A presente: filtro por encima del máximo al empezar; 480A y 481A no presentes al acabar", text["Averías del filtro"])
+    }
 }

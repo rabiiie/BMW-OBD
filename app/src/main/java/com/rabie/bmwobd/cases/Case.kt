@@ -4,6 +4,7 @@ import com.rabie.bmwobd.advice.Moment
 import com.rabie.bmwobd.health.HealthCard
 import com.rabie.bmwobd.health.HealthLevel
 import com.rabie.bmwobd.health.HealthSystem
+import com.rabie.bmwobd.obd.BmwFault
 import com.rabie.bmwobd.obd.Pids
 import java.util.Locale
 
@@ -325,7 +326,16 @@ object CaseCards {
         val distance = values[FILTER_DISTANCE]
         val minutes = values[FILTER_MINUTES]
         val catalyst = values[BEFORE_CATALYST] ?: Moment.EXHAUST_TEMPS.mapNotNull { values[it] }.maxOrNull()
+        val coolant = values[Pids.COOLANT]
+        val beforeFilter = values[BEFORE_FILTER] ?: catalyst
         val facts = listOfNotNull(
+            asked?.let { "Petición de regeneración: ${n(it)}, ${Pids.regenRequestText(it)}." },
+            values[Pids.BMW_FILTER_FAULTS]?.let { BmwFault.filterLevelText(it) + "." },
+            values[Pids.BMW_FILTER_FAULTS]?.takeIf { it >= 1 }?.let {
+                "Regeneración de servicio de BMW: exige 480A y 481A no presentes, motor a más de 75 °C" +
+                    (coolant?.let { c -> " (ahora ${n(c)})" } ?: "") + ", escape antes del filtro a más de 240 °C" +
+                    (beforeFilter?.let { t -> " (ahora ${n(t)})" } ?: "") + " y no ir en reserva."
+            },
             if (measured != null && model != null) {
                 "Hollín: ${n(measured, 1)} g medidos por la presión y ${n(model, 1)} g calculados por el uso."
             } else {

@@ -616,6 +616,16 @@ class Advisor {
                         "antes de apagar: una regeneración a medias deja el filtro sin limpiar.",
                 )
             },
+            Rule("filter_faults", Limits.REGEN_STOP_HOLD_MS) { m ->
+                val level = m.values[Pids.BMW_FILTER_FAULTS] ?: return@Rule null
+                if (level < 1 || !m.running) return@Rule null
+                Advice(
+                    "filter_faults", Severity.WARN,
+                    if (level >= 2) "481A: filtro por encima del máximo" else "480A: filtro muy cargado",
+                    "Mientras esté presente no hay regeneración normal. BMW manda unos 45 min seguidos a más de 90 km/h, " +
+                        "con luneta, luces y ventilador encendidos y lejos de la reserva, hasta que pase a no presente (SI B18 03 10).",
+                )
+            },
             Rule("regen_pending", Limits.REGEN_HOLD_MS) { m ->
                 val asked = m.values[Pids.BMW_REGEN_REQUEST] ?: return@Rule null
                 if (asked <= 0 || !m.running || Pids.regenerating(m.values)) return@Rule null

@@ -582,6 +582,9 @@ class ObdSession(
         bmwFaults()
     } catch (e: SocketTimeoutException) {
         null
+    } finally {
+        // Se pide tambien en marcha: si tarda, su respuesta no puede quedar para la medida siguiente.
+        bmwLate = true
     }
 
     private suspend fun bmwFaults(): List<BmwFault>? =

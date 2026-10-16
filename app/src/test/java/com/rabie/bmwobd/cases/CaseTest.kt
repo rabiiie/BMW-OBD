@@ -260,10 +260,11 @@ class CaseTest {
         val card = CaseCards.card(Case.FILTER, during)!!
         assertEquals("Está regenerando.", card.headline)
         assertEquals(HealthLevel.WATCH, card.level)
-        assertEquals("Hollín: 22,9 g medidos por la presión y 22,8 g calculados por el uso.", card.facts[0])
-        assertEquals("Última regeneración: hace 311 km y 376 min de motor.", card.facts[1])
-        assertEquals("Escape: 413 °C antes del catalizador y 447 °C antes del filtro.", card.facts[2])
-        assertEquals("Al escape le cuesta 198 hPa cruzar el filtro; resistencia 23,9.", card.facts[3])
+        assertEquals("Hollín: 22,9 g medidos por la presión y 22,8 g calculados por el uso.", card.facts[1])
+        assertEquals("Última regeneración: hace 311 km y 376 min de motor.", card.facts[2])
+        assertEquals("Escape: 413 °C antes del catalizador y 447 °C antes del filtro.", card.facts[3])
+        assertEquals("Al escape le cuesta 198 hPa cruzar el filtro; resistencia 23,9.", card.facts[4])
+        assertEquals("Petición de regeneración: 5, regenerando.", card.facts[0])
 
         val after = during + (Pids.BMW_REGEN_REQUEST to 0.0) + (Pids.bmw(0x05AA) to 0x00100001.toDouble())
         assertEquals("No está regenerando.", CaseCards.card(Case.FILTER, after)!!.headline)
