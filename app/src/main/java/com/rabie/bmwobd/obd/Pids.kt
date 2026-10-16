@@ -194,6 +194,9 @@ object Pids {
 
     /** Igual: cuantas averias del precalentamiento hay presentes. */
     const val BMW_GLOW_FAULT_COUNT = 0x10002
+
+    /** Igual: en que cilindros hay una averia de calentador presente, con un digito por cilindro (14 = el 1 y el 4). */
+    const val BMW_GLOW_FAULT_CYLINDERS = 0x10003
     private const val APP_PID = -2
 
     /**
@@ -349,6 +352,7 @@ object Pids {
         PidDef(ADAPTER_VOLTAGE, "Batería (adaptador)", "V", 0, 1, pid = ADAPTER_PID) { null },
         PidDef(BMW_FILTER_FAULTS, "Filtro: averías 480A/481A (0 ninguna, 1 480A, 2 481A)", "", 0, 0, pid = APP_PID) { null },
         PidDef(BMW_GLOW_FAULT_COUNT, "Calentadores: averías presentes", "", 0, 0, pid = APP_PID) { null },
+        PidDef(BMW_GLOW_FAULT_CYLINDERS, "Calentadores: cilindros con avería presente (14 = el 1 y el 4; 0 ninguno)", "", 0, 0, pid = APP_PID) { null },
         PidDef(0x46, "Temp. ambiente", "°C", 1, 0) { temp(it) },
     )
 

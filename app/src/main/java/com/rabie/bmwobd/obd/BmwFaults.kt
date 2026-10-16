@@ -53,10 +53,29 @@ data class BmwFault(val code: Int, val status: Int) {
         fun glowCount(faults: List<BmwFault>?): Double? =
             faults?.count { it.active && it.text?.contains("alentador", ignoreCase = true) == true }?.toDouble()
 
+        /** Las averias de los calentadores y de su mando, presentes o guardadas. */
+        fun glow(faults: List<BmwFault>): List<BmwFault> = faults.filter { it.text?.contains("alentador", ignoreCase = true) == true }
+
+        /** El cilindro de una averia de calentador, del texto de la centralita; null si es del mando en general. */
+        fun cylinder(fault: BmwFault): Int? = fault.text?.let { CYLINDER.find(it) }?.groupValues?.get(1)?.toInt()
+
+        /** Los cilindros con averia de calentador presente, un digito por cilindro (14 = el 1 y el 4); 0 si ninguno. */
+        fun glowCylinders(faults: List<BmwFault>?): Double? = faults?.let { list ->
+            glow(list).filter { it.active }.mapNotNull(::cylinder).distinct().sorted().joinToString("").ifEmpty { "0" }.toDouble()
+        }
+
+        /** Las averias de calentadores en una linea: cada una con si esta presente o solo guardada. */
+        fun glowText(faults: List<BmwFault>): String = glow(faults).joinToString("; ") { fault ->
+            "${fault.label} ${if (fault.active) "presente" else "guardada, no presente"} (${fault.text}${fault.kind?.let { " · $it" } ?: ""})"
+        }.ifEmpty { "ninguna avería de calentadores, ni presente ni guardada" }
+
+        private val CYLINDER = Regex("cilindro (\\d)")
+
         /** Lo que la app apunta de las averias en el trayecto, por su columna. */
         fun appValues(faults: List<BmwFault>?): Map<Int, Double> = listOfNotNull(
             filterLevel(faults)?.let { Pids.BMW_FILTER_FAULTS to it },
             glowCount(faults)?.let { Pids.BMW_GLOW_FAULT_COUNT to it },
+            glowCylinders(faults)?.let { Pids.BMW_GLOW_FAULT_CYLINDERS to it },
         ).toMap()
 
         fun filterLevelText(level: Double): String = when {

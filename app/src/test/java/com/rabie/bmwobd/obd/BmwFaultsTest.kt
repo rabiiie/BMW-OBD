@@ -97,4 +97,19 @@ class BmwFaultsTest {
         assertEquals(1.0, BmwFault.filterLevel(listOf(BmwFault(0x480A, 0x61), BmwFault(0x481A, 0x21)))!!, 0.0)
         assertEquals(2.0, BmwFault.filterLevel(listOf(BmwFault(0x480A, 0x61), BmwFault(0x481A, 0x61)))!!, 0.0)
     }
+    @Test
+    fun `las averias de calentadores dicen el cilindro y si estan presentes o solo guardadas`() {
+        // 4A6E (cilindro 1, cortado) presente y 4A3E (cilindro 4) solo guardada; 480A no es de calentadores.
+        val present = BmwFault.parse(intArrayOf(3, 0x4A, 0x6E, 0x61, 0x4A, 0x3E, 0x21, 0x48, 0x0A, 0x61))
+        assertEquals(1.0, BmwFault.glowCylinders(present)!!, 0.0)
+        assertEquals(listOf("4A6E", "4A3E"), BmwFault.glow(present).map { it.label })
+        assertTrue(BmwFault.glowText(present).startsWith("4A6E presente (Calentador del cilindro 1"))
+        assertTrue(BmwFault.glowText(present).contains("4A3E guardada, no presente"))
+
+        val stored = BmwFault.parse(intArrayOf(1, 0x4A, 0x6E, 0x21))
+        assertEquals(0.0, BmwFault.glowCylinders(stored)!!, 0.0)
+        assertEquals(0.0, BmwFault.appValues(stored).getValue(Pids.BMW_GLOW_FAULT_COUNT), 0.0)
+        assertNull(BmwFault.glowCylinders(null))
+        assertEquals("ninguna avería de calentadores, ni presente ni guardada", BmwFault.glowText(emptyList()))
+    }
 }

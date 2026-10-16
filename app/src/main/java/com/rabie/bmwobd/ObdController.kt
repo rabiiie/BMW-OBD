@@ -12,6 +12,7 @@ import com.rabie.bmwobd.advice.Advice
 import com.rabie.bmwobd.advice.Advisor
 import com.rabie.bmwobd.advice.Severity
 import com.rabie.bmwobd.cases.Case
+import com.rabie.bmwobd.cases.ColdStartFaults
 import com.rabie.bmwobd.cases.FirstStart
 import com.rabie.bmwobd.dash.Dashboard
 import com.rabie.bmwobd.advice.Moment
@@ -194,7 +195,7 @@ class ObdController(
                 val started = withContext(Dispatchers.IO) {
                     TripRecorder(
                         trips.newFile(simulated, vehicle.key),
-                        (defs + extras).map { it.id }.distinct() + (if (profile.ownDiagnostics) listOf(Pids.BMW_FILTER_FAULTS, Pids.BMW_GLOW_FAULT_COUNT) else emptyList()),
+                        (defs + extras).map { it.id }.distinct() + (if (profile.ownDiagnostics) listOf(Pids.BMW_FILTER_FAULTS, Pids.BMW_GLOW_FAULT_COUNT, Pids.BMW_GLOW_FAULT_CYLINDERS) else emptyList()),
                     )
                 }
                 recorder = started
@@ -529,6 +530,7 @@ class ObdController(
         val gears = GearGuess()
         val shifts = ShiftHint()
         val firstStart = FirstStart()
+        val coldStart = ColdStartFaults()
         val fuelCounter = FuelCounter()
         var looked = emptyList<Int>()
         _state.update { it.copy(supported = turns.shown) }
@@ -589,6 +591,13 @@ class ObdController(
                     val glow = read[Pids.BMW_GLOW_FAULT_COUNT]
                     if (glow != null && glow != faultValues[Pids.BMW_GLOW_FAULT_COUNT]) appendLog("## Calentadores: %.0f averías presentes".format(glow))
                     faultValues = read
+                }
+            }
+            // Tras un arranque en frio, ademas, a los 60 y 120 s: es cuando el calentador se comprueba.
+            if (ownDiagnostics) coldStart.due(now / 1_000_000, values[Pids.RPM], values[Pids.COOLANT])?.let { seconds ->
+                session.ownFaults()?.let { faults ->
+                    appendLog("## Calentadores a los $seconds s de arrancar en frío (motor a %.0f °C): ".format(coldStart.coolantAtStart) + BmwFault.glowText(faults))
+                    faultValues = BmwFault.appValues(faults)
                 }
             }
             if (now - lastAnswerNanos > SILENCE_LIMIT_NANOS) {
