@@ -1,6 +1,8 @@
 package com.rabie.bmwobd.ui
 
 import android.os.SystemClock
+import kotlin.math.roundToInt
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.animation.core.animateDpAsState
@@ -106,8 +108,11 @@ private val WING_GAP = 4.dp
 private val WING_BAND = 9.dp
 private val WING_TICK = 5.dp
 private val WING_CONTENT_SHIFT = 34.dp
-private val MINI_HEIGHT = 40.dp
-private val MINI_WIDTH = 4.dp
+private val MINI_HEIGHT = 44.dp
+private val MINI_WIDTH = 7.dp
+private const val MINI_SEGMENTS = 5
+private val WING_SKEW = 30.dp
+private val WING_POOL = 14.dp
 private const val COOLANT_FROM = 50.0
 private const val COOLANT_TO = 150.0
 private val M_RED_DEEP = Color(0xFF5A0F18)
@@ -222,11 +227,13 @@ internal fun DashPanel(
 }
 
 /**
- * Un reloj como los del cuadro digital de un BMW actual: un marco hexagonal de doble trazo que hace
- * pico hacia fuera, con la escala por fuera y una banda que se llena de abajo arriba entre los dos
- * trazos. Dentro, unas facetas translucidas y la cifra. Abajo, un indicador pequeño: el deposito en
- * el de la velocidad y la temperatura del motor en el de las revoluciones. El de la izquierda es
- * azul y el de la derecha rojo, como en los M; los dos con un resplandor de neon.
+ * Un reloj como los del cuadro digital de un BMW actual. Por fuera, un marco de doble trazo que
+ * hace pico hacia el borde de la pantalla, con la escala fuera y una banda entre los dos trazos que
+ * se llena de abajo arriba. Por dentro del coche, una diagonal larga: en los dos relojes va igual,
+ * de arriba a la izquierda a abajo a la derecha, asi que los dos paneles se inclinan hacia el mismo
+ * lado. El panel es cristal tallado: bloques inclinados arriba y abajo y una franja oscura en medio,
+ * donde va la cifra. Abajo, una barra de segmentos: el deposito o la temperatura del motor. El de la
+ * izquierda azul y el de la derecha rojo, como en los M, con resplandor de neon.
  */
 @Composable
 private fun SideWing(
@@ -243,9 +250,11 @@ private fun SideWing(
     val shown by animateFloatAsState(fraction.coerceIn(0f, 1f), tween(350, easing = LinearEasing), label = "marcador")
     val measurer = rememberTextMeasurer()
     val labelStyle = TextStyle(color = color, fontSize = 11.sp, fontWeight = FontWeight.Medium)
-    val miniStyle = TextStyle(color = Bmw.TextDim, fontSize = 9.sp)
+    val miniStyle = TextStyle(color = Bmw.Text, fontSize = 9.sp)
+    val middle = lerp(deep, color, 0.45f)
     Box(modifier, contentAlignment = Alignment.Center) {
         Canvas(Modifier.fillMaxSize()) {
+            val w = size.width
             val top = WING_PAD.toPx()
             val bottom = size.height - top
             val mid = size.height / 2
@@ -254,48 +263,56 @@ private fun SideWing(
             val arm = WING_ARM.toPx()
             val gap = WING_GAP.toPx()
             val band = WING_BAND.toPx()
-            val far = size.width - WING_FAR.toPx()
-            // Las medidas se cuentan desde el lado del pico; en el de la derecha se dan la vuelta.
-            fun x(fromPeak: Float) = if (mirrored) size.width - fromPeak else fromPeak
+            val skew = WING_SKEW.toPx()
+            val margin = WING_FAR.toPx()
+            val inset = gap * 2 + band
+            // El lado del pico se cuenta desde el borde de la pantalla y se da la vuelta en el reloj de la derecha.
+            fun x(fromPeak: Float) = if (mirrored) w - fromPeak else fromPeak
             fun peakAt(y: Float) = scale + arm * abs(y - mid) / half
             fun yAt(t: Float) = bottom - t * (bottom - top)
-            fun hexagon(inset: Float, endAt: Float) = Path().apply {
-                moveTo(x(endAt), top + inset)
-                lineTo(x(scale + arm + inset), top + inset)
-                lineTo(x(scale + inset), mid)
-                lineTo(x(scale + arm + inset), bottom - inset)
-                lineTo(x(endAt), bottom - inset)
-            }
+            // La diagonal de dentro no se da la vuelta: en los dos relojes baja hacia la derecha.
+            val innerTop = if (mirrored) margin else w - margin - skew
+            val innerBottom = if (mirrored) margin + skew else w - margin
+            fun innerAt(y: Float) = innerTop + (innerBottom - innerTop) * (y - top) / (bottom - top)
 
-            // Dentro: el fondo y las facetas, como el cristal tallado del cuadro.
-            val innerInset = gap * 2 + band
-            val inner = Path().apply {
-                addPath(hexagon(innerInset, far - arm * 0.4f))
-                lineTo(x(far), mid)
+            // El panel de cristal.
+            val panelTop = top + inset
+            val panelBottom = bottom - inset
+            val panel = Path().apply {
+                moveTo(x(scale + inset), mid)
+                lineTo(x(scale + arm + inset), panelTop)
+                lineTo(innerAt(panelTop) + if (mirrored) inset else -inset, panelTop)
+                lineTo(innerAt(panelBottom) + if (mirrored) inset else -inset, panelBottom)
+                lineTo(x(scale + arm + inset), panelBottom)
                 close()
             }
-            drawPath(inner, Brush.verticalGradient(listOf(deep.copy(alpha = 0.35f), deep.copy(alpha = 0.12f)), top, bottom))
-            clipPath(inner) {
-                val w = size.width
-                val facets = listOf(
-                    listOf(Offset(0.30f, 0.10f), Offset(0.62f, 0.10f), Offset(0.40f, 0.48f)),
-                    listOf(Offset(0.62f, 0.10f), Offset(0.95f, 0.10f), Offset(0.70f, 0.50f), Offset(0.48f, 0.50f)),
-                    listOf(Offset(0.40f, 0.52f), Offset(0.78f, 0.52f), Offset(0.95f, 0.90f), Offset(0.58f, 0.90f)),
-                )
-                facets.forEachIndexed { index, points ->
-                    val facet = Path().apply {
-                        points.forEachIndexed { i, p ->
-                            val px = x(p.x * w)
-                            if (i == 0) moveTo(px, p.y * size.height) else lineTo(px, p.y * size.height)
-                        }
-                        close()
-                    }
-                    drawPath(facet, color.copy(alpha = if (index == 1) 0.16f else 0.10f))
+            drawPath(panel, Brush.verticalGradient(listOf(deep.copy(alpha = 0.55f), Color.Black.copy(alpha = 0.6f), deep.copy(alpha = 0.55f)), panelTop, panelBottom))
+            clipPath(panel) {
+                // Bloques inclinados como la diagonal: dos arriba y dos abajo.
+                val lean = skew * 0.9f
+                val bandHalf = (panelBottom - panelTop) * 0.13f
+                fun block(fromX: Float, toX: Float, y0: Float, y1: Float, paint: Color) {
+                    val shift = lean * (y1 - y0) / (panelBottom - panelTop)
+                    drawPath(
+                        Path().apply {
+                            moveTo(fromX, y0)
+                            lineTo(toX, y0)
+                            lineTo(toX + shift, y1)
+                            lineTo(fromX + shift, y1)
+                            close()
+                        },
+                        paint,
+                    )
                 }
+                block(w * 0.05f, w * 0.42f, panelTop, mid - bandHalf, middle.copy(alpha = 0.55f))
+                block(w * 0.45f, w * 0.95f, panelTop, mid - bandHalf, middle.copy(alpha = 0.35f))
+                block(w * 0.10f, w * 0.55f, mid + bandHalf, panelBottom, middle.copy(alpha = 0.35f))
+                block(w * 0.58f, w * 1.05f, mid + bandHalf, panelBottom, middle.copy(alpha = 0.55f))
+                // La franja oscura del medio, donde va la cifra.
+                drawRect(Color.Black.copy(alpha = 0.7f), Offset(0f, mid - bandHalf), Size(w, bandHalf * 2))
             }
-            drawPath(inner, color.copy(alpha = 0.35f), style = Stroke(1.dp.toPx(), join = StrokeJoin.Round))
 
-            // La banda que se llena, entre el trazo de fuera y el de dentro.
+            // La banda que se llena, entre los dos trazos del marco.
             val track = Path().apply {
                 moveTo(x(scale + arm + gap), top + gap)
                 lineTo(x(scale + gap), mid)
@@ -305,15 +322,39 @@ private fun SideWing(
                 lineTo(x(scale + arm + gap + band), top + gap)
                 close()
             }
-            drawPath(track, deep.copy(alpha = 0.30f))
+            drawPath(track, deep.copy(alpha = 0.35f))
             if (shown > 0.005f) {
                 clipRect(top = yAt(shown), bottom = bottom) { drawPath(track, Brush.verticalGradient(listOf(color, deep), top, bottom)) }
             }
 
-            // El marco de fuera con su resplandor de neon.
-            val outer = hexagon(0f, far)
-            drawPath(outer, color.copy(alpha = 0.18f), style = Stroke(WING_GLOW.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
-            drawPath(outer, color, style = Stroke(WING_STROKE.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
+            // El marco de fuera, que se cierra en la diagonal de dentro, y el trazo de dentro.
+            val outer = Path().apply {
+                moveTo(innerTop, top)
+                lineTo(x(scale + arm), top)
+                lineTo(x(scale), mid)
+                lineTo(x(scale + arm), bottom)
+                lineTo(innerBottom, bottom)
+            }
+            val frameInner = Path().apply {
+                moveTo(x(scale + arm + inset - gap), top + inset - gap)
+                lineTo(x(scale + inset - gap), mid)
+                lineTo(x(scale + arm + inset - gap), bottom - inset + gap)
+            }
+            val diagonal = Path().apply {
+                moveTo(innerTop, top)
+                lineTo(innerBottom, bottom)
+            }
+            // El resplandor de debajo de la linea de abajo.
+            drawOval(
+                Brush.radialGradient(listOf(color.copy(alpha = 0.45f), Color.Transparent), center = Offset(w / 2, bottom), radius = w * 0.55f),
+                topLeft = Offset(0f, bottom - WING_POOL.toPx()),
+                size = Size(w, WING_POOL.toPx() * 2),
+            )
+            for (line in listOf(outer, diagonal)) {
+                drawPath(line, color.copy(alpha = 0.22f), style = Stroke(WING_GLOW.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
+                drawPath(line, color, style = Stroke(WING_STROKE.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
+            }
+            drawPath(frameInner, color.copy(alpha = 0.7f), style = Stroke(1.dp.toPx(), join = StrokeJoin.Round))
 
             // La raya que marca por donde va.
             val level = yAt(shown)
@@ -327,26 +368,31 @@ private fun SideWing(
                 drawLine(color, Offset(x(edge - 2.dp.toPx()), y), Offset(x(edge - 2.dp.toPx() - WING_TICK.toPx()), y), 1.5.dp.toPx())
                 val layout = measurer.measure(text, labelStyle)
                 val right = edge - WING_TICK.toPx() - 4.dp.toPx()
-                val textX = if (mirrored) size.width - right else right - layout.size.width
+                val textX = if (mirrored) w - right else right - layout.size.width
                 drawText(layout, topLeft = Offset(textX, (y - layout.size.height / 2f).coerceIn(0f, size.height - layout.size.height)))
             }
 
-            // El indicador pequeño de abajo, en el lado de dentro.
-            val barX = x(far - arm * 0.9f)
-            val barTop = bottom - innerInset - MINI_HEIGHT.toPx()
-            val barBottom = bottom - innerInset - 4.dp.toPx()
-            val barWidth = MINI_WIDTH.toPx()
-            val left = if (mirrored) barX else barX - barWidth
-            drawRect(Bmw.Line, Offset(left, barTop), Size(barWidth, barBottom - barTop))
-            mini?.coerceIn(0f, 1f)?.let { level ->
-                val fill = barBottom - (barBottom - barTop) * level
-                drawRect(if (level < 0.12f) Bmw.Amber else Bmw.Text, Offset(left, fill), Size(barWidth, barBottom - fill))
+            // La barra de segmentos de abajo, con sus cifras a la izquierda, como en el cuadro.
+            val barBottom = panelBottom - 6.dp.toPx()
+            val barTop = barBottom - MINI_HEIGHT.toPx()
+            val barLeft = if (mirrored) w * 0.62f else w * 0.66f
+            val segment = (barBottom - barTop) / MINI_SEGMENTS
+            val lit = mini?.coerceIn(0f, 1f)?.let { (it * MINI_SEGMENTS).roundToInt() } ?: 0
+            for (i in 0 until MINI_SEGMENTS) {
+                val y = barBottom - (i + 1) * segment
+                val on = i < lit
+                val paint = when {
+                    !on -> Bmw.Line
+                    !mirrored && lit <= 1 -> Bmw.Amber
+                    mirrored && i >= MINI_SEGMENTS - 1 -> Bmw.MRed
+                    else -> Bmw.Text
+                }
+                drawRect(paint, Offset(barLeft, y + 1.dp.toPx()), Size(MINI_WIDTH.toPx(), segment - 2.dp.toPx()))
             }
             miniLabels.forEachIndexed { index, text ->
                 val layout = measurer.measure(text, miniStyle)
                 val y = barTop + (barBottom - barTop) * index / (miniLabels.size - 1) - layout.size.height / 2f
-                val textX = if (mirrored) left + barWidth + 3.dp.toPx() else left - 3.dp.toPx() - layout.size.width
-                drawText(layout, topLeft = Offset(textX, y))
+                drawText(layout, topLeft = Offset(barLeft - 4.dp.toPx() - layout.size.width, y))
             }
         }
         Column(
