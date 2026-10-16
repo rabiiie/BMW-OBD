@@ -13,7 +13,8 @@ class ModuleProbeTest {
     fun `cada marca pregunta a las suyas y ninguna se mezcla`() {
         // El BMW solo con la centralita del motor reconocida, como hasta ahora.
         assertEquals(ModuleProbe.BMW, ModuleProbe.of(car("WBAUD71000P000000", EngineProfile.BMW_N47.key)))
-        assertNull(ModuleProbe.of(car("WBAUD71000P000000")))
+        // Un BMW diesel sin la centralita del N47 se prueba como uno de la serie F, que habla UDS.
+        assertEquals(ModuleProbe.BMW_UDS, ModuleProbe.of(car("WBA1R510000000000")))
         // Un Focus fabricado en Alemania: bastidor WF0.
         assertEquals(ModuleProbe.FORD, ModuleProbe.of(car("WF0XXXGCDXEA00000")))
         // Y uno de otra fabrica de Ford: el codigo del principio cambia, la marca no.

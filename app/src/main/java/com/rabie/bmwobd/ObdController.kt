@@ -432,6 +432,7 @@ class ObdController(
                     // Si ni la del motor contesta con la direccion por centralita, en crudo.
                     ModuleProbe.BMW -> session.probeModules().let { tried -> if (tried.first == 0) session.probeModulesRaw() else tried }
                     ModuleProbe.FORD -> session.probeFordModules()
+                    ModuleProbe.BMW_UDS -> session.probeBmwUds()
                 }
             } catch (e: IOException) {
                 appendLog("!! Centralitas: interrumpido: ${e.message}")
@@ -441,7 +442,13 @@ class ObdController(
                 _modulesRunning.value = false
                 // Al final del registro, donde se esta mirando; el detalle queda fijo mas arriba.
                 appendLog(
-                    result?.let { (heard, asked) -> "## Otras centralitas: contestaron $heard de $asked. El detalle está más arriba en el registro." }
+                    result?.let { (heard, asked) ->
+                        if (probe == ModuleProbe.BMW_UDS) {
+                            "## BMW serie F: " + (if (heard > 0) "contesta" else "no contesta") + " (probadas $asked formas). El detalle está más arriba en el registro."
+                        } else {
+                            "## Otras centralitas: contestaron $heard de $asked. El detalle está más arriba en el registro."
+                        }
+                    }
                         ?: "## Otras centralitas: se cortó a medias. Lo que contestaron está más arriba en el registro.",
                 )
                 val answered = logBuffer.pinned()

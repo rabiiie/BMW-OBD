@@ -444,6 +444,56 @@ class ObdSession(
         response?.lines()?.any { line -> ANSWER_LINE.matches(line.trim().uppercase()) } == true
 
     /**
+     * Prueba con la centralita del motor de un BMW de la serie F (F20 118d, B47), que habla UDS.
+     * Antes lee por OBD refrigerante y revoluciones para comparar. Prueba tres formas de llegar a
+     * ella, de la mas sencilla a la de la pasarela de BMW, y se queda en la primera que contesta;
+     * si ninguna, la prueba en crudo. Solo lecturas (22 y 19). Todo queda en el registro y al acabar
+     * el adaptador vuelve a la lectura normal. Devuelve si contesto y en cuantas formas se probo.
+     */
+    suspend fun probeBmwUds(): Pair<Int, Int> {
+        log("## BMW serie F: inicio")
+        var tried = 0
+        var heard = false
+        try {
+            for (command in listOf("ATH0", "0105", "010C")) attempt(command)
+            for ((name, setup) in UDS_WAYS) {
+                log("## Forma: $name")
+                tried++
+                for (command in setup) attempt(command)
+                heard = askUds { query -> tryAsk(query)?.let { ObdParser.payloads(it, "") }.orEmpty() }
+                if (heard) break
+                log("## Sin respuesta de la centralita en esta forma")
+            }
+            if (!heard) {
+                log("## Forma: tramas crudas a la centralita 12")
+                tried++
+                for (command in RAW_MODULE_SETUP) attempt(command)
+                heard = askUds { query ->
+                    val bytes = IntArray(query.length / 2) { query.substring(it * 2, it * 2 + 2).toInt(16) }
+                    listOfNotNull(rawExchange(UDS_ENGINE, bytes))
+                }
+            }
+        } finally {
+            restoreOrFail()
+        }
+        log("## BMW serie F: " + if (heard) "la centralita del motor contesta" else "la centralita del motor no ha contestado en ninguna forma")
+        return (if (heard) 1 else 0) to tried
+    }
+
+    /** Hace las consultas de [BmwUds.QUERIES] y dice si alguna tuvo respuesta de la centralita. */
+    private suspend fun askUds(ask: suspend (String) -> List<IntArray>): Boolean {
+        var heard = false
+        for (query in BmwUds.QUERIES) {
+            val text = ask(query.request).firstNotNullOfOrNull { BmwUds.describe(query.request, it) }
+            if (text != null) heard = true
+            log("## ${query.name} (${query.request}): ${text ?: "sin respuesta"}")
+            // Si ni la identificacion contesta, esta forma no llega: no se pierde tiempo con el resto.
+            if (!heard && query.request == BmwUds.IDENT) return false
+        }
+        return heard
+    }
+
+    /**
      * Pregunta a otras centralitas de un Ford quienes son y que averias guardan. Ford usa el
      * protocolo estandar: cada centralita tiene su direccion de envio y la de respuesta, ocho mas
      * alta, y el adaptador hace solo el control de flujo. Todo son consultas: referencia y version
@@ -737,6 +787,18 @@ class ObdSession(
         val MODULE_QUERIES = listOf("1A80", "1802FFFF", "223000", "223001", "223002", "223003")
 
         // En crudo: sin formato, cabecera del equipo de diagnosis y que pasen las respuestas 6xx.
+        /** La centralita del motor en la serie F, por la pasarela. */
+        const val UDS_ENGINE = 0x12
+
+        /** Las formas de llegar a ella con el adaptador poniendo el formato, de la mas sencilla a la mas especifica. */
+        val UDS_WAYS = listOf(
+            "dirección OBD normal, a todas (7DF)" to listOf("ATSP6", "ATSH7DF", "ATAR", "ATAT0", "ATSTFF"),
+            "dirección OBD del motor (7E0, contesta 7E8)" to listOf("ATSP6", "ATSH7E0", "ATCRA7E8", "ATAT0", "ATSTFF"),
+            "pasarela de BMW a la centralita 12" to listOf(
+                "ATSP6", "ATSH6F1", "ATCEA12", "ATFCSH6F1", "ATFCSD123000", "ATFCSM1", "ATCRA612", "ATAT0", "ATSTFF",
+            ),
+        )
+
         val RAW_MODULE_SETUP = listOf("ATSP6", "ATCAF0", "ATSH6F1", "ATCF600", "ATCM700", "ATH1", "ATS0", "ATAL", "ATAT0", "ATSTFF")
         val RAW_MODULE_QUERIES = listOf(intArrayOf(0x1A, 0x80), intArrayOf(0x18, 0x02, 0xFF, 0xFF), intArrayOf(0x22, 0x30, 0x00))
         const val RAW_ANSWER_BASE = 0x600

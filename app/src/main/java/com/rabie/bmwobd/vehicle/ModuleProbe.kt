@@ -12,15 +12,23 @@ enum class ModuleProbe(val button: String) {
 
     /** Carroceria, ABS y cuadro con el protocolo estandar: los sensores de las ruedas los vigila la carroceria. */
     FORD("Ford: carrocería, ABS y cuadro (coche parado, solo lee)"),
+
+    /**
+     * Un BMW diesel cuya centralita no es la del N47: se prueba como la de la serie F (F20 118d,
+     * B47), que habla UDS. Solo dice si el adaptador llega y si la tabla d70bx7a0 es la suya.
+     */
+    BMW_UDS("BMW serie F (B47): probar la centralita del motor (parado, solo lee)"),
     ;
 
     companion object {
         fun of(vehicle: Vehicle): ModuleProbe? = when {
             EngineProfile.of(vehicle) == EngineProfile.BMW_N47 -> BMW
             vehicle.make == FORD_MAKE -> FORD
+            vehicle.make == BMW_MAKE && vehicle.diesel -> BMW_UDS
             else -> null
         }
 
         private const val FORD_MAKE = "Ford"
+        private const val BMW_MAKE = "BMW"
     }
 }
