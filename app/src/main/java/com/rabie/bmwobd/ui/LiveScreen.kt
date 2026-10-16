@@ -206,8 +206,8 @@ fun LiveScreen(
 
 /**
  * Panel con el movil apaisado en el soporte, sin barras del sistema ni pestañas; [onMenu] vuelve
- * a la app normal. Con las medidas propias de BMW y sitio a lo ancho sale el panel de grupos que
- * rotan; si no, el cuadro con sus lecturas fijas.
+ * a la app normal. Con las medidas propias de BMW y sitio a lo ancho sale el panel de tarjetas;
+ * si no, el cuadro con sus lecturas fijas.
  */
 @Composable
 fun LandscapePanel(
@@ -215,13 +215,14 @@ fun LandscapePanel(
     keepScreenOn: Boolean,
     onMenu: () -> Unit,
     onWatch: (List<Int>) -> Unit,
+    onCase: (Case?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     if (keepScreenOn) KeepScreenOn()
     HideSystemBars()
     BoxWithConstraints(modifier.fillMaxSize()) {
         if (state.cases && maxWidth >= maxHeight * WIDE_RATIO) {
-            DashPanel(state, onMenu, onWatch, maxWidth, maxHeight)
+            DashPanel(state, onMenu, onWatch, onCase, maxWidth, maxHeight)
         } else {
             ClassicLandscape(state, onMenu)
         }

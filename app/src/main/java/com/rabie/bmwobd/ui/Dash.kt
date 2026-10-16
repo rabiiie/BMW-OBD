@@ -1,16 +1,25 @@
 package com.rabie.bmwobd.ui
 
 import android.os.SystemClock
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.foundation.interaction.DragInteraction
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.graphicsLayer
+import com.rabie.bmwobd.cases.Case
+import com.rabie.bmwobd.dash.DashPage
+import com.rabie.bmwobd.dash.DashPages
+import com.rabie.bmwobd.dash.TripNow
+import kotlinx.coroutines.launch
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
@@ -32,7 +41,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -47,13 +55,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -68,17 +75,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rabie.bmwobd.LiveState
 import com.rabie.bmwobd.advice.Severity
-import com.rabie.bmwobd.dash.DashGroup
-import com.rabie.bmwobd.dash.DashTile
 import com.rabie.bmwobd.dash.Dashboard
 import com.rabie.bmwobd.dash.ShiftHint
 import com.rabie.bmwobd.dash.Shutdown
 import com.rabie.bmwobd.obd.Pids
 import kotlinx.coroutines.delay
 
-private const val ROTATE_MS = 8_000L
-private const val TOUCH_HOLD_MS = 20_000L
-private const val CENTER_SHARE = 0.27f
+private const val CARD_TILT = 32f
+private const val CARD_SHRINK = 0.14f
+private const val CARD_FADE = 0.55f
+private const val CARD_CAMERA = 14f
+private const val USER_HOLD_MS = 30_000L
 private const val MARK_TEXT_FROM_MIDDLE = 0.15f
 private const val GLOW_ALPHA = 0.55f
 private const val PER_100_FULL = 20.0
@@ -86,78 +93,45 @@ private const val PER_HOUR_FULL = 10.0
 private const val TANK_LITERS = 53.0
 private const val FUEL_LEVEL = 0x2F
 private const val OUTSIDE_TEMP = 0x46
-private val CENTER_MIN = 180.dp
-private val CENTER_MAX = 260.dp
-private val WING_WIDTH = 128.dp
+private val WING_WIDTH = 112.dp
 private val WING_STROKE = 2.5.dp
 private val WING_PAD = 12.dp
 private val WING_INSET = 4.dp
-private val WING_ARM = 44.dp
-private val WING_CAP = 14.dp
+private val WING_ARM = 40.dp
+private val WING_CAP = 12.dp
 private val WING_GAP = 4.dp
-private val WING_BAND = 14.dp
+private val WING_BAND = 12.dp
 private val WING_TICK = 5.dp
-private val WING_CONTENT_SHIFT = 36.dp
+private val WING_CONTENT_SHIFT = 30.dp
 private val CONSUMPTION_HEIGHT = 18.dp
-private val SWIPE_DISTANCE = 28.dp
 private val STRIP_HEIGHT = 38.dp
 private val INFO_HEIGHT = 24.dp
-
-/** El grupo que sigue a [index] sin repetir el de la otra columna ni el que esta fijo. */
-private fun nextGroup(index: Int, other: Int, pinned: Int?): Int {
-    val count = DashGroup.entries.size
-    var next = index
-    repeat(count) {
-        next = (next + 1) % count
-        if (next != other && next != pinned) return next
-    }
-    return index
-}
+private val CARD_RADIUS = 18.dp
+private val CARD_SHADOW = 18.dp
+private val CARD_SIDE = 22.dp
 
 /**
- * El panel apaisado: arriba una franja con lo mas importante; en medio, la velocidad y las
- * revoluciones en dos marcadores en angulo con unas tarjetas entre ellos; a los lados, dos grupos de datos
- * que van rotando. Tocar una columna pasa al grupo siguiente. Con un aviso, la columna izquierda
- * se queda fija en el grupo al que toca.
+ * El panel apaisado: arriba una franja con el aviso mas grave; a los lados, la velocidad y las
+ * revoluciones en dos marcadores estrechos; en medio, una tarjeta grande por tema que se pasa
+ * deslizando, con un giro en 3D para que se note el cambio. La tarjeta que se ve decide que se lee
+ * mas seguido. Un aviso grave pasa una vez a su tarjeta, salvo que se acabe de deslizar a mano.
  */
 @Composable
-internal fun DashPanel(state: LiveState, onMenu: () -> Unit, onWatch: (List<Int>) -> Unit, maxWidth: Dp, maxHeight: Dp) {
+internal fun DashPanel(
+    state: LiveState,
+    onMenu: () -> Unit,
+    onWatch: (List<Int>) -> Unit,
+    onCase: (Case?) -> Unit,
+    maxWidth: Dp,
+    maxHeight: Dp,
+) {
     val values = state.values
     val vehicle = state.vehicle
-    val groups = DashGroup.entries
-    val top = state.advice.firstOrNull { it.severity != Severity.INFO } ?: state.advice.firstOrNull()
-    val pinned = top?.let(Dashboard::group)
-    val pinnedIndex by rememberUpdatedState(pinned?.ordinal)
-
-    var left by rememberSaveable { mutableIntStateOf(0) }
-    var right by rememberSaveable { mutableIntStateOf(1) }
-    var leftHold by remember { mutableLongStateOf(0L) }
-    var rightHold by remember { mutableLongStateOf(0L) }
-    LaunchedEffect(Unit) {
-        while (true) {
-            delay(ROTATE_MS)
-            val now = SystemClock.elapsedRealtime()
-            if (now >= leftHold) left = nextGroup(left, right, pinnedIndex)
-            if (now >= rightHold) right = nextGroup(right, left, pinnedIndex)
-        }
-    }
-    val leftGroup = pinned ?: groups[left]
-    val rightGroup = groups[right].takeIf { it != leftGroup } ?: groups[nextGroup(right, leftGroup.ordinal, pinned?.ordinal)]
-    val alertColor = top?.let { severityColor(it.severity) } ?: Bmw.Accent
-
-    // Lo que esta en pantalla se lee mas seguido; al salir del panel, deja de pedirse asi. La
-    // marcha y el control de crucero van siempre.
-    LaunchedEffect(leftGroup, rightGroup) {
-        onWatch(Dashboard.alwaysWatched + Dashboard.watched(leftGroup) + Dashboard.watched(rightGroup))
-    }
-    DisposableEffect(Unit) { onDispose { onWatch(emptyList()) } }
-
     val rpm = values[Pids.RPM]
     val speed = values[Pids.SPEED]
-    val centerWidth = (maxWidth * CENTER_SHARE).coerceIn(CENTER_MIN, CENTER_MAX)
 
     Column(
-        Modifier.fillMaxSize().background(Bmw.Background).padding(horizontal = 10.dp, vertical = 6.dp),
+        Modifier.fillMaxSize().background(Bmw.Background).padding(horizontal = 8.dp, vertical = 6.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Strip(state, onMenu)
@@ -175,18 +149,6 @@ internal fun DashPanel(state: LiveState, onMenu: () -> Unit, onWatch: (List<Int>
             },
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            GroupColumn(
-                group = leftGroup,
-                tiles = Dashboard.tiles(leftGroup, values),
-                pinnedColor = alertColor.takeIf { pinned != null },
-                modifier = Modifier.weight(1f),
-                onClick = {
-                    if (pinned == null) {
-                        left = nextGroup(left, right, null)
-                        leftHold = SystemClock.elapsedRealtime() + TOUCH_HOLD_MS
-                    }
-                },
-            )
             SideWing(
                 fraction = ((speed ?: 0.0) / SPEED_MAX).toFloat(),
                 mirrored = false,
@@ -194,16 +156,16 @@ internal fun DashPanel(state: LiveState, onMenu: () -> Unit, onWatch: (List<Int>
                 marks = listOf(0, 60, 120, 180, 240).map { (it / SPEED_MAX).toFloat() to it.toString() },
                 modifier = Modifier.width(WING_WIDTH).fillMaxHeight(),
             ) {
-                Text(speed?.let { formatValue(it, 0) } ?: "—", color = Bmw.Text, fontSize = 44.sp, fontWeight = FontWeight.Light, maxLines = 1)
+                Text(speed?.let { formatValue(it, 0) } ?: "—", color = Bmw.Text, fontSize = 38.sp, fontWeight = FontWeight.Light, maxLines = 1)
                 Label("km/h")
                 Cruise(values)
             }
             Column(
-                Modifier.width(centerWidth).fillMaxHeight(),
+                Modifier.weight(1f).fillMaxHeight(),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterVertically),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     // Sin marcha conocida el hueco se queda, para que la tarjeta no salte de sitio.
                     val gear = state.gear
                     Text(
@@ -213,17 +175,17 @@ internal fun DashPanel(state: LiveState, onMenu: () -> Unit, onWatch: (List<Int>
                             else -> Dashboard.CALCULATED + "${gear}ª"
                         },
                         color = Bmw.Text,
-                        fontSize = 30.sp,
+                        fontSize = 24.sp,
                         fontWeight = FontWeight.Light,
                     )
                     // La recomendacion de cambio, tambien calculada: flecha arriba para subir, abajo para bajar.
                     when (state.shift) {
-                        ShiftHint.UP -> Text("▲", color = Bmw.Accent, fontSize = 22.sp)
-                        ShiftHint.DOWN -> Text("▼", color = Bmw.Amber, fontSize = 22.sp)
+                        ShiftHint.UP -> Text("▲", color = Bmw.Accent, fontSize = 18.sp)
+                        ShiftHint.DOWN -> Text("▼", color = Bmw.Amber, fontSize = 18.sp)
                     }
+                    Box(Modifier.weight(1f)) { Consumption(state) }
                 }
-                Consumption(state)
-                CenterCards(state)
+                PageCards(state, onWatch, onCase, Modifier.weight(1f))
             }
             SideWing(
                 fraction = ((rpm ?: 0.0) / vehicle.rpmMax).toFloat(),
@@ -232,19 +194,9 @@ internal fun DashPanel(state: LiveState, onMenu: () -> Unit, onWatch: (List<Int>
                 marks = (0..(vehicle.rpmMax / 1000).toInt()).map { (it * 1000 / vehicle.rpmMax).toFloat() to it.toString() },
                 modifier = Modifier.width(WING_WIDTH).fillMaxHeight(),
             ) {
-                Text(rpm?.let { formatValue(it, 0) } ?: "—", color = Bmw.Text, fontSize = 34.sp, fontWeight = FontWeight.Light, maxLines = 1)
+                Text(rpm?.let { formatValue(it, 0) } ?: "—", color = Bmw.Text, fontSize = 30.sp, fontWeight = FontWeight.Light, maxLines = 1)
                 Label("rpm")
             }
-            GroupColumn(
-                group = rightGroup,
-                tiles = Dashboard.tiles(rightGroup, values),
-                pinnedColor = null,
-                modifier = Modifier.weight(1f),
-                onClick = {
-                    right = nextGroup(right, leftGroup.ordinal, pinned?.ordinal)
-                    rightHold = SystemClock.elapsedRealtime() + TOUCH_HOLD_MS
-                },
-            )
         }
         Bottom(state, Modifier.height(INFO_HEIGHT))
     }
@@ -378,61 +330,133 @@ private fun Cruise(values: Map<Int, Double>) {
 }
 
 /**
- * Las tarjetas del centro: trayecto, temperaturas y motor. Se pasan deslizando a un lado o a
- * otro, o tocando; no rotan solas. Seis numeros con su unidad debajo.
+ * Las tarjetas grandes, una por tema. Al deslizar, la que se va gira hacia dentro, se encoge y se
+ * apaga, y la que llega hace lo contrario, como las caras de un cubo: asi se nota el cambio.
  */
 @Composable
-private fun CenterCards(state: LiveState) {
+private fun PageCards(state: LiveState, onWatch: (List<Int>) -> Unit, onCase: (Case?) -> Unit, modifier: Modifier) {
     val now by produceState(System.currentTimeMillis()) {
         while (true) {
             value = System.currentTimeMillis()
             delay(1000)
         }
     }
-    val cards = Dashboard.cards(
-        state.values, state.tripKm, (now - state.liveSinceMillis).coerceAtLeast(0), state.averageL100, state.vehicle.diesel,
+    val trip = TripNow(
+        state.tripKm, (now - state.liveSinceMillis).coerceAtLeast(0), state.averageL100, state.vehicle.diesel,
         state.tripLiters, state.tripLitersReal, state.fuelPrice,
     )
-    var page by rememberSaveable { mutableIntStateOf(0) }
-    var dragged by remember { mutableFloatStateOf(0f) }
-    val threshold = with(LocalDensity.current) { SWIPE_DISTANCE.toPx() }
-    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(14.dp))
-                .background(Bmw.Surface.copy(alpha = 0.72f))
-                .pointerInput(cards.size) {
-                    detectHorizontalDragGestures(
-                        onDragStart = { dragged = 0f },
-                        onDragEnd = {
-                            if (dragged <= -threshold) page = (page + 1) % cards.size
-                            if (dragged >= threshold) page = (page + cards.size - 1) % cards.size
-                        },
-                    ) { _, amount -> dragged += amount }
-                }
-                .clickable { page = (page + 1) % cards.size }
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(5.dp),
-        ) {
-            for (pair in cards[page % cards.size].chunked(2)) {
-                Row(Modifier.fillMaxWidth()) {
-                    for (cell in pair) {
-                        Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(cell.value, color = Bmw.Text, fontSize = 22.sp, fontWeight = FontWeight.Light, maxLines = 1)
-                            Text(cell.tag, color = Bmw.TextDim, fontSize = 11.sp, maxLines = 1)
-                        }
-                    }
-                }
-            }
+    val pages = DashPages.pages(state.values, trip, state.advice, bmw = state.cases)
+    var saved by rememberSaveable { mutableIntStateOf(0) }
+    val pager = rememberPagerState(initialPage = saved.coerceIn(0, pages.size - 1)) { pages.size }
+    val scope = rememberCoroutineScope()
+    var touchedAt by remember { mutableLongStateOf(0L) }
+
+    LaunchedEffect(pager) {
+        pager.interactionSource.interactions.collect { if (it is DragInteraction.Start) touchedAt = SystemClock.elapsedRealtime() }
+    }
+    // Un aviso grave nuevo lleva una vez a su tarjeta, si no se acaba de elegir otra a mano.
+    val urgent = state.advice.firstOrNull { it.severity != Severity.INFO }
+    LaunchedEffect(urgent?.id) {
+        val group = urgent?.let(Dashboard::group) ?: return@LaunchedEffect
+        val target = DashPages.indexOf(pages, group) ?: return@LaunchedEffect
+        if (SystemClock.elapsedRealtime() - touchedAt > USER_HOLD_MS && target != pager.currentPage) pager.animateScrollToPage(target)
+    }
+    // Lo que se ve es lo que se lee mas seguido: su caso y sus medidas.
+    val shown = pages.getOrNull(pager.currentPage)
+    LaunchedEffect(shown?.group) {
+        saved = pager.currentPage
+        onWatch(Dashboard.alwaysWatched + shown?.group?.let(Dashboard::watched).orEmpty())
+        onCase(shown?.group?.case)
+    }
+    DisposableEffect(Unit) {
+        onDispose {
+            onWatch(emptyList())
+            onCase(null)
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            for (index in cards.indices) {
-                Box(Modifier.size(6.dp).clip(CircleShape).background(if (index == page % cards.size) Bmw.Accent else Bmw.Line))
+    }
+
+    Column(modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        HorizontalPager(
+            state = pager,
+            contentPadding = PaddingValues(horizontal = CARD_SIDE),
+            pageSpacing = 8.dp,
+            modifier = Modifier.fillMaxWidth().weight(1f),
+        ) { index ->
+            val offset = ((pager.currentPage - index) + pager.currentPageOffsetFraction).coerceIn(-1f, 1f)
+            PageCard(
+                pages[index],
+                Modifier
+                    .fillMaxSize()
+                    .padding(vertical = 6.dp)
+                    .graphicsLayer {
+                        rotationY = offset * CARD_TILT
+                        cameraDistance = CARD_CAMERA * density
+                        val scale = 1f - CARD_SHRINK * abs(offset)
+                        scaleX = scale
+                        scaleY = scale
+                        alpha = 1f - CARD_FADE * abs(offset)
+                    }
+                    .clickable { scope.launch { pager.animateScrollToPage((pager.currentPage + 1) % pages.size) } },
+            )
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+            pages.forEachIndexed { index, page ->
+                val current = index == pager.currentPage
+                val width by animateDpAsState(if (current) 18.dp else 6.dp, label = "punto")
+                Box(
+                    Modifier.height(6.dp).width(width).clip(CircleShape)
+                        .background(page.alert?.let { severityColor(it) } ?: if (current) Bmw.Accent else Bmw.Line),
+                )
             }
         }
     }
 }
+
+/**
+ * Una tarjeta: con sombra y un brillo arriba, como las del cuadro de un Mercedes. Arriba el tema y
+ * su estado; en medio los datos en dos columnas, numero grande y debajo que es; abajo, si hay un
+ * aviso, lo que hay que hacer.
+ */
+@Composable
+private fun PageCard(page: DashPage, modifier: Modifier) {
+    val shape = RoundedCornerShape(CARD_RADIUS)
+    val accent = page.alert?.let { severityColor(it) }
+    Column(
+        modifier
+            .shadow(CARD_SHADOW, shape, ambientColor = Color.Black, spotColor = Color.Black)
+            .clip(shape)
+            .background(Brush.verticalGradient(listOf(CARD_TOP, CARD_BOTTOM)))
+            .border(1.dp, Brush.verticalGradient(listOf((accent ?: Color.White).copy(alpha = 0.35f), Color.Transparent)), shape)
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(page.title.uppercase(), color = accent ?: Bmw.Accent, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1)
+            page.status?.let {
+                Text(it, color = accent ?: Bmw.TextDim, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+            }
+        }
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.SpaceEvenly) {
+            for (pair in page.cells.chunked(2)) {
+                Row(Modifier.fillMaxWidth()) {
+                    for (cell in pair) {
+                        Row(Modifier.weight(1f), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text(cell.value, color = Bmw.Text, fontSize = 24.sp, fontWeight = FontWeight.Light, maxLines = 1)
+                            Text(cell.tag, color = Bmw.TextDim, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(bottom = 4.dp))
+                        }
+                    }
+                    if (pair.size == 1) Spacer(Modifier.weight(1f))
+                }
+            }
+        }
+        page.note?.let {
+            Text(it, color = accent ?: Bmw.Text, fontSize = 12.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        }
+    }
+}
+
+private val CARD_TOP = Color(0xFF26303D)
+private val CARD_BOTTOM = Color(0xFF12171E)
 
 /** La franja de arriba: lo mas importante que pasa ahora y que hacer, o que todo va normal. */
 @Composable
@@ -578,45 +602,6 @@ private fun ShutdownLight(values: Map<Int, Double>) {
 private val SHUTDOWN_OK = Color(0xFF3DBE6B)
 
 private fun clockText(): String = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
-
-@Composable
-private fun GroupColumn(group: DashGroup, tiles: List<DashTile>, pinnedColor: Color?, modifier: Modifier, onClick: () -> Unit) {
-    Column(
-        modifier.fillMaxHeight().clickable(onClick = onClick).padding(horizontal = 6.dp),
-        verticalArrangement = Arrangement.spacedBy(5.dp, Alignment.CenterVertically),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(group.title, color = pinnedColor ?: Bmw.Accent, fontSize = 13.sp, maxLines = 1)
-            Spacer(Modifier.weight(1f))
-            if (pinnedColor != null) {
-                Text("fijo", color = pinnedColor, fontSize = 11.sp)
-            } else {
-                Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                    for (other in DashGroup.entries) {
-                        Box(Modifier.size(5.dp).clip(CircleShape).background(if (other == group) Bmw.Accent else Bmw.Line))
-                    }
-                }
-            }
-        }
-        for (tile in tiles) {
-            val shape = RoundedCornerShape(8.dp)
-            Column(
-                Modifier
-                    .fillMaxWidth()
-                    .clip(shape)
-                    .background(Bmw.Surface)
-                    .border(1.dp, pinnedColor ?: Bmw.Surface, shape)
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
-            ) {
-                Label(tile.title)
-                Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                    Text(tile.value, color = Bmw.Text, fontSize = 22.sp, fontWeight = FontWeight.Light, maxLines = 1)
-                    Text(tile.unit, color = Bmw.TextDim, fontSize = 11.sp, modifier = Modifier.padding(bottom = 3.dp))
-                }
-            }
-        }
-    }
-}
 
 /** El emblema, dibujado: un aro oscuro y el circulo partido en cuartos azules y blancos. */
 @Composable

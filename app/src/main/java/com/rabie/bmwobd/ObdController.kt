@@ -242,6 +242,15 @@ class ObdController(
         focus = ids
     }
 
+    // El caso de la tarjeta que enseña el panel apaisado; null fuera del panel o en la del trayecto.
+    @Volatile
+    private var panelCase: Case? = null
+
+    /** La tarjeta del panel decide que se lee mas seguido mientras se ve. */
+    fun showCase(case: Case?) {
+        panelCase = case
+    }
+
     /** Guarda los cambios del usuario en el perfil del coche conectado. */
     fun updateVehicle(vehicle: Vehicle) {
         vehicles.save(vehicle)
@@ -546,6 +555,7 @@ class ObdController(
                 extras.isEmpty() -> Case.NORMAL
                 // El primer arranque se mira solo, se haya elegido el caso que se haya elegido.
                 firstStart.watching(System.nanoTime() / 1_000_000, values[Pids.RPM]) -> Case.COLD_START
+                panelCase != null -> panelCase!!
                 chosen != Case.NORMAL -> chosen
                 else -> urgent?.let(Dashboard::group)?.case ?: Case.NORMAL
             }

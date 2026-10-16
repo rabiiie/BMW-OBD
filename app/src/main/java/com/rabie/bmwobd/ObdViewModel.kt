@@ -93,6 +93,8 @@ class ObdViewModel(app: Application) : AndroidViewModel(app) {
 
     fun watch(ids: List<Int>) = controller.watch(ids)
 
+    fun showCase(case: com.rabie.bmwobd.cases.Case?) = controller.showCase(case)
+
     fun probe() = controller.probe()
 
     fun probeModules() = controller.probeModules()
