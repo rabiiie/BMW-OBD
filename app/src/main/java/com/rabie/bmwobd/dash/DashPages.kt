@@ -15,9 +15,12 @@ data class DashPage(
     val title: String,
     val status: String?,
     val alert: Severity?,
-    val cells: List<DashCell>,
+    val cells: List<DashItem>,
     val note: String?,
 )
+
+/** Un dato de una tarjeta: que es ([name]), la cifra y su unidad, que va aparte junto a la cifra. */
+data class DashItem(val name: String, val value: String, val unit: String)
 
 /** Lo que el panel sabe del trayecto en curso, para la tarjeta del trayecto. */
 data class TripNow(
@@ -57,7 +60,7 @@ object DashPages {
             }
         }
 
-    private fun page(group: DashGroup, title: String, top: Advice?, status: String?, cells: List<DashCell>) =
+    private fun page(group: DashGroup, title: String, top: Advice?, status: String?, cells: List<DashItem>) =
         DashPage(group, title, top?.title ?: status, top?.severity, cells, top?.detail)
 
     private fun filterStatus(values: Map<Int, Double>): String? {
@@ -66,81 +69,96 @@ object DashPages {
         return listOfNotNull(request, faults).joinToString(" · ").ifEmpty { null }
     }
 
-    private fun tripCells(values: Map<Int, Double>, trip: TripNow): List<DashCell> =
-        Dashboard.cards(values, trip.km, trip.elapsedMs, trip.average, trip.diesel, trip.liters, trip.real, trip.price).first() +
-            listOf(cell(values[Pids.COOLANT], 0, "°C motor"), cell(values[OUTSIDE_TEMP], 0, "°C fuera"))
+    private fun tripCells(values: Map<Int, Double>, trip: TripNow): List<DashItem> =
+        Dashboard.cards(values, trip.km, trip.elapsedMs, trip.average, trip.diesel, trip.liters, trip.real, trip.price).first().map {
+            val (name, unit) = TRIP_NAMES[it.tag] ?: (it.tag to "")
+            DashItem(name, it.value, unit)
+        } + listOf(cell(values[Pids.COOLANT], 0, "Motor", "°C"), cell(values[OUTSIDE_TEMP], 0, "Fuera", "°C"))
 
-    private fun filterCells(values: Map<Int, Double>): List<DashCell> {
+    /** Los datos del trayecto vienen del panel vertical con la unidad por nombre; aqui se separan. */
+    private val TRIP_NAMES = mapOf(
+        "km" to ("Distancia" to "km"),
+        "h:min" to ("Tiempo" to "h:min"),
+        "Ø L/100" to ("Consumo medio" to "L/100"),
+        "L/100" to ("Consumo ahora" to "L/100"),
+        "L/h" to ("Consumo ahora" to "L/h"),
+        "L" to ("Gasóleo gastado" to "L"),
+        "€" to ("Coste" to "€"),
+    )
+
+    private fun filterCells(values: Map<Int, Double>): List<DashItem> {
         val pressure = values[FILTER_PRESSURE]
         val flow = values[FILTER_FLOW]
         val boost = values[Pids.MAP]
         val turbine = values[BEFORE_TURBINE]
         return listOf(
-            cell(values[Pids.BMW_SOOT_MEASURED], 1, "g hollín medido"),
-            cell(values[Pids.BMW_SOOT_MODEL], 1, "g hollín calculado"),
-            cell(values[SINCE_REGEN], 0, "km sin regenerar"),
-            cell(exhaust(values), 0, "°C escape"),
-            cell(pressure, 0, "hPa en el filtro"),
-            cell(flow, 0, "m³/h de gas"),
-            calculated(if (pressure != null && flow != null && flow >= MIN_FLOW) pressure / flow * PER_100 else null, 1, "resistencia"),
-            calculated(if (turbine != null && boost != null && boost >= BOOSTING_KPA) turbine / (boost * HPA_PER_KPA) else null, 2, "escape / turbo"),
+            cell(values[Pids.BMW_SOOT_MEASURED], 1, "Hollín medido", "g"),
+            cell(values[Pids.BMW_SOOT_MODEL], 1, "Hollín calculado", "g"),
+            cell(values[SINCE_REGEN], 0, "Sin regenerar", "km"),
+            cell(exhaust(values), 0, "Escape", "°C"),
+            cell(pressure, 0, "Presión diferencial", "hPa"),
+            cell(flow, 0, "Caudal de gas", "m³/h"),
+            calculated(if (pressure != null && flow != null && flow >= MIN_FLOW) pressure / flow * PER_100 else null, 1, "Resistencia", ""),
+            calculated(if (turbine != null && boost != null && boost >= BOOSTING_KPA) turbine / (boost * HPA_PER_KPA) else null, 2, "Escape / admisión", ""),
         )
     }
 
-    private fun turboCells(values: Map<Int, Double>): List<DashCell> {
+    private fun turboCells(values: Map<Int, Double>): List<DashItem> {
         val asked = values[Moment.BOOST_COMMANDED] ?: values[BOOST_ASKED]
         val real = values[Moment.BOOST_ACTUAL] ?: values[Pids.MAP]
         return listOf(
-            cell(asked, 0, "kPa pide"),
-            cell(real, 0, "kPa tiene"),
-            cell(values[TURBO_SPEED]?.let { it / 1000.0 }, 0, "mil rpm turbo"),
-            cell(values[TURBO_ACTUATOR], 0, "% actuador"),
-            cell(values[BEFORE_TURBINE], 0, "hPa antes turbina"),
-            cell(values[AIR_PER_CYLINDER] ?: values[Pids.MAF], 0, if (values[AIR_PER_CYLINDER] != null) "mg aire / cil." else "g/s aire"),
-            cell(values[EGR_RATE], 0, "% EGR"),
-            cell(values[AFTER_INTERCOOLER] ?: values[Moment.INTAKE_TEMP], 0, "°C aire admisión"),
+            cell(asked, 0, "Presión pedida", "kPa"),
+            cell(real, 0, "Presión real", "kPa"),
+            cell(values[TURBO_SPEED]?.let { it / 1000.0 }, 0, "Giro del turbo", "mil rpm"),
+            cell(values[TURBO_ACTUATOR], 0, "Actuador", "%"),
+            cell(values[BEFORE_TURBINE], 0, "Antes de la turbina", "hPa"),
+            if (values[AIR_PER_CYLINDER] != null) cell(values[AIR_PER_CYLINDER], 0, "Aire por cilindro", "mg") else cell(values[Pids.MAF], 0, "Aire", "g/s"),
+            cell(values[EGR_RATE], 0, "EGR", "%"),
+            cell(values[AFTER_INTERCOOLER] ?: values[Moment.INTAKE_TEMP], 0, "Aire de admisión", "°C"),
         )
     }
 
-    private fun engineCells(values: Map<Int, Double>): List<DashCell> = listOf(
-        cell(values[Pids.COOLANT], 0, "°C motor"),
-        cell(exhaust(values), 0, "°C escape"),
-        cell(values[TORQUE], 0, "Nm par"),
-        calculated(Dashboard.horsepower(values), 0, "CV"),
-        cell(values[Pids.LOAD], 0, "% carga"),
-        cell(values[FUEL_TEMP], 0, "°C gasóleo"),
+    private fun engineCells(values: Map<Int, Double>): List<DashItem> = listOf(
+        cell(values[Pids.COOLANT], 0, "Motor", "°C"),
+        cell(exhaust(values), 0, "Escape", "°C"),
+        cell(values[TORQUE], 0, "Par", "Nm"),
+        calculated(Dashboard.horsepower(values), 0, "Potencia", "CV"),
+        cell(values[Pids.LOAD], 0, "Carga", "%"),
+        cell(values[FUEL_TEMP], 0, "Gasóleo", "°C"),
         // Parado la centralita no tiene desfase y da su valor de sin dato, que sale como 0.
-        cell(values[Pids.bmw(Pids.BMW_TIMING_OFFSET_ADDRESS)]?.takeIf { (values[Pids.RPM] ?: 0.0) > 0 }, 2, "° cadena"),
-        cell(values[SMOKE_LIMIT], 1, "mg límite humo"),
+        cell(values[Pids.bmw(Pids.BMW_TIMING_OFFSET_ADDRESS)]?.takeIf { (values[Pids.RPM] ?: 0.0) > 0 }, 2, "Desfase de cadena", "°"),
+        cell(values[SMOKE_LIMIT], 1, "Límite de humo", "mg"),
     )
 
-    private fun injectorCells(values: Map<Int, Double>): List<DashCell> =
-        Pids.BMW_CYLINDER_CORRECTIONS.mapIndexed { index, id -> signedCell(values[id], 2, "mg cil. ${index + 1}") } + listOf(
-            cell(values[Pids.BMW_INJECTION], 1, "mg inyecta"),
-            signedCell(values[GENERAL_CORRECTION], 2, "mg corrección"),
-            cell(values[Moment.RAIL_ACTUAL] ?: values[Moment.RAIL], 0, "bar raíl"),
-            cell(values[RAIL_ASKED], 0, "bar pide"),
+    private fun injectorCells(values: Map<Int, Double>): List<DashItem> =
+        Pids.BMW_CYLINDER_CORRECTIONS.mapIndexed { index, id -> signedCell(values[id], 2, "Cilindro ${index + 1}", "mg") } + listOf(
+            cell(values[Pids.BMW_INJECTION], 1, "Inyecta", "mg"),
+            signedCell(values[GENERAL_CORRECTION], 2, "Corrección general", "mg"),
+            cell(values[Moment.RAIL_ACTUAL] ?: values[Moment.RAIL], 0, "Raíl", "bar"),
+            cell(values[RAIL_ASKED], 0, "Raíl pedido", "bar"),
         )
 
-    private fun electricCells(values: Map<Int, Double>): List<DashCell> = listOf(
-        cell(values[BATTERY_VOLTS] ?: values[Moment.MODULE_VOLTAGE] ?: values[Pids.ADAPTER_VOLTAGE], 1, "V batería"),
-        signedCell(values[BATTERY_CURRENT], 1, "A batería"),
-        cell(values[ALTERNATOR_ASKED], 1, "V pide alternador"),
-        cell(values[ALTERNATOR_LOAD], 0, "% alternador"),
-        cell(values[ALTERNATOR_TEMP], 0, "°C alternador"),
-        cell(values[RECOVERED], 1, "Ah recuperados"),
+    private fun electricCells(values: Map<Int, Double>): List<DashItem> = listOf(
+        cell(values[BATTERY_VOLTS] ?: values[Moment.MODULE_VOLTAGE] ?: values[Pids.ADAPTER_VOLTAGE], 1, "Batería", "V"),
+        signedCell(values[BATTERY_CURRENT], 1, "Corriente batería", "A"),
+        cell(values[ALTERNATOR_ASKED], 1, "Pide al alternador", "V"),
+        cell(values[ALTERNATOR_LOAD], 0, "Carga alternador", "%"),
+        cell(values[ALTERNATOR_TEMP], 0, "Alternador", "°C"),
+        cell(values[RECOVERED], 1, "Recuperados", "Ah"),
     )
 
     private fun exhaust(values: Map<Int, Double>): Double? = values[BEFORE_CATALYST] ?: Moment.EXHAUST_TEMPS.mapNotNull { values[it] }.maxOrNull()
 
-    private fun cell(value: Double?, decimals: Int, tag: String) = DashCell(value?.let { Dashboard.n(it, decimals) } ?: Dashboard.MISSING, tag)
+    private fun cell(value: Double?, decimals: Int, name: String, unit: String) =
+        DashItem(name, value?.let { Dashboard.n(it, decimals) } ?: Dashboard.MISSING, unit)
 
-    private fun calculated(value: Double?, decimals: Int, tag: String) =
-        DashCell(value?.let { Dashboard.CALCULATED + Dashboard.n(it, decimals) } ?: Dashboard.MISSING, tag)
+    private fun calculated(value: Double?, decimals: Int, name: String, unit: String) =
+        DashItem(name, value?.let { Dashboard.CALCULATED + Dashboard.n(it, decimals) } ?: Dashboard.MISSING, unit)
 
-    private fun signedCell(value: Double?, decimals: Int, tag: String) = DashCell(
+    private fun signedCell(value: Double?, decimals: Int, name: String, unit: String) = DashItem(
+        name,
         value?.let { Dashboard.n(it, decimals).let { text -> if (it > 0 && text.any { c -> c in '1'..'9' }) "+$text" else text } } ?: Dashboard.MISSING,
-        tag,
+        unit,
     )
 
     private const val OUTSIDE_TEMP = 0x46

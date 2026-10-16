@@ -592,8 +592,9 @@ private fun PageCard(page: DashPage, modifier: Modifier) {
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                             ) {
+                                // El nombre en mayusculas; la unidad no, que en mayusculas cambia de sentido.
                                 Text(
-                                    cell.tag.uppercase(),
+                                    cell.name.uppercase(),
                                     color = Bmw.TextDim,
                                     fontSize = 11.sp,
                                     letterSpacing = 0.5.sp,
@@ -601,7 +602,12 @@ private fun PageCard(page: DashPage, modifier: Modifier) {
                                     overflow = TextOverflow.Ellipsis,
                                     modifier = Modifier.weight(1f),
                                 )
-                                Text(cell.value, color = Bmw.Text, fontSize = 22.sp, maxLines = 1)
+                                Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Text(cell.value, color = Bmw.Text, fontSize = 22.sp, maxLines = 1)
+                                    if (cell.unit.isNotEmpty() && cell.value != Dashboard.MISSING) {
+                                        Text(cell.unit, color = Bmw.TextDim, fontSize = 11.sp, maxLines = 1, modifier = Modifier.padding(bottom = 4.dp))
+                                    }
+                                }
                             }
                         }
                         if (pair.size == 1) Spacer(Modifier.weight(1f))
