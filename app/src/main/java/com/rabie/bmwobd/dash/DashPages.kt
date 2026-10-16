@@ -91,7 +91,10 @@ object DashPages {
         val flow = values[FILTER_FLOW]
         val boost = values[Pids.MAP]
         val turbine = values[BEFORE_TURBINE]
+        // La peticion va en su celda: la linea de estado la tapa cualquier aviso del filtro.
+        val request = values[Pids.BMW_REGEN_REQUEST]
         return listOf(
+            cell(request, 0, "Regeneración", request?.let(Pids::regenRequestShort).orEmpty()),
             cell(values[Pids.BMW_SOOT_MEASURED], 1, "Hollín medido", "g"),
             cell(values[Pids.BMW_SOOT_MODEL], 1, "Hollín calculado", "g"),
             cell(values[SINCE_REGEN], 0, "Sin regenerar", "km"),

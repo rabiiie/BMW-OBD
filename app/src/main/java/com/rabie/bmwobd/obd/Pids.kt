@@ -207,8 +207,19 @@ object Pids {
         0 -> "no pide regenerar"
         1 -> "pendiente: la hará en cuanto pueda"
         5 -> "regenerando"
+        6 -> "preparando la regeneración (creo; visto una vez, justo antes del 5)"
         7 -> "protección: filtro muy cargado, sin regeneración normal"
         else -> "código sin identificar"
+    }
+
+    /** Lo mismo en una o dos palabras, para la celda de la tarjeta del filtro. */
+    fun regenRequestShort(code: Double): String = when (code.toInt()) {
+        0 -> "no pide"
+        1 -> "pendiente"
+        5 -> "regenerando"
+        6 -> "preparando"
+        7 -> "protección"
+        else -> "sin identificar"
     }
 
     private fun word(d: IntArray, i: Int = 0) = d[i] * 256 + d[i + 1]

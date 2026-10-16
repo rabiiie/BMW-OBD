@@ -32,6 +32,10 @@ class DashPagesTest {
         assertEquals(Severity.WARN, warned[1].alert)
         assertEquals("BMW manda unos 45 min", warned[1].note)
         assertNull(warned[2].alert)
+        // Con el aviso tapando la linea, la peticion sigue en su celda.
+        assertEquals(DashItem("Regeneración", "7", "protección"), warned[1].cells.first())
+        val preparing = DashPages.pages(mapOf(Pids.BMW_REGEN_REQUEST to 6.0), trip, emptyList(), bmw = true)[1]
+        assertEquals(DashItem("Regeneración", "6", "preparando"), preparing.cells.first())
     }
 
     @Test

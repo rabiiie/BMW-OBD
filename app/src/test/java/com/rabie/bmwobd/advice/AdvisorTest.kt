@@ -118,6 +118,32 @@ class AdvisorTest {
     }
 
     @Test
+    fun `con la peticion en 5 la regeneracion sigue aunque el modo entre y salga`() {
+        // Como el 16 de octubre: la peticion en 5 veintidos minutos y el modo a ratos normal.
+        val cruising = mapOf(Pids.RPM to 2000.0, Pids.SPEED to 100.0, Pids.COOLANT to 90.0, Pids.LOAD to 40.0)
+        val sinceRegen = Pids.bmw(Pids.BMW_SINCE_REGEN_ADDRESS)
+        val asked = cruising + (Pids.BMW_REGEN_REQUEST to 5.0) + (sinceRegen to 640.0)
+        val advisor = Advisor()
+        var last = emptyList<Advice>()
+        for (s in 0..1320) {
+            val mode = if ((s / 120) % 2 == 0) Pids.MODE_REGENERATING else Pids.MODE_NORMAL
+            last = advisor.update(s * 1000L, asked + (Pids.BMW_ENGINE_MODE to mode.toDouble()))
+            assertNull("corte falso en el segundo $s", last.find("regen_cut"))
+        }
+        // La peticion vuelve a 7 sin que el contador se ponga a cero: eso si es un corte.
+        val protecting = cruising + (Pids.BMW_REGEN_REQUEST to 7.0) + (sinceRegen to 664.0) +
+            (Pids.BMW_ENGINE_MODE to Pids.MODE_PROTECTION.toDouble())
+        for (s in 1321..1420) last = advisor.update(s * 1000L, protecting)
+        assertEquals(Severity.WARN, last.find("regen_cut")?.severity)
+
+        // Un intento de diez segundos que la centralita cancela no es un corte.
+        val tried = Advisor()
+        for (s in 0..10) tried.update(s * 1000L, asked)
+        for (s in 11..200) last = tried.update(s * 1000L, protecting)
+        assertNull(last.find("regen_cut"))
+    }
+
+    @Test
     fun `mezcla muy rica un rato seguido es humo negro`() {
         // Lo grabado el dia de la abrazadera suelta: 34 g/s de aire con 56 mg a 2000 rpm, unos 9 a 1.
         val rich = mapOf(

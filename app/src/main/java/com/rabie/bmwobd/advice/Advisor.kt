@@ -141,6 +141,9 @@ object Limits {
     // Una regeneracion se da por acabada tras un minuto sin ella: el modo leido baila a veces.
     const val REGEN_END_MS = 60_000L
 
+    // Menos que esto es un intento que la centralita cancela: el 16 de octubre, cinco de unos 10 s con 481A presente.
+    const val REGEN_MIN_MS = 2 * 60_000L
+
     // Lo que se ve en el panel que una regeneracion se corto o termino.
     const val REGEN_OUTCOME_SHOW_MS = 10 * 60_000L
 
@@ -291,6 +294,7 @@ class Advisor {
     private var regenFromKm: Double? = null
     private var regenLowestKm: Double? = null
     private var regenSeenMs: Long? = null
+    private var regenStartMs = 0L
     private var regenOutcome: RegenOutcome? = null
     private var regenOutcomeMs = 0L
 
@@ -301,10 +305,15 @@ class Advisor {
     private fun followRegeneration(tMs: Long, values: Map<Int, Double>) {
         val mode = values[Pids.BMW_ENGINE_MODE]?.toLong()?.toInt()
         val request = values[Pids.BMW_REGEN_REQUEST]
-        val active = if (mode != null) mode == Pids.MODE_REGENERATING else request == Pids.BMW_REGEN_RUNNING
+        // La peticion se queda en 5 toda la regeneracion; el modo entra y sale de regenerar segun
+        // la carga (visto el 16 de octubre: veinte cambios en 22 minutos con la peticion en 5).
+        val active = if (request != null) request == Pids.BMW_REGEN_RUNNING else mode == Pids.MODE_REGENERATING
         val km = values[Pids.bmw(Pids.BMW_SINCE_REGEN_ADDRESS)]
         if (active) {
-            if (regenSeenMs == null) regenFromKm = km
+            if (regenSeenMs == null) {
+                regenFromKm = km
+                regenStartMs = tMs
+            }
             regenSeenMs = tMs
             if (km != null) regenLowestKm = minOf(km, regenLowestKm ?: km)
             return
@@ -314,8 +323,12 @@ class Advisor {
         if (tMs - seen < Limits.REGEN_END_MS) return
         val from = regenFromKm
         val lowest = regenLowestKm
-        regenOutcome = if (from != null && lowest != null && from - lowest > Limits.REGEN_RESET_KM) RegenOutcome.DONE else RegenOutcome.CUT
-        regenOutcomeMs = tMs
+        val done = from != null && lowest != null && from - lowest > Limits.REGEN_RESET_KM
+        // Un intento de unos segundos que la centralita cancela no se cuenta como corte.
+        if (done || seen - regenStartMs >= Limits.REGEN_MIN_MS) {
+            regenOutcome = if (done) RegenOutcome.DONE else RegenOutcome.CUT
+            regenOutcomeMs = tMs
+        }
         regenSeenMs = null
         regenFromKm = null
         regenLowestKm = null
