@@ -134,6 +134,9 @@ object Pids {
     /** A partir de este valor de [BMW_REGEN_REQUEST] la centralita la da por empezada, aunque puede no estar haciendola. */
     const val BMW_REGEN_ACTIVE = 2.0
 
+    /** El valor de [BMW_REGEN_REQUEST] mientras regenera de verdad, deducido de este coche. */
+    const val BMW_REGEN_RUNNING = 5.0
+
     /** Lo que la centralita suma o quita a cada inyector para igualar los cilindros, del 1 al 4. */
     val BMW_CYLINDER_CORRECTIONS = listOf(0x14B4, 0x14B5, 0x14B6, 0x14B7).map(::bmw)
 

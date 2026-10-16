@@ -128,7 +128,19 @@ object Limits {
     const val HOT_STOP_WINDOW_MS = 120_000L
     const val REGEN_STOP_HOLD_MS = 20_000L
     const val LONG_IDLE_MS = 5 * 60_000L
+
+    // Una regeneracion se da por acabada tras un minuto sin ella: el modo leido baila a veces.
+    const val REGEN_END_MS = 60_000L
+
+    // Lo que se ve en el panel que una regeneracion se corto o termino.
+    const val REGEN_OUTCOME_SHOW_MS = 10 * 60_000L
+
+    // El contador de km sin regenerar vuelve a cero al terminar bien; con esto basta para notarlo.
+    const val REGEN_RESET_KM = 1.0
 }
+
+/** Como acabo la ultima regeneracion vista en este trayecto. */
+enum class RegenOutcome { CUT, DONE }
 
 /** Lo que se sabe del coche en un instante, con el contexto ya deducido. */
 class Moment(
@@ -138,6 +150,8 @@ class Moment(
     val vehicle: Vehicle,
     /** Lo mas caliente que ha llegado a estar el refrigerante en lo que va de trayecto. */
     val peakCoolant: Double? = null,
+    /** Como acabo una regeneracion en los ultimos minutos; null si no acabo ninguna. */
+    val regenOutcome: RegenOutcome? = null,
 ) {
     /** La referencia del motor de este coche, si se conoce. */
     val reference: EngineReference? = EngineReference.of(vehicle)
@@ -239,7 +253,9 @@ class Advisor {
         val recentLoad = if (windowFull) loads.sumOf { it.second } / loads.size else null
 
         values[Pids.COOLANT]?.let { if (it > (peakCoolant ?: -273.0)) peakCoolant = it }
-        val moment = Moment(values, drivingMs, recentLoad, vehicle, peakCoolant)
+        followRegeneration(tMs, values)
+        val outcome = regenOutcome?.takeIf { tMs - regenOutcomeMs < Limits.REGEN_OUTCOME_SHOW_MS }
+        val moment = Moment(values, drivingMs, recentLoad, vehicle, peakCoolant, outcome)
         val active = mutableListOf<Advice>()
         for (rule in RULES) {
             val advice = rule.check(moment)
@@ -261,6 +277,39 @@ class Advisor {
             if (tMs - start >= rule.holdMs) active += held
         }
         return active.sortedByDescending { it.severity }
+    }
+
+    private var regenFromKm: Double? = null
+    private var regenLowestKm: Double? = null
+    private var regenSeenMs: Long? = null
+    private var regenOutcome: RegenOutcome? = null
+    private var regenOutcomeMs = 0L
+
+    /**
+     * Sigue una regeneracion de BMW de principio a fin. Termina bien si el contador de km sin
+     * regenerar vuelve a cero, que es la prueba que da BMW; si no vuelve, se corto a medias.
+     */
+    private fun followRegeneration(tMs: Long, values: Map<Int, Double>) {
+        val mode = values[Pids.BMW_ENGINE_MODE]?.toLong()?.toInt()
+        val request = values[Pids.BMW_REGEN_REQUEST]
+        val active = if (mode != null) mode == Pids.MODE_REGENERATING else request == Pids.BMW_REGEN_RUNNING
+        val km = values[Pids.bmw(Pids.BMW_SINCE_REGEN_ADDRESS)]
+        if (active) {
+            if (regenSeenMs == null) regenFromKm = km
+            regenSeenMs = tMs
+            if (km != null) regenLowestKm = minOf(km, regenLowestKm ?: km)
+            return
+        }
+        val seen = regenSeenMs ?: return
+        if (km != null) regenLowestKm = minOf(km, regenLowestKm ?: km)
+        if (tMs - seen < Limits.REGEN_END_MS) return
+        val from = regenFromKm
+        val lowest = regenLowestKm
+        regenOutcome = if (from != null && lowest != null && from - lowest > Limits.REGEN_RESET_KM) RegenOutcome.DONE else RegenOutcome.CUT
+        regenOutcomeMs = tMs
+        regenSeenMs = null
+        regenFromKm = null
+        regenLowestKm = null
     }
 
     companion object {
@@ -689,6 +738,22 @@ class Advisor {
                     "soot_gap", Severity.WARN, "Filtro: ${n(measured)} g medidos frente a ${n(model)} calculados",
                     "Por la presión, la centralita ve el filtro mucho más cargado de lo que calcula por el uso. " +
                         "Suele ser ceniza acumulada, que no se quema al regenerar, o el sensor de presión o sus tubos.",
+                )
+            },
+            Rule("regen_cut", 0) { m ->
+                if (m.regenOutcome != RegenOutcome.CUT) return@Rule null
+                val km = m.values[Pids.bmw(Pids.BMW_SINCE_REGEN_ADDRESS)]
+                Advice(
+                    "regen_cut", Severity.WARN, "Regeneración cortada",
+                    "Ha parado sin terminar" + (km?.let { ": el contador sigue en ${n(it)} km sin regenerar" } ?: "") +
+                        ". Si puedes, sigue unos minutos por carretera a ritmo constante para que la retome.",
+                )
+            },
+            Rule("regen_done", 0) { m ->
+                if (m.regenOutcome != RegenOutcome.DONE) return@Rule null
+                Advice(
+                    "regen_done", Severity.INFO, "Regeneración terminada",
+                    "El contador de km sin regenerar ha vuelto a cero: es la prueba que da BMW de que ha ido bien.",
                 )
             },
             Rule("regen_stop", Limits.REGEN_STOP_HOLD_MS) { m ->

@@ -91,6 +91,33 @@ class AdvisorTest {
     }
 
     @Test
+    fun `una regeneracion que se corta lo dice y una que termina tambien`() {
+        val cruising = mapOf(Pids.RPM to 1900.0, Pids.SPEED to 100.0, Pids.COOLANT to 90.0, Pids.LOAD to 40.0)
+        val sinceRegen = Pids.bmw(Pids.BMW_SINCE_REGEN_ADDRESS)
+        val regenerating = cruising + (Pids.BMW_ENGINE_MODE to Pids.MODE_REGENERATING.toDouble()) + (sinceRegen to 270.0)
+        val normal = cruising + (Pids.BMW_ENGINE_MODE to Pids.MODE_NORMAL.toDouble())
+
+        fun drive(after: Map<Int, Double>, seconds: Int): List<Advice> {
+            val advisor = Advisor()
+            for (s in 0..300) advisor.update(s * 1000L, regenerating)
+            var last = emptyList<Advice>()
+            for (s in 301..300 + seconds) last = advisor.update(s * 1000L, after)
+            return last
+        }
+
+        val cut = drive(normal + (sinceRegen to 274.0), 90)
+        assertEquals(Severity.WARN, cut.find("regen_cut")?.severity)
+        assertNull(cut.find("regen_done"))
+        // Un baile corto del modo no es un corte.
+        assertNull(drive(normal + (sinceRegen to 274.0), 30).find("regen_cut"))
+        val done = drive(normal + (sinceRegen to 0.4), 90)
+        assertEquals(Severity.INFO, done.find("regen_done")?.severity)
+        assertNull(done.find("regen_cut"))
+        // Pasados diez minutos ya no se dice.
+        assertNull(drive(normal + (sinceRegen to 274.0), 800).find("regen_cut"))
+    }
+
+    @Test
     fun `turbo que no sopla mientras se le pide va en rojo`() {
         // Lo grabado el dia de la abrazadera suelta: pide 213 kPa, hay 81 y la calle esta a 95.
         val asking = mapOf(
