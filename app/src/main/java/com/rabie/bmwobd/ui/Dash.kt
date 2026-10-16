@@ -2,8 +2,6 @@ package com.rabie.bmwobd.ui
 
 import android.os.SystemClock
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.withFrameNanos
 import kotlin.math.roundToInt
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.animation.core.animateDpAsState
@@ -92,7 +90,10 @@ private const val CARD_FADE = 0.55f
 private const val CARD_CAMERA = 14f
 private const val USER_HOLD_MS = 30_000L
 private const val MARK_TEXT_FROM_MIDDLE = 0.15f
-private const val GLOW_ALPHA = 0.55f
+private const val GLOW_ALPHA = 0.32f
+
+// Hasta donde llega la luz de cada reloj, en parte del ancho del panel.
+private const val GLOW_REACH = 0.34f
 private const val PER_100_FULL = 20.0
 private const val PER_HOUR_FULL = 10.0
 private const val TANK_LITERS = 53.0
@@ -152,20 +153,23 @@ internal fun DashPanel(
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Strip(state, onMenu)
-        val glow = Bmw.MBlueDark
+        val left = Bmw.MBlueLight
+        val right = Bmw.MRed
         Box(
             Modifier.fillMaxWidth().weight(1f).drawBehind {
-                // El resplandor azul de detras del centro, como en el cuadro del coche.
-                drawRect(
-                    Brush.radialGradient(
-                        listOf(glow.copy(alpha = GLOW_ALPHA), Color.Transparent),
-                        center = Offset(size.width / 2, size.height * 0.62f),
-                        radius = size.height * 0.95f,
-                    ),
-                )
+                // La luz de cada reloj se extiende por el fondo y se apaga hacia el centro, para que
+                // los relojes no parezcan pegados encima.
+                for ((color, x) in listOf(left to 0f, right to size.width)) {
+                    drawRect(
+                        Brush.radialGradient(
+                            listOf(color.copy(alpha = GLOW_ALPHA), color.copy(alpha = GLOW_ALPHA * 0.35f), Color.Transparent),
+                            center = Offset(x, size.height * 0.4f),
+                            radius = size.width * GLOW_REACH,
+                        ),
+                    )
+                }
             },
         ) {
-        Road(speed ?: 0.0, Modifier.matchParentSize())
         Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
             val tank = values[Pids.bmw(Pids.BMW_TANK_ADDRESS)]
             SideWing(
@@ -276,7 +280,7 @@ private fun SideWing(
                 lineTo(x(scale + arm + inset), bottom - inset)
                 close()
             }
-            drawPath(panel, Brush.verticalGradient(listOf(deep.copy(alpha = 0.45f), Color.Black.copy(alpha = 0.55f), deep.copy(alpha = 0.5f)), top, bottom))
+            drawPath(panel, Brush.verticalGradient(listOf(deep.copy(alpha = 0.35f), Color.Transparent, deep.copy(alpha = 0.3f)), top, bottom))
             clipPath(panel) {
                 // Un brillo suave pegado al marco, como luz que entra por el cristal.
                 drawRect(
@@ -507,84 +511,6 @@ private fun PageCards(state: LiveState, onWatch: (List<Int>) -> Unit, onCase: (C
         }
     }
 }
-
-/**
- * La carretera de fondo de todo el panel, en perspectiva: el asfalto que se estrecha hacia el
- * horizonte, arriba en el centro, los dos bordes como raíles de luz en azul y rojo M, y las rayas de
- * los carriles, que se juntan en el horizonte y avanzan hacia quien mira a la velocidad del coche.
- * Parado, la carretera se queda quieta.
- */
-@Composable
-private fun Road(speed: Double, modifier: Modifier) {
-    val currentSpeed by rememberUpdatedState(speed)
-    val travel by produceState(0f) {
-        var last = 0L
-        while (true) {
-            withFrameNanos { now ->
-                if (last != 0L) value = (value + ((now - last) / 1e9f) * (currentSpeed.toFloat() / ROAD_KMH_PER_TURN)) % 1f
-                last = now
-            }
-        }
-    }
-    val left = Bmw.MBlueLight
-    val right = Bmw.MRed
-    Canvas(modifier) {
-        val w = size.width
-        val h = size.height
-        val horizon = h * ROAD_HORIZON
-        val farHalf = w * ROAD_FAR_HALF
-        val nearHalf = w * ROAD_NEAR_HALF
-        val cx = w / 2
-        // Lo lejos sube despacio y lo cerca baja deprisa: la profundidad va al cuadrado.
-        fun yAt(depth: Float) = horizon + (h - horizon) * depth * depth
-        fun halfAt(y: Float) = farHalf + (nearHalf - farHalf) * (y - horizon) / (h - horizon)
-
-        val asphalt = Path().apply {
-            moveTo(cx - farHalf, horizon)
-            lineTo(cx + farHalf, horizon)
-            lineTo(cx + nearHalf, h)
-            lineTo(cx - nearHalf, h)
-            close()
-        }
-        drawPath(asphalt, Brush.verticalGradient(listOf(ROAD_FAR, ROAD_NEAR), horizon, h))
-
-        // Los raíles: los dos bordes, con su resplandor.
-        for ((sign, color) in listOf(-1f to left, 1f to right)) {
-            val from = Offset(cx + sign * farHalf, horizon)
-            val to = Offset(cx + sign * nearHalf, h)
-            drawLine(Brush.verticalGradient(listOf(Color.Transparent, color.copy(alpha = 0.3f)), horizon, h), from, to, 10.dp.toPx(), StrokeCap.Round)
-            drawLine(Brush.verticalGradient(listOf(color.copy(alpha = 0.2f), color), horizon, h), from, to, 2.5.dp.toPx(), StrokeCap.Round)
-        }
-
-        // Las rayas de los dos carriles, que avanzan.
-        for (lane in listOf(-1f / 3f, 1f / 3f)) {
-            for (i in 0 until ROAD_DASHES) {
-                val start = (i.toFloat() / ROAD_DASHES + travel) % 1f
-                val end = (start + ROAD_DASH_LENGTH).coerceAtMost(1f)
-                val y0 = yAt(start)
-                val y1 = yAt(end)
-                val width = (1f + 5f * start).dp.toPx()
-                drawLine(
-                    Color.White.copy(alpha = 0.15f + 0.45f * start),
-                    Offset(cx + lane * 2 * halfAt(y0), y0),
-                    Offset(cx + lane * 2 * halfAt(y1), y1),
-                    width,
-                )
-            }
-        }
-    }
-}
-
-private const val ROAD_HORIZON = 0.02f
-private const val ROAD_FAR_HALF = 0.01f
-private const val ROAD_NEAR_HALF = 0.36f
-private const val ROAD_DASHES = 7
-private const val ROAD_DASH_LENGTH = 0.07f
-
-// A 100 km/h las rayas recorren la carretera entera unas tres veces por segundo.
-private const val ROAD_KMH_PER_TURN = 33f
-private val ROAD_FAR = Color(0xFF0B0E13)
-private val ROAD_NEAR = Color(0xFF1A1F27)
 
 /**
  * Una tarjeta: el tema encima, fuera, y debajo un panel de cristal translucido, recto, con un
