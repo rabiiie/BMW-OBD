@@ -1,12 +1,11 @@
 package com.rabie.bmwobd.ui
 
 import android.os.SystemClock
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.withFrameNanos
 import kotlin.math.roundToInt
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.drawscope.clipPath
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.interaction.DragInteraction
 import androidx.compose.foundation.layout.PaddingValues
@@ -116,7 +115,7 @@ private const val MINI_SEGMENTS = 5
 
 // Donde va la barra de segmentos, contado desde el lado del pico.
 private const val MINI_AT = 0.66f
-private val WING_SKEW = 30.dp
+private val WING_CORNER = 12.dp
 private val WING_POOL = 14.dp
 private const val COOLANT_FROM = 50.0
 private const val COOLANT_TO = 150.0
@@ -154,7 +153,7 @@ internal fun DashPanel(
     ) {
         Strip(state, onMenu)
         val glow = Bmw.MBlueDark
-        Row(
+        Box(
             Modifier.fillMaxWidth().weight(1f).drawBehind {
                 // El resplandor azul de detras del centro, como en el cuadro del coche.
                 drawRect(
@@ -165,8 +164,9 @@ internal fun DashPanel(
                     ),
                 )
             },
-            verticalAlignment = Alignment.CenterVertically,
         ) {
+        Road(speed ?: 0.0, Modifier.matchParentSize())
+        Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
             val tank = values[Pids.bmw(Pids.BMW_TANK_ADDRESS)]
             SideWing(
                 fraction = ((speed ?: 0.0) / SPEED_MAX).toFloat(),
@@ -220,6 +220,7 @@ internal fun DashPanel(
                 }
             }
         }
+        }
         Bottom(state, Modifier.height(INFO_HEIGHT))
     }
 }
@@ -227,10 +228,10 @@ internal fun DashPanel(
 /**
  * Un reloj como los del cuadro digital de un BMW actual. Por fuera, un marco de doble trazo que
  * hace pico hacia el borde de la pantalla, con la escala fuera y una banda entre los dos trazos que
- * se llena de abajo arriba. Por dentro del coche, una diagonal larga. El reloj de la derecha es el
- * de la izquierda en espejo, trazo a trazo. El panel es cristal tallado: bloques inclinados arriba y abajo y una franja oscura en medio,
- * donde va la cifra. Abajo, una barra de segmentos: el deposito o la temperatura del motor. El de la
- * izquierda azul y el de la derecha rojo, como en los M, con resplandor de neon.
+ * se llena de abajo arriba. Por dentro, un panel de cristal con el canto recto y tenue, donde va la
+ * cifra. Abajo, una barra de segmentos: el deposito o la temperatura del motor. El de la izquierda
+ * azul y el de la derecha rojo, como en los M, con resplandor de neon y un halo en el suelo. El
+ * reloj de la derecha es el de la izquierda en espejo, trazo a trazo.
  */
 @Composable
 private fun SideWing(
@@ -248,7 +249,6 @@ private fun SideWing(
     val measurer = rememberTextMeasurer()
     val labelStyle = TextStyle(color = color, fontSize = 11.sp, fontWeight = FontWeight.Medium)
     val miniStyle = TextStyle(color = Bmw.Text, fontSize = 9.sp)
-    val middle = lerp(deep, color, 0.45f)
     Box(modifier, contentAlignment = Alignment.Center) {
         Canvas(Modifier.fillMaxSize()) {
             val w = size.width
@@ -260,52 +260,32 @@ private fun SideWing(
             val arm = WING_ARM.toPx()
             val gap = WING_GAP.toPx()
             val band = WING_BAND.toPx()
-            val skew = WING_SKEW.toPx()
-            val margin = WING_FAR.toPx()
             val inset = gap * 2 + band
-            // El lado del pico se cuenta desde el borde de la pantalla y se da la vuelta en el reloj de la derecha.
+            val edge = w - WING_FAR.toPx()
+            // Todo se cuenta desde el pico y se da la vuelta en el reloj de la derecha.
             fun x(fromPeak: Float) = if (mirrored) w - fromPeak else fromPeak
             fun peakAt(y: Float) = scale + arm * abs(y - mid) / half
             fun yAt(t: Float) = bottom - t * (bottom - top)
-            val innerTop = x(w - margin - skew)
-            val innerBottom = x(w - margin)
-            fun innerAt(y: Float) = innerTop + (innerBottom - innerTop) * (y - top) / (bottom - top)
 
-            // El panel de cristal.
-            val panelTop = top + inset
-            val panelBottom = bottom - inset
+            // El panel de cristal: del marco hasta el canto de dentro.
             val panel = Path().apply {
                 moveTo(x(scale + inset), mid)
-                lineTo(x(scale + arm + inset), panelTop)
-                lineTo(innerAt(panelTop) + if (mirrored) inset else -inset, panelTop)
-                lineTo(innerAt(panelBottom) + if (mirrored) inset else -inset, panelBottom)
-                lineTo(x(scale + arm + inset), panelBottom)
+                lineTo(x(scale + arm + inset), top + inset)
+                lineTo(x(edge - inset), top + inset)
+                lineTo(x(edge - inset), bottom - inset)
+                lineTo(x(scale + arm + inset), bottom - inset)
                 close()
             }
-            drawPath(panel, Brush.verticalGradient(listOf(deep.copy(alpha = 0.55f), Color.Black.copy(alpha = 0.6f), deep.copy(alpha = 0.55f)), panelTop, panelBottom))
+            drawPath(panel, Brush.verticalGradient(listOf(deep.copy(alpha = 0.45f), Color.Black.copy(alpha = 0.55f), deep.copy(alpha = 0.5f)), top, bottom))
             clipPath(panel) {
-                // Bloques inclinados como la diagonal: dos arriba y dos abajo.
-                val lean = skew * 0.9f
-                val bandHalf = (panelBottom - panelTop) * 0.13f
-                fun block(fromX: Float, toX: Float, y0: Float, y1: Float, paint: Color) {
-                    val shift = lean * (y1 - y0) / (panelBottom - panelTop)
-                    drawPath(
-                        Path().apply {
-                            moveTo(x(fromX), y0)
-                            lineTo(x(toX), y0)
-                            lineTo(x(toX + shift), y1)
-                            lineTo(x(fromX + shift), y1)
-                            close()
-                        },
-                        paint,
-                    )
-                }
-                block(w * 0.05f, w * 0.42f, panelTop, mid - bandHalf, middle.copy(alpha = 0.55f))
-                block(w * 0.45f, w * 0.95f, panelTop, mid - bandHalf, middle.copy(alpha = 0.35f))
-                block(w * 0.10f, w * 0.55f, mid + bandHalf, panelBottom, middle.copy(alpha = 0.35f))
-                block(w * 0.58f, w * 1.05f, mid + bandHalf, panelBottom, middle.copy(alpha = 0.55f))
-                // La franja oscura del medio, donde va la cifra.
-                drawRect(Color.Black.copy(alpha = 0.7f), Offset(0f, mid - bandHalf), Size(w, bandHalf * 2))
+                // Un brillo suave pegado al marco, como luz que entra por el cristal.
+                drawRect(
+                    Brush.horizontalGradient(
+                        listOf(color.copy(alpha = 0.18f), Color.Transparent),
+                        startX = x(scale + inset),
+                        endX = x(scale + arm + inset + w * 0.35f),
+                    ),
+                )
             }
 
             // La banda que se llena, entre los dos trazos del marco.
@@ -323,34 +303,39 @@ private fun SideWing(
                 clipRect(top = yAt(shown), bottom = bottom) { drawPath(track, Brush.verticalGradient(listOf(color, deep), top, bottom)) }
             }
 
-            // El marco de fuera, que se cierra en la diagonal de dentro, y el trazo de dentro.
+            // El resplandor del suelo, debajo del reloj.
+            drawOval(
+                Brush.radialGradient(listOf(color.copy(alpha = 0.45f), Color.Transparent), center = Offset(w / 2, bottom), radius = w * 0.55f),
+                topLeft = Offset(0f, bottom - WING_POOL.toPx()),
+                size = Size(w, WING_POOL.toPx() * 2),
+            )
+
+            // El marco de fuera, que se cierra arriba y abajo hasta el canto, y el trazo de dentro.
+            val corner = WING_CORNER.toPx()
             val outer = Path().apply {
-                moveTo(innerTop, top)
+                moveTo(x(edge), top + corner)
+                quadraticTo(x(edge), top, x(edge - corner), top)
                 lineTo(x(scale + arm), top)
                 lineTo(x(scale), mid)
                 lineTo(x(scale + arm), bottom)
-                lineTo(innerBottom, bottom)
+                lineTo(x(edge - corner), bottom)
+                quadraticTo(x(edge), bottom, x(edge), bottom - corner)
             }
             val frameInner = Path().apply {
                 moveTo(x(scale + arm + inset - gap), top + inset - gap)
                 lineTo(x(scale + inset - gap), mid)
                 lineTo(x(scale + arm + inset - gap), bottom - inset + gap)
             }
-            val diagonal = Path().apply {
-                moveTo(innerTop, top)
-                lineTo(innerBottom, bottom)
-            }
-            // El resplandor de debajo de la linea de abajo.
-            drawOval(
-                Brush.radialGradient(listOf(color.copy(alpha = 0.45f), Color.Transparent), center = Offset(w / 2, bottom), radius = w * 0.55f),
-                topLeft = Offset(0f, bottom - WING_POOL.toPx()),
-                size = Size(w, WING_POOL.toPx() * 2),
-            )
-            for (line in listOf(outer, diagonal)) {
-                drawPath(line, color.copy(alpha = 0.22f), style = Stroke(WING_GLOW.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
-                drawPath(line, color, style = Stroke(WING_STROKE.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
-            }
+            drawPath(outer, color.copy(alpha = 0.22f), style = Stroke(WING_GLOW.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
+            drawPath(outer, color, style = Stroke(WING_STROKE.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
             drawPath(frameInner, color.copy(alpha = 0.7f), style = Stroke(1.dp.toPx(), join = StrokeJoin.Round))
+            // El canto de dentro, tenue: se apaga hacia el centro.
+            drawLine(
+                Brush.verticalGradient(listOf(color.copy(alpha = 0.6f), color.copy(alpha = 0.15f), color.copy(alpha = 0.6f)), top, bottom),
+                Offset(x(edge), top + corner),
+                Offset(x(edge), bottom - corner),
+                1.dp.toPx(),
+            )
 
             // La raya que marca por donde va.
             val level = yAt(shown)
@@ -360,16 +345,16 @@ private fun SideWing(
             // La escala, por fuera del marco.
             for ((t, text) in marks) {
                 val y = yAt(t)
-                val edge = peakAt(y)
-                drawLine(color, Offset(x(edge - 2.dp.toPx()), y), Offset(x(edge - 2.dp.toPx() - WING_TICK.toPx()), y), 1.5.dp.toPx())
+                val peak = peakAt(y)
+                drawLine(color, Offset(x(peak - 2.dp.toPx()), y), Offset(x(peak - 2.dp.toPx() - WING_TICK.toPx()), y), 1.5.dp.toPx())
                 val layout = measurer.measure(text, labelStyle)
-                val right = edge - WING_TICK.toPx() - 4.dp.toPx()
+                val right = peak - WING_TICK.toPx() - 4.dp.toPx()
                 val textX = if (mirrored) w - right else right - layout.size.width
                 drawText(layout, topLeft = Offset(textX, (y - layout.size.height / 2f).coerceIn(0f, size.height - layout.size.height)))
             }
 
-            // La barra de segmentos de abajo, con sus cifras a la izquierda, como en el cuadro.
-            val barBottom = panelBottom - 6.dp.toPx()
+            // La barra de segmentos de abajo, con sus cifras del lado del pico.
+            val barBottom = bottom - inset - 6.dp.toPx()
             val barTop = barBottom - MINI_HEIGHT.toPx()
             val barLeft = if (mirrored) w - w * MINI_AT - MINI_WIDTH.toPx() else w * MINI_AT
             val segment = (barBottom - barTop) / MINI_SEGMENTS
@@ -388,7 +373,6 @@ private fun SideWing(
             miniLabels.forEachIndexed { index, text ->
                 val layout = measurer.measure(text, miniStyle)
                 val y = barTop + (barBottom - barTop) * index / (miniLabels.size - 1) - layout.size.height / 2f
-                // Las cifras van del lado del pico, en los dos relojes.
                 val textX = if (mirrored) barLeft + MINI_WIDTH.toPx() + 4.dp.toPx() else barLeft - 4.dp.toPx() - layout.size.width
                 drawText(layout, topLeft = Offset(textX, y))
             }
@@ -488,13 +472,11 @@ private fun PageCards(state: LiveState, onWatch: (List<Int>) -> Unit, onCase: (C
     }
 
     Column(modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Box(Modifier.fillMaxWidth().weight(1f)) {
-        Road(state.values[Pids.SPEED] ?: 0.0, Modifier.matchParentSize())
         HorizontalPager(
             state = pager,
             contentPadding = PaddingValues(horizontal = CARD_SIDE),
             pageSpacing = 8.dp,
-            modifier = Modifier.matchParentSize(),
+            modifier = Modifier.fillMaxWidth().weight(1f),
         ) { index ->
             val offset = ((pager.currentPage - index) + pager.currentPageOffsetFraction).coerceIn(-1f, 1f)
             PageCard(
@@ -513,7 +495,6 @@ private fun PageCards(state: LiveState, onWatch: (List<Int>) -> Unit, onCase: (C
                     .clickable { scope.launch { pager.animateScrollToPage((pager.currentPage + 1) % pages.size) } },
             )
         }
-        }
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
             pages.forEachIndexed { index, page ->
                 val current = index == pager.currentPage
@@ -528,9 +509,10 @@ private fun PageCards(state: LiveState, onWatch: (List<Int>) -> Unit, onCase: (C
 }
 
 /**
- * La carretera de fondo, en perspectiva: el asfalto que se estrecha hacia el horizonte, los dos
- * bordes como raíles de luz en azul y rojo M, y las rayas de los carriles, que avanzan hacia quien
- * mira a la velocidad del coche. Parado, la carretera se queda quieta.
+ * La carretera de fondo de todo el panel, en perspectiva: el asfalto que se estrecha hacia el
+ * horizonte, arriba en el centro, los dos bordes como raíles de luz en azul y rojo M, y las rayas de
+ * los carriles, que se juntan en el horizonte y avanzan hacia quien mira a la velocidad del coche.
+ * Parado, la carretera se queda quieta.
  */
 @Composable
 private fun Road(speed: Double, modifier: Modifier) {
@@ -557,7 +539,6 @@ private fun Road(speed: Double, modifier: Modifier) {
         fun yAt(depth: Float) = horizon + (h - horizon) * depth * depth
         fun halfAt(y: Float) = farHalf + (nearHalf - farHalf) * (y - horizon) / (h - horizon)
 
-        drawRect(Brush.verticalGradient(listOf(Color.Transparent, left.copy(alpha = 0.08f)), 0f, horizon))
         val asphalt = Path().apply {
             moveTo(cx - farHalf, horizon)
             lineTo(cx + farHalf, horizon)
@@ -571,8 +552,8 @@ private fun Road(speed: Double, modifier: Modifier) {
         for ((sign, color) in listOf(-1f to left, 1f to right)) {
             val from = Offset(cx + sign * farHalf, horizon)
             val to = Offset(cx + sign * nearHalf, h)
-            drawLine(color.copy(alpha = 0.25f), from, to, 10.dp.toPx(), StrokeCap.Round)
-            drawLine(color, from, to, 2.5.dp.toPx(), StrokeCap.Round)
+            drawLine(Brush.verticalGradient(listOf(Color.Transparent, color.copy(alpha = 0.3f)), horizon, h), from, to, 10.dp.toPx(), StrokeCap.Round)
+            drawLine(Brush.verticalGradient(listOf(color.copy(alpha = 0.2f), color), horizon, h), from, to, 2.5.dp.toPx(), StrokeCap.Round)
         }
 
         // Las rayas de los dos carriles, que avanzan.
@@ -594,9 +575,9 @@ private fun Road(speed: Double, modifier: Modifier) {
     }
 }
 
-private const val ROAD_HORIZON = 0.35f
-private const val ROAD_FAR_HALF = 0.06f
-private const val ROAD_NEAR_HALF = 0.62f
+private const val ROAD_HORIZON = 0.02f
+private const val ROAD_FAR_HALF = 0.01f
+private const val ROAD_NEAR_HALF = 0.36f
 private const val ROAD_DASHES = 7
 private const val ROAD_DASH_LENGTH = 0.07f
 
@@ -606,60 +587,73 @@ private val ROAD_FAR = Color(0xFF0B0E13)
 private val ROAD_NEAR = Color(0xFF1A1F27)
 
 /**
- * Una tarjeta: con sombra y un brillo arriba, como las del cuadro de un Mercedes. Arriba el tema y
- * su estado; en medio los datos en dos columnas, numero grande y debajo que es; abajo, si hay un
- * aviso, lo que hay que hacer.
+ * Una tarjeta: el tema encima, fuera, y debajo un panel de cristal translucido, recto, con un
+ * resplandor suave alrededor; la carretera se ve a traves. Dentro, el estado arriba en el centro y
+ * los datos en dos columnas, numero grande y al lado que es, con lineas finas entre filas. Abajo, si
+ * hay un aviso, lo que hay que hacer.
  */
 @Composable
 private fun PageCard(page: DashPage, modifier: Modifier) {
     val shape = RoundedCornerShape(CARD_RADIUS)
     val accent = page.alert?.let { severityColor(it) }
     val glow = accent ?: Bmw.MBlueLight
-    val edge = if (accent != null) Brush.horizontalGradient(listOf(accent, accent)) else Brush.horizontalGradient(M_COLORS)
-    Column(
-        modifier
-            // El resplandor de neon de fuera: una sombra de color y un halo del borde.
-            .shadow(CARD_SHADOW, shape, ambientColor = glow, spotColor = glow)
-            .drawBehind {
-                drawRoundRect(edge, cornerRadius = CornerRadius(CARD_RADIUS.toPx()), style = Stroke(NEON_WIDTH.toPx()), alpha = 0.35f)
-            }
-            .clip(shape)
-            .background(Brush.verticalGradient(listOf(CARD_TOP, CARD_BOTTOM)))
-            .border(1.5.dp, edge, shape)
-            .padding(horizontal = 16.dp, vertical = 10.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text(page.title.uppercase(), color = accent ?: Bmw.Accent, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1)
+    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(page.title.uppercase(), color = accent ?: Bmw.Text, fontSize = 15.sp, fontWeight = FontWeight.Medium, letterSpacing = 1.sp, maxLines = 1)
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .shadow(CARD_SHADOW, shape, ambientColor = glow, spotColor = glow)
+                .clip(shape)
+                .background(Brush.verticalGradient(listOf(CARD_TOP, CARD_BOTTOM)))
+                .border(1.dp, accent ?: CARD_EDGE, shape)
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
             page.status?.let {
-                Text(it, color = accent ?: Bmw.TextDim, fontSize = 12.sp, lineHeight = 14.sp, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                Text(
+                    it,
+                    color = accent ?: Bmw.TextDim,
+                    fontSize = 12.sp,
+                    lineHeight = 14.sp,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(bottom = 4.dp),
+                )
             }
-        }
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.SpaceEvenly) {
-            for (pair in page.cells.chunked(2)) {
-                Row(Modifier.fillMaxWidth()) {
-                    for (cell in pair) {
-                        Row(Modifier.weight(1f), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text(cell.value, color = Bmw.Text, fontSize = 24.sp, fontWeight = FontWeight.Light, maxLines = 1)
-                            Text(cell.tag, color = Bmw.TextDim, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(bottom = 4.dp))
+            val rows = page.cells.chunked(2)
+            Column(Modifier.weight(1f).fillMaxWidth()) {
+                rows.forEachIndexed { index, pair ->
+                    if (index > 0) Box(Modifier.fillMaxWidth().height(1.dp).background(CARD_RULE))
+                    Row(Modifier.fillMaxWidth().weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                        pair.forEachIndexed { column, cell ->
+                            if (column > 0) Box(Modifier.width(1.dp).fillMaxHeight(0.6f).background(CARD_RULE))
+                            Row(
+                                Modifier.weight(1f).padding(horizontal = 8.dp),
+                                verticalAlignment = Alignment.Bottom,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            ) {
+                                Text(cell.value, color = Bmw.Text, fontSize = 22.sp, fontWeight = FontWeight.Light, maxLines = 1)
+                                Text(cell.tag, color = Bmw.TextDim, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(bottom = 3.dp))
+                            }
                         }
+                        if (pair.size == 1) Spacer(Modifier.weight(1f))
                     }
-                    if (pair.size == 1) Spacer(Modifier.weight(1f))
                 }
             }
-        }
-        page.note?.let {
-            Text(it, color = accent ?: Bmw.Text, fontSize = 12.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            page.note?.let {
+                Text(it, color = accent ?: Bmw.Text, fontSize = 12.sp, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+            }
         }
     }
 }
 
-private val CARD_TOP = Color(0xFF1E2633)
-private val CARD_BOTTOM = Color(0xFF0C0F14)
-private val NEON_WIDTH = 6.dp
-
-// Los tres colores de la M: azul claro, azul oscuro y rojo.
-private val M_COLORS = listOf(Color(0xFF6EC1F5), Color(0xFF1C4F9C), Color(0xFFE22B2B))
+// Cristal: deja ver la carretera de detras.
+private val CARD_TOP = Color(0xCC27303D)
+private val CARD_BOTTOM = Color(0xB3121720)
+private val CARD_EDGE = Color(0x80C8D2DE)
+private val CARD_RULE = Color(0x33C8D2DE)
 
 /** La franja de arriba: lo mas importante que pasa ahora y que hacer, o que todo va normal. */
 @Composable
