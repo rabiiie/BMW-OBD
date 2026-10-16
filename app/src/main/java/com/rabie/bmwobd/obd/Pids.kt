@@ -394,9 +394,22 @@ object Pids {
         bmwDef(0x03ED, "Filtro: hollín calculado", "g", 1, PidGroup.EXHAUST) { it * 0.01 },
         bmwDef(0x03EB, "Filtro: desde la última regeneración", "km", 1, PidGroup.EXHAUST, size = 4) { it / 1000.0 },
         bmwDef(0x03E8, "Filtro: gasóleo desde la última regeneración", "L", 1, PidGroup.EXHAUST) { it * 0.01 },
-        bmwDef(0x0424, "Filtro: presión diferencial", "hPa", 0, PidGroup.EXHAUST) { it * 0.045777 - 1000.0 },
+        bmwDef(0x0424, "Filtro: presión diferencial", "hPa", 0, PidGroup.EXHAUST, Tier.MEDIUM) { it * 0.045777 - 1000.0 },
         bmwDef(0x0404, "Filtro: regeneración pedida (0 = no)", "", 0, PidGroup.EXHAUST, size = 1) { it.toDouble() },
         bmwDef(0x0405, "Filtro: hollín medido corregido", "g", 1, PidGroup.EXHAUST) { it * 0.01 },
+        // El gas que pasa por el filtro: la presion que hace depende de el, asi que dividiendo una
+        // por otro sale una resistencia comparable entre trayectos. Presion, caudal y escape antes
+        // del turbo van en el turno medio: se comparan entre si y con el turbo, y en el lento se
+        // leian con veinte segundos de diferencia.
+        bmwDef(0x0C83, "Filtro: caudal de gas", "m³/h", 0, PidGroup.EXHAUST, Tier.MEDIUM, size = 4) { it * 0.1 },
+        bmwDef(0x0426, "Filtro: presión diferencial filtrada", "hPa", 0, PidGroup.EXHAUST) { it * 0.045777 - 1000.0 },
+        bmwDef(0x03E0, "Escape: presión antes del turbo", "hPa", 0, PidGroup.EXHAUST, Tier.MEDIUM) { it * 0.038148 + 500.0 },
+        // Lo que recorta la fuerza del motor: que limite actua (codigo de bits sin descifrar) y
+        // cuanto deja cada uno.
+        bmwDef(0x057A, "Par: límite que actúa (código)", "", 0, PidGroup.ENGINE) { it.toDouble() },
+        bmwDef(0x05D4, "Par: límite por lo que pide el motor", "Nm", 0, PidGroup.ENGINE) { it * 0.114443 - 2500.0 },
+        bmwDef(0x1329, "Par: límite de la vigilancia", "Nm", 0, PidGroup.ENGINE) { it * 0.114443 - 2500.0 },
+        bmwDef(0x06C2, "Inyección: límite de humo", "mg/emb", 1, PidGroup.FUEL) { it * 0.01 },
         bmwDef(0x0406, "Filtro: hollín calculado de forma continua", "g", 1, PidGroup.EXHAUST) { it * 0.01 },
         bmwDef(0x01B2, "Corriente de batería", "A", 1, PidGroup.ELECTRIC) { it * 0.08 - 200.0 },
         bmwDef(0x09C4, "Ventilador", "%", 0, PidGroup.ENGINE) { it * 0.001526 },
@@ -453,11 +466,22 @@ object Pids {
      * barrido completo del coche. La resistencia va en Pa para que quepa en dos decimales.
      */
     val bmwCases: List<PidDef> = listOf(
+        bmwDef(0x0432, "Filtro: presión absoluta delante (filtrada)", "hPa", 0, PidGroup.EXHAUST) { it * 0.1 },
+        bmwDef(0x043B, "Filtro: presión absoluta delante (sensor)", "hPa", 0, PidGroup.EXHAUST) { it * 0.038148 + 500.0 },
+        bmwDef(0x0C81, "Filtro: presión detrás (calculada)", "hPa", 0, PidGroup.EXHAUST) { it.toDouble() },
+        bmwDef(0x0409, "Filtro: corrección de ceniza del ciclo anterior", "g", 1, PidGroup.EXHAUST) { it * 0.015259 },
+        bmwDef(0x0BEA, "Turbo: mando pedido al actuador", "%", 0, PidGroup.AIR) { it * 0.003052 },
+        bmwDef(0x01F7, "Turbo: presión de base pedida", "hPa", 0, PidGroup.AIR) { it.toDouble() },
+        // Factores que la centralita aplica al caudalimetro para compensar que se desvia con los años.
+        bmwDef(0x0712, "Caudalímetro: corrección al ralentí", "", 3, PidGroup.AIR) { it * 0.000122 },
+        bmwDef(0x0713, "Caudalímetro: corrección con carga", "", 3, PidGroup.AIR) { it * 0.000122 },
+        bmwDef(0x0776, "EGR: temperatura tras el enfriador", "°C", 0, PidGroup.AIR) { it * 0.016022 - 50.0 },
+        bmwDef(0x0C89, "EGR: gas que recircula", "kg/h", 1, PidGroup.AIR) { it * 0.009155 - 100.0 },
+        bmwDef(0x05D3, "Par: límite de protección del motor", "Nm", 0, PidGroup.ENGINE) { it * 0.114443 - 2500.0 },
         bmwDef(0x03F1, "Filtro: resistencia al paso", "Pa·h/m³", 1, PidGroup.EXHAUST) { it * 0.01 },
         bmwDef(0x0420, "Filtro: presión delante", "hPa", 0, PidGroup.EXHAUST) { it * 0.091554 },
         bmwDef(0x041E, "Escape antes del catalizador", "°C", 0, PidGroup.EXHAUST) { it * 0.031281 - 50.0 },
         bmwDef(0x0434, "Escape antes del filtro (calculada)", "°C", 0, PidGroup.EXHAUST) { it * 0.031281 - 50.0 },
-        bmwDef(0x03E0, "Escape: presión antes del turbo", "hPa", 0, PidGroup.EXHAUST) { it * 0.038148 + 500.0 },
         bmwDef(0x0408, "Filtro: tiempo desde la última regeneración", "min", 0, PidGroup.EXHAUST, size = 4) { it / 60.0 },
         bmwDef(0x03EC, "Filtro: código de interrupción", "", 0, PidGroup.EXHAUST) { it.toDouble() },
         bmwDef(0x03DE, "Filtro: velocidad media desde la regeneración", "km/h", 0, PidGroup.EXHAUST) { it * 0.003815 },

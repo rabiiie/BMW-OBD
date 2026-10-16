@@ -108,4 +108,23 @@ class TripHealthTest {
         val data = TripCsv.parse(sequenceOf(TripCsv.header(columns), TripCsv.row(0, columns, mapOf(Pids.COOLANT to 90.0))))
         assertNull(TripHealth.of(data))
     }
+
+    @Test
+    fun `resistencia del filtro y escape frente al turbo, con el caudal que da la centralita`() {
+        val n = 60
+        val flow = DoubleArray(n) { if (it < 10) 80.0 else 250.0 }
+        val pressure = DoubleArray(n) { if (it < 10) 20.0 else 100.0 }
+        val map = DoubleArray(n) { if (it < 10) 100.0 else 180.0 }
+        val turbine = DoubleArray(n) { if (it < 10) 1050.0 else 2340.0 }
+        val data = TripData(
+            listOf(Pids.bmw(0x0424), Pids.bmw(0x0C83), 0x0B, Pids.bmw(0x03E0)),
+            LongArray(n) { it * 1000L },
+            mapOf(Pids.bmw(0x0424) to pressure, Pids.bmw(0x0C83) to flow, 0x0B to map, Pids.bmw(0x03E0) to turbine),
+        )
+        val filter = TripHealth.of(data)!!.filter!!
+        // Solo cuentan las filas con caudal de carretera: 100 hPa con 250 m³/h son 40 por cada 100.
+        assertEquals(40.0, filter.resistance!!, 0.001)
+        // 2.340 hPa antes de la turbina con 180 kPa de turbo: 1,3 veces.
+        assertEquals(1.3, filter.turbineRatio!!, 0.001)
+    }
 }

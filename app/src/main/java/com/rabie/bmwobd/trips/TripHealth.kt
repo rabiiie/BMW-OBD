@@ -31,9 +31,17 @@ data class Charge(val volts: Double, val low: Double)
 
 /**
  * El filtro de particulas: la presion que le cuesta al escape pasar por el a ralenti en caliente,
- * y los kilometros que hubo entre las dos ultimas regeneraciones.
+ * los kilometros que hubo entre las dos ultimas regeneraciones, la resistencia que calcula la app
+ * (presion diferencial por cada 100 m³/h de gas, con el caudal que da la centralita) y cuantas
+ * veces la presion antes de la turbina es la del turbo cuando sopla. Las dos ultimas valen para
+ * comparar trayectos: un filtro que se carga sube las dos.
  */
-data class FilterCheck(val idlePressure: Double?, val lastInterval: Double?)
+data class FilterCheck(
+    val idlePressure: Double?,
+    val lastInterval: Double?,
+    val resistance: Double? = null,
+    val turbineRatio: Double? = null,
+)
 
 /**
  * Lo mas que dio el motor en el trayecto, segun el par que calcula la centralita, y la mejor
@@ -91,6 +99,8 @@ data class TripHealth(
         charge?.let { "Tensión con el motor en marcha" to "${n(it.volts, 1)} V de mediana, ${n(it.low, 1)} V en el décimo más bajo" },
         filter?.idlePressure?.let { "Filtro de partículas: presión a ralentí en caliente" to n(it) + " hPa" },
         filter?.lastInterval?.let { "Filtro de partículas: entre las dos últimas regeneraciones" to n(it) + " km" },
+        filter?.resistance?.let { "Filtro de partículas: resistencia al paso" to "≈ " + n(it, 1) + " hPa por cada 100 m³/h de gas (mediana)" },
+        filter?.turbineRatio?.let { "Escape antes de la turbina frente al turbo" to "≈ " + n(it, 2) + " veces, cuando el turbo sopla (mediana)" },
         coldPushSeconds?.let {
             "Motor frío exigido" to if (it == 0L) "nada: no se le pidió fuerza por debajo de ${n(Limits.COLD_OIL)} °C" else
                 "$it s pidiéndole fuerza o muchas vueltas por debajo de ${n(Limits.COLD_OIL)} °C"
@@ -276,8 +286,38 @@ data class TripHealth(
                 data.series[Pids.bmw(address)]?.lastOrNull { !it.isNaN() }
             }
             val interval = marks[0]?.let { newer -> marks[1]?.let { older -> newer - older } }?.takeIf { it > 0 }
-            val check = FilterCheck(atIdle.takeIf { it.size >= MIN_SAMPLES }?.let { it[it.size / 2] }, interval)
-            return check.takeIf { it.idlePressure != null || it.lastInterval != null }
+            val check = FilterCheck(
+                atIdle.takeIf { it.size >= MIN_SAMPLES }?.let { it[it.size / 2] },
+                interval,
+                resistance(data),
+                turbineRatio(data),
+            )
+            return check.takeIf { it.idlePressure != null || it.lastInterval != null || it.resistance != null || it.turbineRatio != null }
+        }
+
+        /**
+         * La presion diferencial entre el caudal de gas, en las filas con caudal de carretera. Las
+         * dos se leen en el turno lento y no a la vez: por eso solo con caudal alto y la mediana.
+         */
+        private fun resistance(data: TripData): Double? {
+            val pressure = data.series[FILTER_PRESSURE] ?: return null
+            val flow = data.series[FILTER_FLOW] ?: return null
+            val read = (0 until data.size)
+                .filter { flow[it] >= MIN_FLOW && !pressure[it].isNaN() }
+                .map { pressure[it] / flow[it] * PER_100_FLOW }
+                .sorted()
+            return read.takeIf { it.size >= MIN_SAMPLES }?.let { it[it.size / 2] }
+        }
+
+        /** La presion antes de la turbina entre la del turbo (las dos absolutas), cuando el turbo sopla. */
+        private fun turbineRatio(data: TripData): Double? {
+            val turbine = data.series[TURBINE_PRESSURE] ?: return null
+            val boost = data.series[MAP] ?: return null
+            val read = (0 until data.size)
+                .filter { boost[it] >= BOOSTING_KPA && !turbine[it].isNaN() }
+                .map { turbine[it] / (boost[it] * HPA_PER_KPA) }
+                .sorted()
+            return read.takeIf { it.size >= MIN_SAMPLES }?.let { it[it.size / 2] }
         }
 
         /** Pasado minuto y medio desde que el motor gira: antes, la tension leida puede ser todavia la de parado. */
@@ -435,6 +475,10 @@ data class TripHealth(
         private const val EGR_OPEN = 5.0
         private const val EGR_STILL = 5.0
         private val FILTER_PRESSURE = Pids.bmw(0x0424)
+        private val FILTER_FLOW = Pids.bmw(0x0C83)
+        private val TURBINE_PRESSURE = Pids.bmw(0x03E0)
+        private const val MIN_FLOW = 150.0
+        private const val PER_100_FLOW = 100.0
         private const val IDLE_SETTLE_MS = 5_000L
         private const val IDLE_FROM = 600.0
         private const val IDLE_TO = 1100.0
