@@ -37,6 +37,7 @@ import com.rabie.bmwobd.obd.BmwFault
 import com.rabie.bmwobd.obd.BmwIma
 import com.rabie.bmwobd.obd.DiagnosticsReport
 import com.rabie.bmwobd.obd.Dtcs
+import com.rabie.bmwobd.obd.FilterSensorCheck
 import com.rabie.bmwobd.obd.Mode06
 import com.rabie.bmwobd.obd.MonitorTest
 import com.rabie.bmwobd.obd.Readiness
@@ -91,6 +92,7 @@ fun DiagnosticsScreen(
 
         state.car?.battery?.let { BatteryCard(it) }
         state.car?.ima?.let { ImaCard(it) }
+        state.car?.filterSensor?.let { FilterSensorCard(it) }
 
         val report = state.report
         if (report == null) {
@@ -271,6 +273,27 @@ private fun BatteryCard(battery: BmwBattery) {
             },
             color = Bmw.TextDim,
             fontSize = 13.sp,
+        )
+    }
+}
+
+/** La prueba del sensor de presion del filtro del boletin de BMW: parado, debe marcar la presion del aire. */
+@Composable
+private fun FilterSensorCard(check: FilterSensorCheck) {
+    Card {
+        Label("Sensor de presión del filtro")
+        val difference = check.difference
+        if (check.engineRunning || difference == null) {
+            Text("Se comprueba al conectar con el contacto puesto y el motor parado.", color = Bmw.TextDim, fontSize = 14.sp)
+            return@Card
+        }
+        Text("Con el motor parado marca ${formatValue(check.sensor ?: 0.0, 0)} hPa; el aire está a ${formatValue(check.ambient ?: 0.0, 0)} hPa.", color = Bmw.Text, fontSize = 15.sp)
+        Text("Diferencia: ${if (difference > 0) "+" else ""}${formatValue(difference, 0)} hPa.", color = Bmw.Text, fontSize = 20.sp)
+        check.filtered?.let { Text("Su valor filtrado: ${formatValue(it, 0)} hPa.", color = Bmw.TextDim, fontSize = 13.sp) }
+        Text(
+            "Sin gas pasando, tienen que coincidir (prueba del boletín de BMW SI B18 03 10). BMW no da en el boletín la diferencia admitida.",
+            color = Bmw.TextDim,
+            fontSize = 12.sp,
         )
     }
 }

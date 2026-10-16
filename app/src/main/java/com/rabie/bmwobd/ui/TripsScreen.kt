@@ -432,9 +432,14 @@ private fun TripDetail(
             if (regens.isNotEmpty()) {
                 ReportCard(ReportSection("Regeneraciones del filtro", regens.map { (label, value) -> ReportLine(label, value) }))
             }
-            val checks = remember(trip) { TripHealth.of(trip)?.facts().orEmpty() }
+            val tripHealth = remember(trip) { TripHealth.of(trip) }
+            val checks = tripHealth?.facts().orEmpty()
             if (checks.isNotEmpty()) {
                 ReportCard(ReportSection("Salud del trayecto", checks.map { (label, value) -> ReportLine(label, value) }))
+            }
+            val causes = tripHealth?.causes().orEmpty()
+            if (causes.isNotEmpty()) {
+                ReportCard(ReportSection("Filtro cargado: causas que BMW manda descartar", causes.map { (label, value) -> ReportLine(label, value) }))
             }
             val wear = remember(trip) { Health.wearFacts(trip) }
             if (wear.isNotEmpty()) {

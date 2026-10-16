@@ -180,8 +180,8 @@ class ObdController(
                 val ownFaults = if (profile.ownDiagnostics) session.ownFaults() else null
                 val blind = BmwFault.unreadable(ownFaults)
                 if (blind.isNotEmpty()) appendLog("## Aceite: el sensor de nivel tiene una avería presente; no se enseñan su nivel ni su temperatura")
-                filterFaults = BmwFault.filterLevel(ownFaults)
-                filterFaults?.let { appendLog("## Filtro: " + BmwFault.filterLevelText(it)) }
+                faultValues = BmwFault.appValues(ownFaults)
+                faultValues[Pids.BMW_FILTER_FAULTS]?.let { appendLog("## Filtro: " + BmwFault.filterLevelText(it)) }
                 if (profile.ownDiagnostics) {
                     val car = session.carInfo()
                     _diagnostics.update { it.copy(car = car) }
@@ -194,7 +194,7 @@ class ObdController(
                 val started = withContext(Dispatchers.IO) {
                     TripRecorder(
                         trips.newFile(simulated, vehicle.key),
-                        (defs + extras).map { it.id }.distinct() + listOfNotNull(Pids.BMW_FILTER_FAULTS.takeIf { profile.ownDiagnostics }),
+                        (defs + extras).map { it.id }.distinct() + (if (profile.ownDiagnostics) listOf(Pids.BMW_FILTER_FAULTS, Pids.BMW_GLOW_FAULT_COUNT) else emptyList()),
                     )
                 }
                 recorder = started
@@ -502,8 +502,8 @@ class ObdController(
 
     private fun isLive() = _state.value.phase == Phase.LIVE
 
-    // Lo que dicen 480A y 481A ahora (BmwFault.filterLevel); null si este coche no las da.
-    private var filterFaults: Double? = null
+    // Lo que dicen ahora las averias que la app apunta en el trayecto (BmwFault.appValues).
+    private var faultValues: Map<Int, Double> = emptyMap()
 
     private suspend fun poll(session: ObdSession, defs: List<PidDef>, extras: List<PidDef>, recorder: TripRecorder, ownDiagnostics: Boolean) {
         val turns = Turns(defs, extras, Dashboard.background)
@@ -572,10 +572,13 @@ class ObdController(
             // es conducir hasta que pasen a no presentes, y eso hay que verlo en el trayecto.
             if (ownDiagnostics && now - lastFaultCheckNanos >= FAULT_CHECK_NANOS) {
                 lastFaultCheckNanos = now
-                val level = BmwFault.filterLevel(session.ownFaults())
-                if (level != null && level != filterFaults) {
-                    appendLog("## Filtro: " + BmwFault.filterLevelText(level))
-                    filterFaults = level
+                val read = BmwFault.appValues(session.ownFaults())
+                if (read.isNotEmpty()) {
+                    val level = read[Pids.BMW_FILTER_FAULTS]
+                    if (level != null && level != faultValues[Pids.BMW_FILTER_FAULTS]) appendLog("## Filtro: " + BmwFault.filterLevelText(level))
+                    val glow = read[Pids.BMW_GLOW_FAULT_COUNT]
+                    if (glow != null && glow != faultValues[Pids.BMW_GLOW_FAULT_COUNT]) appendLog("## Calentadores: %.0f averías presentes".format(glow))
+                    faultValues = read
                 }
             }
             if (now - lastAnswerNanos > SILENCE_LIMIT_NANOS) {
@@ -590,7 +593,7 @@ class ObdController(
             }
 
             Plausible.clean(values)
-            val snapshot = filterFaults?.let { values + (Pids.BMW_FILTER_FAULTS to it) } ?: values.toMap()
+            val snapshot = values + faultValues
             jumps?.found?.takeIf { it.size > jumpsSaved }?.let { found ->
                 jumpsSaved = found.size
                 val text = (listOf(SAVED_FOR + _state.value.vehicle.name, JUMPS_TITLE) + found + JUMPS_END).joinToString("\n")

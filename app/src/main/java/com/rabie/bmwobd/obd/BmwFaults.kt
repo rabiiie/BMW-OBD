@@ -49,6 +49,16 @@ data class BmwFault(val code: Int, val status: Int) {
             }
         }
 
+        /** Cuantas averias del precalentamiento (calentadores y su mando) estan presentes; null si no se leyeron. */
+        fun glowCount(faults: List<BmwFault>?): Double? =
+            faults?.count { it.active && it.text?.contains("alentador", ignoreCase = true) == true }?.toDouble()
+
+        /** Lo que la app apunta de las averias en el trayecto, por su columna. */
+        fun appValues(faults: List<BmwFault>?): Map<Int, Double> = listOfNotNull(
+            filterLevel(faults)?.let { Pids.BMW_FILTER_FAULTS to it },
+            glowCount(faults)?.let { Pids.BMW_GLOW_FAULT_COUNT to it },
+        ).toMap()
+
         fun filterLevelText(level: Double): String = when {
             level >= 2 -> "481A presente: filtro por encima del máximo"
             level >= 1 -> "480A presente: filtro muy cargado"

@@ -56,6 +56,7 @@ class BmwCarInfoTest {
         val car = session.carInfo()
         assertNotNull(car.battery)
         assertEquals(0x12, car.ima?.refusal)
+        assertNotNull(car.filterSensor)
         assertTrue(log.any { it.contains("último cambio registrado a los 161250 km") })
     }
 

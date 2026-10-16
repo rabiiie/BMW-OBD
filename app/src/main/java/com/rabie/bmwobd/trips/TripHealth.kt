@@ -66,6 +66,43 @@ data class Performance(
     val from80To120: Double?,
 )
 
+/**
+ * Lo que solo sirve para las causas de un filtro cargado: si el trayecto dio señal de filtro cargado
+ * (480A/481A, regeneracion de proteccion o peticion 7), las averias de calentadores, la correccion
+ * del caudalimetro con carga y la desviacion de aire (medianas).
+ */
+data class FilterCauses(
+    val filterTrouble: Boolean,
+    val glowFaults: Double?,
+    val mafCorrection: Double?,
+    val airDeviation: Double?,
+) {
+    companion object {
+        private val MAF_CORRECTION = Pids.bmw(0x0713)
+        private val AIR_DEVIATION = Pids.bmw(0x07A2)
+        private const val PROTECTION_REQUEST = 7.0
+
+        fun of(data: TripData): FilterCauses? {
+            val faults = data.series[Pids.BMW_FILTER_FAULTS]
+            val mode = data.series[Pids.BMW_ENGINE_MODE]
+            val request = data.series[Pids.BMW_REGEN_REQUEST]
+            if (faults == null && mode == null && request == null) return null
+            val trouble = faults?.any { it >= 1 } == true ||
+                mode?.any { !it.isNaN() && it.toLong().toInt() == Pids.MODE_PROTECTION } == true ||
+                request?.any { it == PROTECTION_REQUEST } == true
+            return FilterCauses(
+                filterTrouble = trouble,
+                glowFaults = data.series[Pids.BMW_GLOW_FAULT_COUNT]?.filter { !it.isNaN() }?.maxOrNull(),
+                mafCorrection = median(data.series[MAF_CORRECTION]),
+                airDeviation = median(data.series[AIR_DEVIATION]),
+            )
+        }
+
+        private fun median(series: DoubleArray?): Double? =
+            series?.filter { !it.isNaN() }?.sorted()?.takeIf { it.isNotEmpty() }?.let { it[it.size / 2] }
+    }
+}
+
 /** Lo que un trayecto dice de la salud del coche. Lo que no se pudo medir queda en null. */
 data class TripHealth(
     val warmUp: WarmUp?,
@@ -81,10 +118,13 @@ data class TripHealth(
     val performance: Performance? = null,
     /** Segundos con el motor ahogado: mucha carga a pocas vueltas, lo mismo que avisa el panel. */
     val luggingSeconds: Long? = null,
+    /** Lo que hace falta para las causas que BMW manda descartar cuando el filtro se carga. */
+    val causes: FilterCauses? = null,
 ) {
 
     private val empty: Boolean
-        get() = listOf(warmUp, start, boost, rail, egr, idle, charge, filter, coldPushSeconds, performance, luggingSeconds).all { it == null }
+        get() = listOf(warmUp, start, boost, rail, egr, idle, charge, filter, coldPushSeconds, performance, luggingSeconds).all { it == null } &&
+            causes?.filterTrouble != true
 
     /** Los datos, ya en texto, para la ficha del trayecto. */
     fun facts(): List<Pair<String, String>> = listOfNotNull(
@@ -137,6 +177,37 @@ data class TripHealth(
         },
     )
 
+    /**
+     * Lo que BMW manda descartar antes de limpiar un filtro cargado (SI B18 01 17), con lo que dice
+     * este trayecto. Solo si en el trayecto hubo señal de filtro cargado.
+     */
+    fun causes(): List<Pair<String, String>> {
+        val causes = causes ?: return emptyList()
+        if (!causes.filterTrouble) return emptyList()
+        return listOf(
+            "Por qué" to "BMW: un filtro cargado es un efecto, no una causa. Antes de limpiarlo manda descartar esto. " +
+                "Las cifras son de este trayecto; BMW no da límites en el boletín.",
+            "Precalentamiento" to when (val glow = causes.glowFaults) {
+                null -> "sin dato"
+                0.0 -> "sin averías de calentadores presentes"
+                else -> "${n(glow)} averías de calentadores presentes: míralas en Averías"
+            },
+            "Termostato" to (warmUp?.steady?.let { "el motor se estabiliza en ${n(it)} °C" + if (it < WARM_ENOUGH) " (bajo: puede que no cierre)" else "" }
+                ?: "sin dato: no llegó a calentarse del todo"),
+            "EGR" to (egr?.let { "abre ${signed(it.median)} % sobre lo mandado (mediana)" } ?: "sin dato"),
+            "Presión del turbo" to (boost?.let { "${signed(it.median)} kPa real menos pedida (mediana), ${signed(it.low)} en el peor décimo" } ?: "sin dato"),
+            "Caudalímetro" to if (causes.mafCorrection == null && causes.airDeviation == null) {
+                "se ve con el caso Turbo y aire puesto"
+            } else {
+                listOfNotNull(
+                    causes.mafCorrection?.let { "corrección con carga ${n(it, 3)}" },
+                    causes.airDeviation?.let { "desviación de aire ${signed(it)} mg" },
+                ).joinToString("; ")
+            },
+            "Mariposas y vacío" to "la app no lo mide",
+        )
+    }
+
     private fun parked(minutes: Double) = when {
         minutes < 120 -> n(minutes) + " min"
         minutes < 48 * 60 -> n(minutes / 60, 1) + " h"
@@ -163,6 +234,7 @@ data class TripHealth(
                 coldPushSeconds = coldPush(data),
                 performance = performance(data),
                 luggingSeconds = lugging(data),
+                causes = FilterCauses.of(data),
             )
             return health.takeUnless { it.empty }
         }
@@ -532,6 +604,7 @@ data class TripHealth(
         private const val EGR_STILL = 5.0
         private val FILTER_PRESSURE = Pids.bmw(0x0424)
         private val FILTER_FLOW = Pids.bmw(0x0C83)
+        private const val WARM_ENOUGH = 80.0
         private const val BEFORE_CATALYST = 0x041E
         private const val OBD_CATALYST = 0x3C
         private const val CONTINUOUS_FROM = 280.0

@@ -548,6 +548,7 @@ class ObdSession(
             second?.let { ObdParser.payloads(it, BmwBattery.ANSWER_2).lastOrNull() },
         )
         val ima = BmwIma.parse(serviceAsk(BmwIma.QUERY))
+        val sensorCheck = filterSensorCheck()
         if (battery == null) log("## BMW: la batería no ha contestado como se esperaba")
         battery?.let {
             log(
@@ -565,7 +566,28 @@ class ObdSession(
             ima.refusal != null -> log("## BMW: códigos de los inyectores rechazados: ${BmwIma.refusalText(ima.refusal)}")
             else -> log("## BMW: códigos de los inyectores: " + ima.codes.joinToString(" | "))
         }
-        return BmwCarInfo(battery, ima)
+        sensorCheck?.let { check ->
+            log(
+                if (check.engineRunning) {
+                    "## BMW: sensor de presión del filtro: el motor ya giraba; se compara al conectar con el motor parado"
+                } else {
+                    "## BMW: sensor de presión del filtro con el motor parado: %s hPa; aire %s hPa".format(
+                        check.sensor?.let { "%.0f".format(java.util.Locale.US, it) } ?: "-",
+                        check.ambient?.let { "%.0f".format(java.util.Locale.US, it) } ?: "-",
+                    )
+                },
+            )
+        }
+        return BmwCarInfo(battery, ima, sensorCheck)
+    }
+
+    private suspend fun filterSensorCheck(): FilterSensorCheck? {
+        fun decode(id: Int, data: IntArray?) = data?.let { Pids.byId[id]?.decodeOrNull(it) }
+        val rpm = decode(Pids.RPM, read(Pids.RPM)) ?: return null
+        val sensor = decode(Pids.bmw(FILTER_SENSOR), readFirst(Pids.bmw(FILTER_SENSOR)))
+        val filtered = decode(Pids.bmw(FILTER_FILTERED), readFirst(Pids.bmw(FILTER_FILTERED)))
+        val ambient = decode(BAROMETRIC, read(BAROMETRIC))?.let { it * HPA_PER_KPA }
+        return FilterSensorCheck(sensor, filtered, ambient, engineRunning = rpm > 0)
     }
 
     /** Una consulta de servicio de BMW; null si no contesta a tiempo. Como las de averias, puede llegar tarde. */
@@ -692,6 +714,10 @@ class ObdSession(
         const val BMW_QUERY = "2C10"
         const val BMW_ANSWER = "6C10"
         const val BMW_IDENT = "1A80"
+        const val FILTER_SENSOR = 0x043B
+        const val FILTER_FILTERED = 0x0432
+        const val BAROMETRIC = 0x33
+        const val HPA_PER_KPA = 10.0
 
         val RAW_SETUP = listOf("ATSP6", "ATCAF0", "ATSH6F1", "ATCF600", "ATCM700", "ATAT0", "ATSTFF")
         val RAW_TARGETS = listOf(0x12, 0x60, 0x40, 0x29)

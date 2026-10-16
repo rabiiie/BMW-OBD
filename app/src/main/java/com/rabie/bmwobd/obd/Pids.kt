@@ -160,6 +160,7 @@ object Pids {
     ).map { (address, text) -> bmw(address) to text }
 
     const val BMW_TANK_ADDRESS = 0x0384
+    const val BMW_SINCE_REGEN_ADDRESS = 0x03EB
     const val BMW_ODOMETER_ADDRESS = 0x05DD
     const val BMW_TOTAL_FUEL_ADDRESS = 0x0939
     const val BMW_FAULTS_ADDRESS = 0x04A7
@@ -187,6 +188,9 @@ object Pids {
 
     /** No se pide al coche: lo apunta la app con las averias del filtro, que relee cada pocos minutos. */
     const val BMW_FILTER_FAULTS = 0x10001
+
+    /** Igual: cuantas averias del precalentamiento hay presentes. */
+    const val BMW_GLOW_FAULT_COUNT = 0x10002
     private const val APP_PID = -2
 
     /**
@@ -341,6 +345,7 @@ object Pids {
         PidDef(0x42, "Tensión módulo", "V", 2, 1, tier = Tier.MEDIUM) { word(it) / 1000.0 },
         PidDef(ADAPTER_VOLTAGE, "Batería (adaptador)", "V", 0, 1, pid = ADAPTER_PID) { null },
         PidDef(BMW_FILTER_FAULTS, "Filtro: averías 480A/481A (0 ninguna, 1 480A, 2 481A)", "", 0, 0, pid = APP_PID) { null },
+        PidDef(BMW_GLOW_FAULT_COUNT, "Calentadores: averías presentes", "", 0, 0, pid = APP_PID) { null },
         PidDef(0x46, "Temp. ambiente", "°C", 1, 0) { temp(it) },
     )
 

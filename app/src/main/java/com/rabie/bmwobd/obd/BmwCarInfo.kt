@@ -7,7 +7,22 @@ package com.rabie.bmwobd.obd
 data class BmwCarInfo(
     val battery: BmwBattery? = null,
     val ima: BmwIma? = null,
+    val filterSensor: FilterSensorCheck? = null,
 )
+
+/**
+ * La prueba del sensor de presion del filtro que manda BMW (SI B18 03 10): con el motor parado no
+ * pasa gas, asi que la presion antes del filtro tiene que ser la del aire. [ambient] es la que da el
+ * OBD. Si el motor ya giraba al conectar no se puede hacer: [engineRunning].
+ */
+data class FilterSensorCheck(
+    val sensor: Double?,
+    val filtered: Double?,
+    val ambient: Double?,
+    val engineRunning: Boolean,
+) {
+    val difference: Double? get() = if (engineRunning || sensor == null || ambient == null) null else sensor - ambient
+}
 
 /**
  * Los campos de la bateria cuyas posiciones estan comprobadas con el coche: la documentacion de la

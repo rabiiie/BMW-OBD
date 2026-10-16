@@ -150,4 +150,18 @@ class TripHealthTest {
         val text = TripHealth.of(data)!!.facts().toMap()
         assertEquals("481A presente: filtro por encima del máximo al empezar; 480A y 481A no presentes al acabar", text["Averías del filtro"])
     }
+
+    @Test
+    fun `las causas de BMW solo salen con el filtro cargado`() {
+        val n = 40
+        fun trip(request: Double) = TripData(
+            listOf(Pids.BMW_REGEN_REQUEST, Pids.BMW_GLOW_FAULT_COUNT),
+            LongArray(n) { it * 1000L },
+            mapOf(Pids.BMW_REGEN_REQUEST to DoubleArray(n) { request }, Pids.BMW_GLOW_FAULT_COUNT to DoubleArray(n) { 1.0 }),
+        )
+        val loaded = TripHealth.of(trip(7.0))!!.causes().toMap()
+        assertEquals("1 averías de calentadores presentes: míralas en Averías", loaded["Precalentamiento"])
+        assertEquals("la app no lo mide", loaded["Mariposas y vacío"])
+        assertTrue(TripHealth.of(trip(0.0))?.causes().orEmpty().isEmpty())
+    }
 }
