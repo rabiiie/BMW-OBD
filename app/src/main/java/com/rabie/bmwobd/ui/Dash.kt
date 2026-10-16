@@ -1,6 +1,9 @@
 package com.rabie.bmwobd.ui
 
 import android.os.SystemClock
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.withFrameNanos
+import androidx.compose.ui.graphics.TransformOrigin
 import kotlin.math.roundToInt
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.drawscope.clipPath
@@ -86,6 +89,7 @@ import com.rabie.bmwobd.obd.Pids
 import kotlinx.coroutines.delay
 
 private const val CARD_TILT = 32f
+private const val CARD_LEAN = 14f
 private const val CARD_SHRINK = 0.14f
 private const val CARD_FADE = 0.55f
 private const val CARD_CAMERA = 14f
@@ -196,30 +200,23 @@ internal fun DashPanel(
                 miniLabels = listOf("150", "100", "50"),
                 modifier = Modifier.width(WING_WIDTH).fillMaxHeight(),
             ) {
-                // La marcha va donde el coche pone la suya; es una cuenta de la app.
+                // La marcha va donde el coche pone la suya; es una cuenta de la app. Sin marcha
+                // conocida, las revoluciones ocupan su sitio.
                 val gear = state.gear
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        when {
-                            gear == null -> "—"
-                            gear < 1 -> "N"
-                            else -> "$gear"
-                        },
-                        color = Bmw.Text,
-                        fontSize = 40.sp,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    // La recomendacion de cambio, tambien calculada: flecha arriba para subir, abajo para bajar.
-                    when (state.shift) {
-                        ShiftHint.UP -> Text("▲", color = Bmw.MBlueLight, fontSize = 16.sp)
-                        ShiftHint.DOWN -> Text("▼", color = Bmw.Amber, fontSize = 16.sp)
+                if (gear == null) {
+                    Text(rpm?.let { formatValue(it, 0) } ?: "—", color = Bmw.Text, fontSize = 34.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                    Text("rpm", color = Bmw.MRed, fontSize = 12.sp)
+                } else {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(if (gear < 1) "N" else "$gear", color = Bmw.Text, fontSize = 40.sp, fontWeight = FontWeight.Bold)
+                        // La recomendacion de cambio, tambien calculada: flecha arriba para subir, abajo para bajar.
+                        when (state.shift) {
+                            ShiftHint.UP -> Text("▲", color = Bmw.MBlueLight, fontSize = 16.sp)
+                            ShiftHint.DOWN -> Text("▼", color = Bmw.Amber, fontSize = 16.sp)
+                        }
                     }
+                    Text(rpm?.let { formatValue(it, 0) + " rpm" } ?: "rpm", color = Bmw.MRed, fontSize = 12.sp)
                 }
-                Text(
-                    rpm?.let { formatValue(it, 0) + " rpm" } ?: "rpm",
-                    color = Bmw.MRed,
-                    fontSize = 12.sp,
-                )
             }
         }
         Bottom(state, Modifier.height(INFO_HEIGHT))
@@ -490,11 +487,13 @@ private fun PageCards(state: LiveState, onWatch: (List<Int>) -> Unit, onCase: (C
     }
 
     Column(modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Box(Modifier.fillMaxWidth().weight(1f)) {
+        Road(state.values[Pids.SPEED] ?: 0.0, Modifier.matchParentSize())
         HorizontalPager(
             state = pager,
             contentPadding = PaddingValues(horizontal = CARD_SIDE),
             pageSpacing = 8.dp,
-            modifier = Modifier.fillMaxWidth().weight(1f),
+            modifier = Modifier.matchParentSize(),
         ) { index ->
             val offset = ((pager.currentPage - index) + pager.currentPageOffsetFraction).coerceIn(-1f, 1f)
             PageCard(
@@ -503,6 +502,9 @@ private fun PageCards(state: LiveState, onWatch: (List<Int>) -> Unit, onCase: (C
                     .fillMaxSize()
                     .padding(vertical = 6.dp)
                     .graphicsLayer {
+                        // Tumbada hacia atras desde su borde de abajo, como apoyada en la carretera.
+                        transformOrigin = TransformOrigin(0.5f, 1f)
+                        rotationX = CARD_LEAN
                         rotationY = offset * CARD_TILT
                         cameraDistance = CARD_CAMERA * density
                         val scale = 1f - CARD_SHRINK * abs(offset)
@@ -512,6 +514,7 @@ private fun PageCards(state: LiveState, onWatch: (List<Int>) -> Unit, onCase: (C
                     }
                     .clickable { scope.launch { pager.animateScrollToPage((pager.currentPage + 1) % pages.size) } },
             )
+        }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
             pages.forEachIndexed { index, page ->
@@ -525,6 +528,84 @@ private fun PageCards(state: LiveState, onWatch: (List<Int>) -> Unit, onCase: (C
         }
     }
 }
+
+/**
+ * La carretera de fondo, en perspectiva: el asfalto que se estrecha hacia el horizonte, los dos
+ * bordes como raíles de luz en azul y rojo M, y las rayas de los carriles, que avanzan hacia quien
+ * mira a la velocidad del coche. Parado, la carretera se queda quieta.
+ */
+@Composable
+private fun Road(speed: Double, modifier: Modifier) {
+    val currentSpeed by rememberUpdatedState(speed)
+    val travel by produceState(0f) {
+        var last = 0L
+        while (true) {
+            withFrameNanos { now ->
+                if (last != 0L) value = (value + ((now - last) / 1e9f) * (currentSpeed.toFloat() / ROAD_KMH_PER_TURN)) % 1f
+                last = now
+            }
+        }
+    }
+    val left = Bmw.MBlueLight
+    val right = Bmw.MRed
+    Canvas(modifier) {
+        val w = size.width
+        val h = size.height
+        val horizon = h * ROAD_HORIZON
+        val farHalf = w * ROAD_FAR_HALF
+        val nearHalf = w * ROAD_NEAR_HALF
+        val cx = w / 2
+        // Lo lejos sube despacio y lo cerca baja deprisa: la profundidad va al cuadrado.
+        fun yAt(depth: Float) = horizon + (h - horizon) * depth * depth
+        fun halfAt(y: Float) = farHalf + (nearHalf - farHalf) * (y - horizon) / (h - horizon)
+
+        drawRect(Brush.verticalGradient(listOf(Color.Transparent, left.copy(alpha = 0.08f)), 0f, horizon))
+        val asphalt = Path().apply {
+            moveTo(cx - farHalf, horizon)
+            lineTo(cx + farHalf, horizon)
+            lineTo(cx + nearHalf, h)
+            lineTo(cx - nearHalf, h)
+            close()
+        }
+        drawPath(asphalt, Brush.verticalGradient(listOf(ROAD_FAR, ROAD_NEAR), horizon, h))
+
+        // Los raíles: los dos bordes, con su resplandor.
+        for ((sign, color) in listOf(-1f to left, 1f to right)) {
+            val from = Offset(cx + sign * farHalf, horizon)
+            val to = Offset(cx + sign * nearHalf, h)
+            drawLine(color.copy(alpha = 0.25f), from, to, 10.dp.toPx(), StrokeCap.Round)
+            drawLine(color, from, to, 2.5.dp.toPx(), StrokeCap.Round)
+        }
+
+        // Las rayas de los dos carriles, que avanzan.
+        for (lane in listOf(-1f / 3f, 1f / 3f)) {
+            for (i in 0 until ROAD_DASHES) {
+                val start = (i.toFloat() / ROAD_DASHES + travel) % 1f
+                val end = (start + ROAD_DASH_LENGTH).coerceAtMost(1f)
+                val y0 = yAt(start)
+                val y1 = yAt(end)
+                val width = (1f + 5f * start).dp.toPx()
+                drawLine(
+                    Color.White.copy(alpha = 0.15f + 0.45f * start),
+                    Offset(cx + lane * 2 * halfAt(y0), y0),
+                    Offset(cx + lane * 2 * halfAt(y1), y1),
+                    width,
+                )
+            }
+        }
+    }
+}
+
+private const val ROAD_HORIZON = 0.08f
+private const val ROAD_FAR_HALF = 0.06f
+private const val ROAD_NEAR_HALF = 0.62f
+private const val ROAD_DASHES = 7
+private const val ROAD_DASH_LENGTH = 0.07f
+
+// A 100 km/h las rayas recorren la carretera entera unas tres veces por segundo.
+private const val ROAD_KMH_PER_TURN = 33f
+private val ROAD_FAR = Color(0xFF0B0E13)
+private val ROAD_NEAR = Color(0xFF1A1F27)
 
 /**
  * Una tarjeta: con sombra y un brillo arriba, como las del cuadro de un Mercedes. Arriba el tema y
