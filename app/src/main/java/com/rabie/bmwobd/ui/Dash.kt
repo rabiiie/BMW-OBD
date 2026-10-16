@@ -3,7 +3,6 @@ package com.rabie.bmwobd.ui
 import android.os.SystemClock
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.withFrameNanos
-import androidx.compose.ui.graphics.TransformOrigin
 import kotlin.math.roundToInt
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.drawscope.clipPath
@@ -89,7 +88,6 @@ import com.rabie.bmwobd.obd.Pids
 import kotlinx.coroutines.delay
 
 private const val CARD_TILT = 32f
-private const val CARD_LEAN = 14f
 private const val CARD_SHRINK = 0.14f
 private const val CARD_FADE = 0.55f
 private const val CARD_CAMERA = 14f
@@ -115,6 +113,9 @@ private val WING_CONTENT_SHIFT = 34.dp
 private val MINI_HEIGHT = 44.dp
 private val MINI_WIDTH = 7.dp
 private const val MINI_SEGMENTS = 5
+
+// Donde va la barra de segmentos, contado desde el lado del pico.
+private const val MINI_AT = 0.66f
 private val WING_SKEW = 30.dp
 private val WING_POOL = 14.dp
 private const val COOLANT_FROM = 50.0
@@ -226,9 +227,8 @@ internal fun DashPanel(
 /**
  * Un reloj como los del cuadro digital de un BMW actual. Por fuera, un marco de doble trazo que
  * hace pico hacia el borde de la pantalla, con la escala fuera y una banda entre los dos trazos que
- * se llena de abajo arriba. Por dentro del coche, una diagonal larga: en los dos relojes va igual,
- * de arriba a la izquierda a abajo a la derecha, asi que los dos paneles se inclinan hacia el mismo
- * lado. El panel es cristal tallado: bloques inclinados arriba y abajo y una franja oscura en medio,
+ * se llena de abajo arriba. Por dentro del coche, una diagonal larga. El reloj de la derecha es el
+ * de la izquierda en espejo, trazo a trazo. El panel es cristal tallado: bloques inclinados arriba y abajo y una franja oscura en medio,
  * donde va la cifra. Abajo, una barra de segmentos: el deposito o la temperatura del motor. El de la
  * izquierda azul y el de la derecha rojo, como en los M, con resplandor de neon.
  */
@@ -267,9 +267,8 @@ private fun SideWing(
             fun x(fromPeak: Float) = if (mirrored) w - fromPeak else fromPeak
             fun peakAt(y: Float) = scale + arm * abs(y - mid) / half
             fun yAt(t: Float) = bottom - t * (bottom - top)
-            // La diagonal de dentro no se da la vuelta: en los dos relojes baja hacia la derecha.
-            val innerTop = if (mirrored) margin else w - margin - skew
-            val innerBottom = if (mirrored) margin + skew else w - margin
+            val innerTop = x(w - margin - skew)
+            val innerBottom = x(w - margin)
             fun innerAt(y: Float) = innerTop + (innerBottom - innerTop) * (y - top) / (bottom - top)
 
             // El panel de cristal.
@@ -292,10 +291,10 @@ private fun SideWing(
                     val shift = lean * (y1 - y0) / (panelBottom - panelTop)
                     drawPath(
                         Path().apply {
-                            moveTo(fromX, y0)
-                            lineTo(toX, y0)
-                            lineTo(toX + shift, y1)
-                            lineTo(fromX + shift, y1)
+                            moveTo(x(fromX), y0)
+                            lineTo(x(toX), y0)
+                            lineTo(x(toX + shift), y1)
+                            lineTo(x(fromX + shift), y1)
                             close()
                         },
                         paint,
@@ -372,7 +371,7 @@ private fun SideWing(
             // La barra de segmentos de abajo, con sus cifras a la izquierda, como en el cuadro.
             val barBottom = panelBottom - 6.dp.toPx()
             val barTop = barBottom - MINI_HEIGHT.toPx()
-            val barLeft = if (mirrored) w * 0.62f else w * 0.66f
+            val barLeft = if (mirrored) w - w * MINI_AT - MINI_WIDTH.toPx() else w * MINI_AT
             val segment = (barBottom - barTop) / MINI_SEGMENTS
             val lit = mini?.coerceIn(0f, 1f)?.let { (it * MINI_SEGMENTS).roundToInt() } ?: 0
             for (i in 0 until MINI_SEGMENTS) {
@@ -389,7 +388,9 @@ private fun SideWing(
             miniLabels.forEachIndexed { index, text ->
                 val layout = measurer.measure(text, miniStyle)
                 val y = barTop + (barBottom - barTop) * index / (miniLabels.size - 1) - layout.size.height / 2f
-                drawText(layout, topLeft = Offset(barLeft - 4.dp.toPx() - layout.size.width, y))
+                // Las cifras van del lado del pico, en los dos relojes.
+                val textX = if (mirrored) barLeft + MINI_WIDTH.toPx() + 4.dp.toPx() else barLeft - 4.dp.toPx() - layout.size.width
+                drawText(layout, topLeft = Offset(textX, y))
             }
         }
         Column(
@@ -502,9 +503,6 @@ private fun PageCards(state: LiveState, onWatch: (List<Int>) -> Unit, onCase: (C
                     .fillMaxSize()
                     .padding(vertical = 6.dp)
                     .graphicsLayer {
-                        // Tumbada hacia atras desde su borde de abajo, como apoyada en la carretera.
-                        transformOrigin = TransformOrigin(0.5f, 1f)
-                        rotationX = CARD_LEAN
                         rotationY = offset * CARD_TILT
                         cameraDistance = CARD_CAMERA * density
                         val scale = 1f - CARD_SHRINK * abs(offset)
@@ -596,7 +594,7 @@ private fun Road(speed: Double, modifier: Modifier) {
     }
 }
 
-private const val ROAD_HORIZON = 0.08f
+private const val ROAD_HORIZON = 0.35f
 private const val ROAD_FAR_HALF = 0.06f
 private const val ROAD_NEAR_HALF = 0.62f
 private const val ROAD_DASHES = 7
