@@ -90,6 +90,9 @@ object Limits {
     const val BOOST_EXCESS_ALERT_KPA = 30.0
     const val BOOST_MIN_AT_FULL_LOAD_KPA = 50.0
 
+    // Mientras el turbo coge vueltas falta presion unos segundos; eso no es un aviso.
+    const val BOOST_LOW_HOLD_MS = 5_000L
+
     // Turbo sin regular: pide al menos 60 kPa sobre la presion de la calle y no pasa de 15.
     const val BOOST_UNCONTROLLED_ASKED_KPA = 60.0
     const val BOOST_UNCONTROLLED_GOT_KPA = 15.0
@@ -486,10 +489,12 @@ class Advisor {
                     else -> null
                 }
             },
-            Rule("boost_low", 3_000) { m ->
+            Rule("boost_low", Limits.BOOST_LOW_HOLD_MS) { m ->
                 if (!m.pull) return@Rule null
-                val actual = m.values[Moment.BOOST_ACTUAL]
-                val commanded = m.values[Moment.BOOST_COMMANDED]
+                // Sin el dato del OBD estandar, la presion pedida propia de BMW contra la del MAP.
+                val standard = m.values[Moment.BOOST_COMMANDED] != null
+                val actual = if (standard) m.values[Moment.BOOST_ACTUAL] else m.values[Pids.MAP]
+                val commanded = m.values[Moment.BOOST_COMMANDED] ?: m.values[Moment.BMW_BOOST_COMMANDED]
                 if (actual != null && commanded != null) {
                     val deficit = commanded - actual
                     val severity = level(deficit, Limits.BOOST_DEFICIT_WARN_KPA, Limits.BOOST_DEFICIT_ALERT_KPA)
