@@ -536,6 +536,47 @@ class ObdSession(
         bmwLate = true
     }
 
+    /**
+     * La bateria y los codigos de los inyectores, una vez al conectar. Son tres consultas de
+     * lectura; lo que contestan queda en el registro tal cual, ademas de interpretado.
+     */
+    suspend fun carInfo(): BmwCarInfo {
+        val first = serviceAsk(BmwBattery.QUERY_1)
+        val second = serviceAsk(BmwBattery.QUERY_2)
+        val battery = BmwBattery.parse(
+            first?.let { ObdParser.payloads(it, BmwBattery.ANSWER_1).lastOrNull() },
+            second?.let { ObdParser.payloads(it, BmwBattery.ANSWER_2).lastOrNull() },
+        )
+        val ima = BmwIma.parse(serviceAsk(BmwIma.QUERY))
+        if (battery == null) log("## BMW: la batería no ha contestado como se esperaba")
+        battery?.let {
+            log(
+                "## BMW: batería al %.1f %% (días anteriores %s), mínimo para arrancar %.1f %%, último cambio registrado %s".format(
+                    java.util.Locale.US,
+                    it.charge,
+                    it.chargeDays.joinToString(" / ") { day -> "%.1f".format(java.util.Locale.US, day) },
+                    it.startLimit,
+                    it.lastChange?.let { km -> "a los $km km" } ?: "ninguno",
+                ),
+            )
+        }
+        when {
+            ima == null -> log("## BMW: los códigos de los inyectores no han contestado")
+            ima.refusal != null -> log("## BMW: códigos de los inyectores rechazados: ${BmwIma.refusalText(ima.refusal)}")
+            else -> log("## BMW: códigos de los inyectores: " + ima.codes.joinToString(" | "))
+        }
+        return BmwCarInfo(battery, ima)
+    }
+
+    /** Una consulta de servicio de BMW; null si no contesta a tiempo. Como las de averias, puede llegar tarde. */
+    private suspend fun serviceAsk(query: String): String? = try {
+        elm.send(query, READ_TIMEOUT_MS)
+    } catch (e: SocketTimeoutException) {
+        null
+    } finally {
+        bmwLate = true
+    }
+
     /** Las averias de la memoria propia de BMW, o null si la centralita no las da. */
     suspend fun ownFaults(): List<BmwFault>? = try {
         bmwFaults()

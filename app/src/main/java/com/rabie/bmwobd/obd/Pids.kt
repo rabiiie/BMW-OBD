@@ -143,6 +143,9 @@ object Pids {
      */
     val BMW_INJECTOR_TIMES = listOf(0x1461, 0x1467, 0x146D).map { first -> (0..3).map { bmw(first + it) } }
 
+    /** La presion del rail de cada punto de calibracion (ABGLEICH_NMK_LESEN de d70n47b0). */
+    val BMW_CALIBRATION_BAR = listOf(400, 700, 1000)
+
     /**
      * Los fallos de calentadores que apunta su mando, cada uno con lo que significa. El valor
      * lleva un bit por calentador; cero es que no hay ninguno.
@@ -366,7 +369,7 @@ object Pids {
     // resto del desgaste, y con el caso de los inyectores puesto se sigue leyendo.
     private val bmwInjectorTimes: List<PidDef> = BMW_INJECTOR_TIMES.flatMapIndexed { point, ids ->
         ids.mapIndexed { cylinder, id ->
-            PidDef(id, "Inyector ${cylinder + 1}: tiempo aprendido (punto ${point + 1})", "µs", 2, 1, Tier.ONCE, PidGroup.FUEL) {
+            PidDef(id, "Inyector ${cylinder + 1}: tiempo aprendido (${BMW_CALIBRATION_BAR[point]} bar)", "µs", 2, 1, Tier.ONCE, PidGroup.FUEL) {
                 word(it) * 0.15259 - 5000.0
             }
         }
@@ -469,7 +472,7 @@ object Pids {
         bmwDef(0x04B0, "Preinyección: volumen", "mm³", 2, PidGroup.FUEL) { it * 0.003052 - 100.0 },
         bmwDef(0x1964, "Calibración de cantidad mínima: estado", "", 0, PidGroup.FUEL, size = 1) { it.toDouble() },
     ) + (0..2).map { point ->
-        bmwDef(0x145E + point, "Calibración de inyectores: ciclos (punto ${point + 1})", "", 0, PidGroup.FUEL) { it.toDouble() }
+        bmwDef(0x145E + point, "Calibración de inyectores: ciclos (${BMW_CALIBRATION_BAR[point]} bar)", "", 0, PidGroup.FUEL) { it.toDouble() }
     } + listOf(
         bmwDef(0x01F9, "Turbo: desviación que ve la centralita", "hPa", 0, PidGroup.AIR) { it.toDouble() },
         bmwDef(0x0C86, "Turbo: giro calculado", "rpm", 0, PidGroup.AIR) { it * 3.814755 },

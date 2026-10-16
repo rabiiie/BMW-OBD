@@ -124,7 +124,7 @@ class ScanTest {
     private val simulated = SimulatedDde.ADDRESSES.map(ScanPlan::measure)
 
     /** Las otras consultas a las que contesta: la identificacion y las averias propias. */
-    private val services = listOf("1A80", "1802FFFF")
+    private val services = listOf("1A80", "1802FFFF", "224022", "224023")
 
     private fun rows(store: ScanStore, key: String = "coche") =
         store.file(key).takeIf { it.exists() }?.readLines().orEmpty().drop(1).map { it.split(',') }

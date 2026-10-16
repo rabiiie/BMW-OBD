@@ -32,7 +32,9 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rabie.bmwobd.DiagnosticsState
+import com.rabie.bmwobd.obd.BmwBattery
 import com.rabie.bmwobd.obd.BmwFault
+import com.rabie.bmwobd.obd.BmwIma
 import com.rabie.bmwobd.obd.DiagnosticsReport
 import com.rabie.bmwobd.obd.Dtcs
 import com.rabie.bmwobd.obd.Mode06
@@ -86,6 +88,9 @@ fun DiagnosticsScreen(
             }
         }
         state.message?.let { Text(it, color = Bmw.Accent, fontSize = 14.sp) }
+
+        state.car?.battery?.let { BatteryCard(it) }
+        state.car?.ima?.let { ImaCard(it) }
 
         val report = state.report
         if (report == null) {
@@ -230,6 +235,65 @@ private fun BmwInfoCard(info: List<BmwFault>) {
                     Text(entry.text ?: "Sin descripción en la app", color = Bmw.Text, fontSize = 15.sp, modifier = Modifier.weight(1f))
                 }
                 entry.kind?.let { Text(it, color = Bmw.Text, fontSize = 14.sp) }
+            }
+        }
+    }
+}
+
+/** La bateria segun la gestion de energia de la centralita del motor. */
+@Composable
+private fun BatteryCard(battery: BmwBattery) {
+    Card {
+        Label("Batería")
+        Text("Carga ahora: ${formatValue(battery.charge, 1)} %", color = Bmw.Text, fontSize = 20.sp)
+        Text(
+            "Días anteriores: " + battery.chargeDays.joinToString(" · ") { formatValue(it, 1) + " %" },
+            color = Bmw.Text,
+            fontSize = 14.sp,
+        )
+        Text("Por debajo de ${formatValue(battery.startLimit, 1)} % la centralita teme que no arranque.", color = Bmw.TextDim, fontSize = 13.sp)
+        val change = battery.lastChange
+        Text(
+            if (change != null) {
+                "Último cambio de batería registrado: a los ${thousands(change)} km" +
+                    (battery.kmDays.firstOrNull()?.let { " (hace ${thousands(it - change)} km)" } ?: "") + "."
+            } else {
+                "No tiene registrado ningún cambio de batería."
+            },
+            color = Bmw.Text,
+            fontSize = 14.sp,
+        )
+        Text("Solo cuenta si quien la cambió lo registró con la máquina.", color = Bmw.TextDim, fontSize = 12.sp)
+        val ranges = listOf("bajo 0 °C", "0–20 °C", "20–40 °C", "40–60 °C", "más de 60 °C")
+        Text(
+            "Horas por temperatura: " + battery.hoursByTemperature.zip(ranges).joinToString(" · ") { (hours, range) ->
+                "$range ${thousands(hours.toInt())} h"
+            },
+            color = Bmw.TextDim,
+            fontSize = 13.sp,
+        )
+    }
+}
+
+/** Los codigos de calibracion grabados de cada inyector, para compararlos con los impresos. */
+@Composable
+private fun ImaCard(ima: BmwIma) {
+    Card {
+        Label("Códigos de los inyectores")
+        val refusal = ima.refusal
+        if (refusal != null) {
+            Text("La centralita no los da por este camino: ${BmwIma.refusalText(refusal)}.", color = Bmw.Text, fontSize = 14.sp)
+            return@Card
+        }
+        Text(
+            if (ima.text) "Compáralos con los que lleva impresos cada inyector." else "En bruto: la app aún no sabe pasarlos al formato del inyector.",
+            color = Bmw.TextDim,
+            fontSize = 13.sp,
+        )
+        ima.codes.forEachIndexed { index, code ->
+            Row {
+                Text(if (ima.codes.size == 4) "Inyector ${index + 1}" else "Respuesta", color = Bmw.Text, modifier = Modifier.weight(1f))
+                Text(code, color = Bmw.Text, fontFamily = FontFamily.Monospace, fontSize = 14.sp)
             }
         }
     }

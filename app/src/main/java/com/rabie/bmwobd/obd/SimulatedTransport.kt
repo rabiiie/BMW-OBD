@@ -104,6 +104,11 @@ class SimulatedTransport(
             bytes.size == 4 && bytes[0] == 0x18 && bytes[1] == 0x02 ->
                 intArrayOf(0x58, 0x02, 0x49, 0x8E, 0x61, 0x4A, 0x6E, 0x21)
             bytes.size == 2 && bytes[0] == 0x1A && bytes[1] == 0x80 -> intArrayOf(0x5A, 0x80) + ascii(BMW_IDENT, 20)
+            // La bateria: lo que contesto el coche el 11 de octubre.
+            bytes.size == 3 && bytes[0] == 0x22 && bytes[1] == 0x40 && bytes[2] == 0x22 -> intArrayOf(0x62, 0x40, 0x22) + unhex(BATTERY_1)
+            bytes.size == 3 && bytes[0] == 0x22 && bytes[1] == 0x40 && bytes[2] == 0x23 -> intArrayOf(0x62, 0x40, 0x23) + unhex(BATTERY_2)
+            // Los codigos de los inyectores no se han pedido nunca al coche: el simulado los rechaza.
+            bytes.size == 3 && bytes[0] == 0x30 && bytes[1] == 0xBB -> intArrayOf(0x7F, 0x30, 0x12)
             // Como la centralita de verdad: a una direccion que no existe contesta, pero sin dato.
             bytes.size == 4 && bytes[0] == 0x2C && bytes[1] == 0x10 ->
                 intArrayOf(0x6C, 0x10) + (SimulatedDde.value(bytes[2] * 256 + bytes[3], engine()) ?: IntArray(0))
@@ -186,6 +191,9 @@ class SimulatedTransport(
         const val VIN = "WBASIMULADO000000"
         const val CALIBRATION = "SIM-N47D20C-01"
         const val BMW_IDENT = "7812345 DDE70 SIM"
+        const val BATTERY_1 = "A9218B5B000C1389227EB340323E0009485565900A26002493E893DD93D193BE93B793B33EFD" +
+            "0000000000002E1400040440400000000000000000000000FFFF00057BFF00FF00950000"
+        const val BATTERY_2 = "5121B010A50001000000004C4C4C4C4C4CB0B3C5A7A7AEFF055A000000"
 
         const val FREEZE_SECOND = 68.0
 
@@ -291,6 +299,8 @@ class SimulatedTransport(
         fun ascii(text: String, length: Int) = IntArray(length) { if (it < text.length) text[it].code else 0 }
 
         fun hex(data: IntArray) = data.joinToString("") { "%02X".format(it) }
+
+        fun unhex(text: String) = IntArray(text.length / 2) { text.substring(it * 2, it * 2 + 2).toInt(16) }
 
         fun isHex(text: String) = text.isNotEmpty() && text.all { it in '0'..'9' || it in 'A'..'F' }
     }

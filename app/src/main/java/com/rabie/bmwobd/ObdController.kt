@@ -95,6 +95,8 @@ data class DiagnosticsState(
     val readAtMillis: Long = 0,
     val message: String? = null,
     val tests: List<MonitorTest>? = null,
+    /** La bateria y los codigos de los inyectores de un BMW, leidos al conectar. */
+    val car: com.rabie.bmwobd.obd.BmwCarInfo? = null,
 )
 
 /** [finished] cuenta los sondeos terminados, para que la pantalla sepa cuando acaba uno. */
@@ -178,6 +180,10 @@ class ObdController(
                 val ownFaults = if (profile.ownDiagnostics) session.ownFaults() else null
                 val blind = BmwFault.unreadable(ownFaults)
                 if (blind.isNotEmpty()) appendLog("## Aceite: el sensor de nivel tiene una avería presente; no se enseñan su nivel ni su temperatura")
+                if (profile.ownDiagnostics) {
+                    val car = session.carInfo()
+                    _diagnostics.update { it.copy(car = car) }
+                }
                 val defs = (standard + own).filterNot { it.id in blind }
                 // Las medidas de los casos tienen su columna desde el principio, aunque no se pidan.
                 val extras = if (own.isEmpty()) emptyList() else profile.caseMeasures

@@ -287,7 +287,7 @@ object CaseCards {
             perCylinder(corrections, 1)?.let { "Lo que corrige a cada inyector para igualar los cilindros: $it mg." },
             general?.let { "Corrección general de la cantidad: ${signed(it, 2)} mg." },
         ) + times.mapIndexedNotNull { point, row ->
-            perCylinder(row, 0, plus = false)?.let { "Tiempo de más que ha aprendido a darles, punto ${point + 1}: $it µs." }
+            perCylinder(row, 0, plus = false)?.let { "Tiempo de más que ha aprendido a darles a ${Pids.BMW_CALIBRATION_BAR[point]} bar: $it µs." }
         }
         val known = corrections.withIndex().mapNotNull { (i, value) -> value?.let { i + 1 to it } }
         val worst = known.maxByOrNull { kotlin.math.abs(it.second) }

@@ -92,9 +92,9 @@ class CaseTest {
         assertEquals("Los cuatro inyectores van parejos.", card.headline)
         assertEquals("Lo que corrige a cada inyector para igualar los cilindros: 1: +0,6 · 2: -0,5 · 3: +0,4 · 4: -0,6 mg.", card.facts[0])
         assertEquals("Corrección general de la cantidad: -0,44 mg.", card.facts[1])
-        assertEquals("Tiempo de más que ha aprendido a darles, punto 1: 1: 35 · 2: 66 · 3: 63 · 4: 65 µs.", card.facts[2])
+        assertEquals("Tiempo de más que ha aprendido a darles a 400 bar: 1: 35 · 2: 66 · 3: 63 · 4: 65 µs.", card.facts[2])
         // El punto 2 no se ha leido entero todavia: no sale a medias.
-        assertEquals("Tiempo de más que ha aprendido a darles, punto 3: 1: 13 · 2: 24 · 3: 18 · 4: 10 µs.", card.facts[3])
+        assertEquals("Tiempo de más que ha aprendido a darles a 1000 bar: 1: 13 · 2: 24 · 3: 18 · 4: 10 µs.", card.facts[3])
 
         val apart = CaseCards.card(Case.INJECTORS, read + (Pids.BMW_CYLINDER_CORRECTIONS[2] to 2.6))!!
         assertEquals(HealthLevel.WATCH, apart.level)
