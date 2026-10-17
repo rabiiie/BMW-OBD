@@ -15,6 +15,7 @@ data class TripEntry(
     val stats: TripStats,
     val timing: TimingOffset? = null,
     val wear: Wear? = null,
+    val margin: Margin? = null,
     val health: TripHealth? = null,
     val fuel: TripFuel? = null,
 )
@@ -43,6 +44,7 @@ class TripStore(private val dir: File, private val isDiesel: (vehicleKey: String
                 stats = TripCsv.stats(data, isDiesel(vehicleKey)),
                 timing = TripCsv.timing(data),
                 wear = TripCsv.wear(data),
+                margin = TripCsv.margin(data),
                 health = TripHealth.of(data),
                 fuel = TripFuel.of(data, isDiesel(vehicleKey)),
             )

@@ -113,6 +113,8 @@ private fun TripList(
                 if (timed.isNotEmpty()) item(key = "distribucion") { TimingTable(timed) }
                 val worn = trips.filter { !it.simulated && it.wear != null }.take(TIMING_ROWS)
                 if (worn.isNotEmpty()) item(key = "desgaste") { WearTable(worn) }
+                val measured = trips.filter { !it.simulated && it.margin != null }.take(TIMING_ROWS)
+                if (measured.isNotEmpty()) item(key = "margen") { MarginTable(measured) }
                 val checked = trips.filter { !it.simulated && it.health != null }.take(TIMING_ROWS)
                 if (checked.isNotEmpty()) item(key = "salud") { HealthTable(checked) }
                 if (checked.isNotEmpty()) item(key = "salud2") { RunningTable(checked) }
@@ -169,6 +171,43 @@ private fun TimingTable(trips: List<TripEntry>) {
                 fontSize = 12.sp,
             )
         }
+    }
+}
+
+/** Cuanto le cuesta llegar a lo pedido, trayecto a trayecto, siempre en las mismas condiciones. */
+@Composable
+private fun MarginTable(trips: List<TripEntry>) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(Bmw.Surface)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Label("Margen por trayecto")
+        @Composable
+        fun cells(date: String, values: List<String>, color: Color) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(date, color = Bmw.TextDim, fontSize = 13.sp, modifier = Modifier.weight(1.1f), maxLines = 1)
+                for (value in values) Text(value, color = color, fontSize = 12.sp, modifier = Modifier.weight(1f), maxLines = 1)
+            }
+        }
+        cells("", listOf("Actuador turbo", "Llenado"), Bmw.TextDim)
+        for (trip in trips) {
+            val margin = trip.margin ?: continue
+            fun text(value: Double?) = value?.let { "%.0f %%".format(it) } ?: "—"
+            cells(formatDay(trip.startMillis), listOf(text(margin.turboActuator), text(margin.filling)), Bmw.Text)
+        }
+        Text(
+            "Con el motor caliente, de 1800 a 2600 rpm. Actuador: lo que necesita con el turbo estable en lo pedido, " +
+                "a 120-150 kPa; si sube con los meses, le cuesta más soplar (fuga, filtro cargado, turbo gastado). " +
+                "Llenado: el aire que entra frente al que cabría, a carga con la EGR cerrada (≈); si baja, " +
+                "admisión sucia o fuga. En octubre: actuador 85-89 % con la abrazadera aflojándose, 70-77 % ya " +
+                "reparada; llenado 80-85 %. Varía unos puntos de un trayecto a otro: cuenta la tendencia.",
+            color = Bmw.TextDim,
+            fontSize = 12.sp,
+        )
     }
 }
 

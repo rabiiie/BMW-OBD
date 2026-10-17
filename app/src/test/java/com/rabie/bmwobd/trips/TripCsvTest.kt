@@ -182,4 +182,28 @@ class TripCsvTest {
         assertTrue(offset.steady)
         assertEquals(0.81, TripCsv.wear(data)!!.egrCooler!!, 0.001)
     }
+    @Test
+    fun `el margen sale del actuador con el turbo estable y del aire frente al que cabe`() {
+        val cols = listOf(
+            Pids.RPM, Pids.COOLANT, Pids.MAP, Pids.MAF, Pids.bmw(0x01F4), Pids.bmw(0x0BEB),
+            Pids.bmw(0x0500), Pids.bmw(0x0BB4), Pids.bmw(0x076F),
+        )
+        // 2000 rpm, 140 kPa estables, 40 °C en el colector: caben ≈ 51,8 g/s; entran 42,5 g/s, ≈ 82 %.
+        val steady = mapOf(
+            Pids.RPM to 2000.0, Pids.COOLANT to 90.0, Pids.MAP to 140.0, Pids.MAF to 42.5, Pids.bmw(0x01F4) to 141.0,
+            Pids.bmw(0x0BEB) to 74.0, Pids.bmw(0x0500) to 30.0, Pids.bmw(0x0BB4) to 0.0, Pids.bmw(0x076F) to 40.0,
+        )
+        val data = TripCsv.parse(sequence {
+            yield(TripCsv.header(cols))
+            for (i in 0 until 30) yield(TripCsv.row(i * 1000L, cols, steady))
+            // Turbo lejos de lo pedido y motor frio: no cuentan.
+            for (i in 30 until 60) yield(TripCsv.row(i * 1000L, cols, steady + (Pids.bmw(0x01F4) to 200.0) + (Pids.bmw(0x0BEB) to 95.0)))
+            for (i in 60 until 90) yield(TripCsv.row(i * 1000L, cols, steady + (Pids.COOLANT to 40.0) + (Pids.bmw(0x0BEB) to 20.0)))
+        })
+        val margin = TripCsv.margin(data)!!
+        assertEquals(74.0, margin.turboActuator!!, 0.001)
+        assertEquals(82.1, margin.filling!!, 0.2)
+        // Sin bastantes lecturas en esas condiciones no hay margen.
+        assertNull(TripCsv.margin(TripCsv.parse(sequence { yield(TripCsv.header(cols)); yield(TripCsv.row(0, cols, steady)) })))
+    }
 }
