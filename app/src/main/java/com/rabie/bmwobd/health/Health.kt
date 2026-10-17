@@ -89,6 +89,7 @@ object Health {
     private const val FILTER_REGENERATIONS = 0x0407
     private const val FILTER_KM = 0x0BA5
     private const val FILTER_ASH = 0x03E9
+    private const val FILTER_ASH_CORRECTION = 0x0409
     private const val FILTER_USUAL_INTERVAL = 0x03F3
     private const val FILTER_TEMP_SENSOR = 0x042E
     private const val FILTER_REGEN_HOURS = 0x03DF
@@ -160,7 +161,9 @@ object Health {
             data.last(Pids.bmw(Pids.BMW_TANK_ADDRESS))?.let { "Depósito al acabar" to n(it, 1) + " L" },
             data.last(Pids.bmw(FILTER_REGENERATIONS))?.let { "Regeneraciones del filtro en su vida" to thousands(it) },
             data.last(Pids.bmw(FILTER_KM))?.let { "Km con este filtro de partículas, según el coche" to thousands(it) + " km" },
-            data.last(Pids.bmw(FILTER_KM_LEFT))?.let { "Km que el coche le calcula todavía al filtro" to thousands(it) + " km" },
+            data.last(Pids.bmw(FILTER_KM_LEFT))?.let { "Filtro: vida restante (mantenimiento)" to thousands(it) + " km" },
+            data.last(Pids.bmw(FILTER_ASH))?.let { "Filtro: ceniza calculada" to n(it, 1) + " g" },
+            data.last(Pids.bmw(FILTER_ASH_CORRECTION))?.let { "Filtro: corrección de ceniza del ciclo anterior" to n(it, 1) + " g" },
             data.last(Pids.bmw(FILTER_REGEN_HOURS))?.let { "Horas regenerando en toda su vida, según el coche" to thousands(it) + " h" },
         )
     }

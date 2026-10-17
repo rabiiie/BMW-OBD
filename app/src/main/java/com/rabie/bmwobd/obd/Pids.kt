@@ -479,9 +479,13 @@ object Pids {
         bmwDef(0x0407, "Filtro: regeneraciones hechas", "", 0, PidGroup.EXHAUST, Tier.ONCE) { it.toDouble() },
         bmwDef(0x0BA5, "Filtro: km desde su cambio", "km", 0, PidGroup.EXHAUST, Tier.ONCE, size = 4) { it * 10.0 },
         bmwDef(0x03E9, "Filtro: ceniza calculada", "g", 0, PidGroup.EXHAUST, Tier.ONCE) { it * 0.015259 },
+        // PFltLd_mAshCorOld, "Aschekorrekturwert vom vorherigen Zyklus". Creo que es la ceniza que la
+        // centralita deduce por la presion al acabar una regeneracion; el 11 de octubre daba 0.
+        bmwDef(0x0409, "Filtro: corrección de ceniza del ciclo anterior", "g", 1, PidGroup.EXHAUST, Tier.ONCE) { it * 0.015259 },
         bmwDef(0x042E, "Escape antes del filtro (sensor)", "°C", 0, PidGroup.EXHAUST, Tier.ONCE) { it * 0.031281 - 50.0 },
         bmwDef(0x03DF, "Filtro: horas regenerando en total", "h", 0, PidGroup.EXHAUST, Tier.ONCE) { it * 23.002976 / 3600.0 },
-        bmwDef(0x0BA4, "Filtro: km que le calcula el coche", "km", 0, PidGroup.EXHAUST, Tier.ONCE) { it * 10.0 },
+        // PCBS_lDistanceOut, "Restlaufstrecke fuer Partikelfilter (von CBS berechnet)".
+        bmwDef(0x0BA4, "Filtro: vida restante (mantenimiento)", "km", 0, PidGroup.EXHAUST, Tier.ONCE) { it * 10.0 },
         // Valores aprendidos. Los factores van como desviacion en tanto por ciento de su valor de nuevo.
         bmwDef(0x0258, "Raíl: corrección aprendida de la válvula de presión", "%", 2, PidGroup.FUEL, Tier.ONCE) {
             (it * 0.000031 - 1.0) * 100.0
@@ -509,7 +513,6 @@ object Pids {
         bmwDef(0x0432, "Filtro: presión absoluta delante (filtrada)", "hPa", 0, PidGroup.EXHAUST) { it * 0.1 },
         bmwDef(0x043B, "Filtro: presión absoluta delante (sensor)", "hPa", 0, PidGroup.EXHAUST) { it * 0.038148 + 500.0 },
         bmwDef(0x0C81, "Filtro: presión detrás (calculada)", "hPa", 0, PidGroup.EXHAUST) { it.toDouble() },
-        bmwDef(0x0409, "Filtro: corrección de ceniza del ciclo anterior", "g", 1, PidGroup.EXHAUST) { it * 0.015259 },
         bmwDef(0x0BEA, "Turbo: mando pedido al actuador", "%", 0, PidGroup.AIR) { it * 0.003052 },
         bmwDef(0x01F7, "Turbo: presión de base pedida", "hPa", 0, PidGroup.AIR) { it.toDouble() },
         // Factores que la centralita aplica al caudalimetro para compensar que se desvia con los años.

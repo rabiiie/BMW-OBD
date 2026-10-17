@@ -84,6 +84,7 @@ class HealthTest {
             Pids.bmw(Pids.BMW_FAULTS_ADDRESS) to 7.0, Pids.bmw(Pids.BMW_OIL_KM_ADDRESS) to 9_360.0,
             Pids.bmw(Pids.BMW_OIL_LEVEL_ADDRESS) to 56.0, Pids.bmw(0x03F3) to 517.0, Pids.bmw(0x0407) to 373.0,
             Pids.bmw(0x0BA5) to 287_450.0, Pids.bmw(0x03E9) to 21.1, Pids.bmw(0x042E) to -40.05,
+            Pids.bmw(0x0409) to 0.0, Pids.bmw(0x0BA4) to 164_520.0,
             Pids.bmw(0x03FD) to 376_222.1, Pids.bmw(0x03FE) to 376_087.7, Pids.bmw(0x03FF) to 375_998.3,
             Pids.bmw(0x0400) to 375_793.8, Pids.bmw(0x0401) to 375_534.8,
         )
@@ -92,6 +93,9 @@ class HealthTest {
         for (card in cards) println("${card.system.title} [${card.level}] ${card.headline} >> " + (card.facts + listOfNotNull(card.advice)).joinToString(" >> "))
         val car = Health.carFacts(data)
         println(car.joinToString(" >> ") { "${it.first}: ${it.second}" })
+        assertTrue(car.any { it.first == "Filtro: vida restante (mantenimiento)" })
+        assertTrue(car.any { it.first == "Filtro: ceniza calculada" && it.second.startsWith("21") })
+        assertTrue(car.any { it.first == "Filtro: corrección de ceniza del ciclo anterior" && it.second.startsWith("0") })
 
         val filter = cards.of(HealthSystem.FILTER)
         assertEquals(HealthLevel.WATCH, filter.level)
