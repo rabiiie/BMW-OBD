@@ -112,4 +112,12 @@ class BmwFaultsTest {
         assertNull(BmwFault.glowCylinders(null))
         assertEquals("ninguna avería de calentadores, ni presente ni guardada", BmwFault.glowText(emptyList()))
     }
+    @Test
+    fun `se puede borrar una sola averia de BMW y las demas se quedan`() = runBlocking<Unit> {
+        val session = ObdSession(SimulatedTransport(latencyMs = 0)) {}
+        session.connect()
+        assertEquals("14480A", BmwFault.clearQuery(BmwFault.FILTER_HIGH))
+        assertEquals(true, session.clearBmwFault(0x4A6E))
+        assertEquals(listOf("498E"), session.diagnostics(bmw = true).bmwFaults!!.map { it.label })
+    }
 }

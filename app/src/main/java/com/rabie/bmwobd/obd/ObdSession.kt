@@ -686,6 +686,23 @@ class ObdSession(
     }
 
     /** Borra las averias y los datos asociados. Devuelve si el coche lo ha aceptado. */
+    /**
+     * Borra una sola averia de la memoria propia de BMW. True si la centralita lo acepta, false si
+     * lo rechaza y null si no contesta. No toca las demas averias.
+     */
+    suspend fun clearBmwFault(code: Int): Boolean? {
+        val answer = try {
+            elm.send(BmwFault.clearQuery(code), READ_TIMEOUT_MS)
+        } catch (e: SocketTimeoutException) {
+            return null
+        }
+        return when {
+            ObdParser.payloads(answer, BmwFault.CLEAR_ANSWER).isNotEmpty() -> true
+            ObdParser.payloads(answer, BmwFault.CLEAR_REFUSED).isNotEmpty() -> false
+            else -> null
+        }
+    }
+
     suspend fun clearDtcs(): Boolean =
         ObdParser.payloads(elm.send("04", READ_TIMEOUT_MS), "44").isNotEmpty()
 

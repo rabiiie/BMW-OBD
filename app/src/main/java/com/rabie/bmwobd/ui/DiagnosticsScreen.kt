@@ -51,9 +51,11 @@ fun DiagnosticsScreen(
     onRead: () -> Unit,
     onReadTests: () -> Unit,
     onClear: () -> Unit,
+    onClearFilter: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     var confirmClear by remember { mutableStateOf(false) }
+    var confirmFilter by remember { mutableStateOf(false) }
 
     Column(
         modifier = modifier
@@ -82,6 +84,13 @@ fun DiagnosticsScreen(
             Text("Leer pruebas internas del coche")
         }
 
+        // Solo si la ultima lectura trajo 480A o 481A.
+        if (state.report?.bmwFaults.orEmpty().any { it.code in BmwFault.FILTER_CODES }) {
+            OutlinedButton(onClick = { confirmFilter = true }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
+                Text("Borrar solo 480A/481A (filtro)", color = Bmw.MRed)
+            }
+        }
+
         if (state.busy) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
@@ -107,6 +116,29 @@ fun DiagnosticsScreen(
             Report(report, vehicleTerms)
         }
         state.tests?.takeIf { it.isNotEmpty() }?.let { Tests(it) }
+    }
+
+    if (confirmFilter) {
+        AlertDialog(
+            onDismissRequest = { confirmFilter = false },
+            title = { Text("¿Borrar solo 480A/481A?") },
+            text = {
+                Text(
+                    "Se borran solo las dos averías del filtro; las demás y sus kilómetros se conservan. " +
+                        "Con el coche parado, mejor con el contacto puesto y el motor parado. " +
+                        "Sin ellas la centralita puede empezar una regeneración, pero si el filtro sigue cargado " +
+                        "las vuelve a poner. BMW solo fuerza la regeneración con estas dos averías no presentes, " +
+                        "para no quemar de golpe un filtro muy cargado: la centralita lo compensa limitando la temperatura.",
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmFilter = false
+                    onClearFilter()
+                }) { Text("Borrar 480A/481A", color = Bmw.MRed) }
+            },
+            dismissButton = { TextButton(onClick = { confirmFilter = false }) { Text("Cancelar") } },
+        )
     }
 
     if (confirmClear) {

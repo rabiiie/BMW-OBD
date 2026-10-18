@@ -469,6 +469,58 @@ class ObdController(
 
     fun clearDtcs() = diagnose(clearFirst = true)
 
+    /**
+     * Borra solo 480A y 481A de la memoria propia de BMW, las que esten, y vuelve a leer. Solo con
+     * el coche parado. Si la centralita rechaza la primera no se intenta la otra.
+     */
+    fun clearFilterFaults() {
+        if (!isLive() || _diagnostics.value.busy) return
+        if ((_state.value.values[Pids.SPEED] ?: 0.0) >= 1.0) {
+            _diagnostics.update { it.copy(message = "Solo con el coche parado.") }
+            return
+        }
+        val present = _diagnostics.value.report?.bmwFaults.orEmpty().map { it.code }.filter { it in BmwFault.FILTER_CODES }
+        if (present.isEmpty()) {
+            _diagnostics.update { it.copy(message = "480A y 481A no están en la memoria de averías.") }
+            return
+        }
+        _diagnostics.update { it.copy(busy = true, message = null) }
+        tasks.trySend { session ->
+            logBuffer.pin()
+            appendLog("## Borrar 480A/481A: inicio")
+            try {
+                val done = ArrayList<String>()
+                var message: String? = null
+                for (code in present) {
+                    val label = "%04X".format(code)
+                    when (session.clearBmwFault(code)) {
+                        true -> done += label
+                        false -> {
+                            message = "La centralita no ha aceptado borrar $label. Prueba con el contacto puesto y el motor parado."
+                            break
+                        }
+                        null -> {
+                            message = "La centralita no ha contestado al borrar $label."
+                            break
+                        }
+                    }
+                }
+                val text = message ?: (done.joinToString(" y ") + " borradas. Las demás averías se conservan.")
+                appendLog("## Borrar 480A/481A: $text")
+                val report = session.diagnostics(bmw = canScan(_state.value.vehicle))
+                _diagnostics.update {
+                    it.copy(busy = false, report = report, readAtMillis = System.currentTimeMillis(), message = text)
+                }
+            } catch (e: IOException) {
+                appendLog("!! ${e.message}")
+                _diagnostics.update { it.copy(busy = false, message = "El adaptador no ha contestado.") }
+            } finally {
+                appendLog("## Borrar 480A/481A: fin")
+                logBuffer.unpin()
+            }
+        }
+    }
+
     private fun diagnose(clearFirst: Boolean) {
         if (!isLive() || _diagnostics.value.busy) return
         _diagnostics.update { it.copy(busy = true, message = null) }

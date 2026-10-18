@@ -85,6 +85,18 @@ data class BmwFault(val code: Int, val status: Int) {
         }
         private val OIL_MEASURES = setOf(Pids.bmw(Pids.BMW_OIL_LEVEL_ADDRESS), Pids.OIL)
 
+        /** 480A y 481A, las del filtro que impiden la regeneracion normal mientras estan presentes. */
+        val FILTER_CODES = listOf(FILTER_HIGH, FILTER_MAX)
+
+        /**
+         * Borrar una sola averia: 14 y su codigo (trabajo FS_LOESCHEN de d70n47b0, servicio
+         * ClearDiagnosticInformation con un codigo concreto). Las demas se quedan como estan.
+         * Contesta 54 si lo acepta y 7F 14 con el motivo si no.
+         */
+        fun clearQuery(code: Int) = "14%04X".format(code)
+        const val CLEAR_ANSWER = "54"
+        const val CLEAR_REFUSED = "7F14"
+
         /** La consulta que las pide todas, con cualquier estado. */
         const val QUERY = "1802FFFF"
         const val ANSWER = "58"

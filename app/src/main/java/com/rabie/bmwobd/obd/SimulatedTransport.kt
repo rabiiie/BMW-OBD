@@ -22,6 +22,9 @@ class SimulatedTransport(
     private var stored = listOf(0x04 to 0x01, 0x02 to 0x99)
     private var waiting = listOf(0x24 to 0x63)
 
+    // La memoria propia de la centralita de BMW: una presente y otra solo guardada, como en el 118d.
+    private var bmwFaults = listOf(0x498E to 0x61, 0x4A6E to 0x21)
+
     // Al borrar averias las autocomprobaciones vuelven a empezar, como en un coche de verdad.
     private var cleared = false
 
@@ -102,7 +105,13 @@ class SimulatedTransport(
             bytes.size == 2 && bytes[0] == 0x09 && bytes[1] == 0x04 -> intArrayOf(0x49, 0x04, 0x01) + ascii(CALIBRATION, 16)
             // Las dos averias de la memoria propia de la centralita: una presente y otra solo guardada.
             bytes.size == 4 && bytes[0] == 0x18 && bytes[1] == 0x02 ->
-                intArrayOf(0x58, 0x02, 0x49, 0x8E, 0x61, 0x4A, 0x6E, 0x21)
+                intArrayOf(0x58, bmwFaults.size) + bmwFaults.flatMap { (code, status) -> listOf(code shr 8, code and 0xFF, status) }
+            // Borrar una averia de esa memoria, o todas con FFFF.
+            bytes.size == 3 && bytes[0] == 0x14 -> {
+                val code = bytes[1] * 256 + bytes[2]
+                bmwFaults = if (code == 0xFFFF) emptyList() else bmwFaults.filter { it.first != code }
+                intArrayOf(0x54, bytes[1], bytes[2])
+            }
             bytes.size == 2 && bytes[0] == 0x1A && bytes[1] == 0x80 -> intArrayOf(0x5A, 0x80) + ascii(BMW_IDENT, 20)
             // La bateria: lo que contesto el coche el 11 de octubre.
             bytes.size == 3 && bytes[0] == 0x22 && bytes[1] == 0x40 && bytes[2] == 0x22 -> intArrayOf(0x62, 0x40, 0x22) + unhex(BATTERY_1)
