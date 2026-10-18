@@ -16,8 +16,10 @@ enum class Case(val title: String, val watch: List<Int>, val also: List<Int>) {
     NORMAL("Normal", emptyList(), emptyList()),
     FILTER(
         "Filtro de partículas",
-        watch = listOf(0x0404, 0x05AA, 0x03EA, 0x03ED, 0x03F1, 0x0424, 0x0C83, 0x0420, 0x041E, 0x0434).map(Pids::bmw),
-        also = listOf(0x0405, 0x0408, 0x03EC, 0x03EE, 0x03DE, 0x03E0, 0x0426, 0x0432, 0x043B, 0x0C81).map(Pids::bmw),
+        // 03EC, la interrupcion de la regeneracion, va con las de cada vuelta: dice segundo a segundo
+        // por que se pausa (visto 4 al pisar fuerte o soltar, 0 calentando, 2 antes de un corte).
+        watch = listOf(0x0404, 0x05AA, 0x03EC, 0x03EA, 0x03ED, 0x03F1, 0x0424, 0x0C83, 0x0420, 0x041E, 0x0434).map(Pids::bmw),
+        also = listOf(0x0405, 0x0408, 0x03EE, 0x03DE, 0x03E0, 0x0426, 0x0432, 0x043B, 0x0C81).map(Pids::bmw),
     ),
     INJECTORS(
         "Inyectores",
