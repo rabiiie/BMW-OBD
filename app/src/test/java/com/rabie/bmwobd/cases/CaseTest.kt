@@ -264,7 +264,15 @@ class CaseTest {
         assertEquals("Última regeneración: hace 311 km y 376 min de motor.", card.facts[2])
         assertEquals("Escape: 413 °C antes del catalizador y 447 °C antes del filtro.", card.facts[3])
         assertEquals("Al escape le cuesta 198 hPa cruzar el filtro; resistencia 23,9.", card.facts[4])
-        assertEquals("Petición de regeneración: 5, regenerando.", card.facts[0])
+        assertEquals(
+            "Petición de regeneración: 5, regeneración en marcha: calienta a ratos y para al llegar a su temperatura.",
+            card.facts[0],
+        )
+        // Con el 5 y el motor en modo normal no esta bloqueada: esta en pausa, y dice por que.
+        val paused = during + (Pids.BMW_ENGINE_MODE to Pids.MODE_NORMAL.toDouble()) + (Pids.BMW_REGEN_INTERRUPTION to 2.0)
+        val pausedCard = CaseCards.card(Case.FILTER, paused)!!
+        assertEquals("Regeneración en marcha, ahora en pausa.", pausedCard.headline)
+        assertTrue(pausedCard.advice!!.startsWith("Ya llegó a su temperatura"))
 
         val after = during + (Pids.BMW_REGEN_REQUEST to 0.0) + (Pids.bmw(0x05AA) to 0x00100001.toDouble())
         assertEquals("No está regenerando.", CaseCards.card(Case.FILTER, after)!!.headline)

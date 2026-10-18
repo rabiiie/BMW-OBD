@@ -369,6 +369,17 @@ object CaseCards {
                 facts,
                 "Si puedes, no apagues el motor hasta que termine. Al acabar, la distancia desde la última regeneración vuelve a cero.",
             )
+            // Con el 5 el motor calienta a ratos: entre medias esta en pausa, no bloqueado.
+            asked.toInt() == Pids.BMW_REGEN_RUNNING.toInt() && values[Pids.BMW_ENGINE_MODE] != null -> HealthCard(
+                HealthSystem.FILTER, HealthLevel.WATCH,
+                "Regeneración en marcha, ahora en pausa.",
+                facts,
+                if (Pids.regenNow(values) == "pausa · temp.") {
+                    "Ya llegó a su temperatura y deja de calentar; vuelve en unos segundos, cuando baje."
+                } else {
+                    "Deja de calentar un momento; pasa sobre todo al pisar fuerte o al soltar el acelerador. Mejor velocidad constante."
+                },
+            )
             asked >= Pids.BMW_REGEN_ACTIVE -> HealthCard(
                 HealthSystem.FILTER, HealthLevel.WATCH,
                 "La centralita pide regenerar, pero no lo está haciendo.",

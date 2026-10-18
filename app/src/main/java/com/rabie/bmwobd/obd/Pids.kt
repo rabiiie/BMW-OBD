@@ -206,17 +206,38 @@ object Pids {
     fun regenRequestText(code: Double): String = when (code.toInt()) {
         0 -> "no pide regenerar"
         1 -> "pendiente: la hará en cuanto pueda"
-        5 -> "regenerando"
-        6 -> "preparando la regeneración (creo; visto una vez, justo antes del 5)"
+        5 -> "regeneración en marcha: calienta a ratos y para al llegar a su temperatura"
+        6 -> "preparando la regeneración (creo; visto justo antes del 5)"
         7 -> "protección: filtro muy cargado, sin regeneración normal"
         else -> "código sin identificar"
     }
+
+    /** El estado de la interrupcion de la regeneracion (03EC): 0 calentando, 2 temperatura alcanzada, 4 otro motivo. */
+    val BMW_REGEN_INTERRUPTION = bmw(0x03EC)
+
+    /**
+     * Lo que hace la regeneracion ahora, sin decir mas de lo que se ve: con la peticion en 5 el
+     * motor solo calienta mientras su modo es el de regeneracion (post-inyecciones); el resto del
+     * tiempo esta en pausa, y la 03EC dice si es porque ya llego a su temperatura (visto el 18 de
+     * octubre: 2 con el escape a 450-505 grados, 0 calentando a 390-430). Null sin peticion leida.
+     */
+    fun regenNow(values: Map<Int, Double>): String? {
+        val request = values[BMW_REGEN_REQUEST] ?: return null
+        if (request.toInt() != BMW_REGEN_RUNNING.toInt()) return regenRequestShort(request)
+        val mode = values[BMW_ENGINE_MODE]?.toLong()?.toInt() ?: return "en marcha"
+        if (mode == MODE_REGENERATING) return "calentando"
+        val pause = values[BMW_REGEN_INTERRUPTION]?.toInt()
+        return if (pause != null && pause and TEMPERATURE_REACHED != 0 && pause and OTHER_PAUSE == 0) "pausa · temp." else "en pausa"
+    }
+
+    private const val TEMPERATURE_REACHED = 2
+    private const val OTHER_PAUSE = 4
 
     /** Lo mismo en una o dos palabras, para la celda de la tarjeta del filtro. */
     fun regenRequestShort(code: Double): String = when (code.toInt()) {
         0 -> "no pide"
         1 -> "pendiente"
-        5 -> "regenerando"
+        5 -> "en marcha"
         6 -> "preparando"
         7 -> "protección"
         else -> "sin identificar"

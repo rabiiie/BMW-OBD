@@ -94,7 +94,7 @@ object DashPages {
         // La peticion va en su celda: la linea de estado la tapa cualquier aviso del filtro.
         val request = values[Pids.BMW_REGEN_REQUEST]
         return listOf(
-            cell(request, 0, "Regeneración", request?.let(Pids::regenRequestShort).orEmpty()),
+            cell(request, 0, "Regeneración", Pids.regenNow(values).orEmpty()),
             DashItem("Avería filtro", filterFault(values[Pids.BMW_FILTER_FAULTS]), ""),
             cell(values[Pids.BMW_SOOT_MEASURED], 1, "Hollín medido", "g"),
             cell(values[Pids.BMW_SOOT_MODEL], 1, "Hollín calculado", "g"),

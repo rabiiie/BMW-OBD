@@ -40,6 +40,17 @@ class DashPagesTest {
         val preparing = DashPages.pages(mapOf(Pids.BMW_REGEN_REQUEST to 6.0, Pids.BMW_FILTER_FAULTS to 0.0), trip, emptyList(), bmw = true)[1]
         assertEquals(DashItem("Regeneración", "6", "preparando"), preparing.cells[0])
         assertEquals(DashItem("Avería filtro", "ninguna", ""), preparing.cells[1])
+        // Con el 5 solo dice calentando si el motor esta en modo de regeneracion; si no, en pausa y por que.
+        fun regen(mode: Int, pause: Double?) = DashPages.pages(
+            mapOf(Pids.BMW_REGEN_REQUEST to 5.0, Pids.BMW_ENGINE_MODE to mode.toDouble()) +
+                listOfNotNull(pause?.let { Pids.BMW_REGEN_INTERRUPTION to it }),
+            trip, emptyList(), bmw = true,
+        )[1].cells[0].unit
+        assertEquals("calentando", regen(Pids.MODE_REGENERATING, 0.0))
+        assertEquals("pausa · temp.", regen(Pids.MODE_NORMAL, 2.0))
+        assertEquals("en pausa", regen(Pids.MODE_NORMAL, 4.0))
+        assertEquals("en pausa", regen(Pids.MODE_NORMAL, 6.0))
+        assertEquals("en pausa", regen(Pids.MODE_NORMAL, null))
     }
 
     @Test
