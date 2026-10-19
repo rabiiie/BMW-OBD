@@ -95,19 +95,15 @@ class TripCsvTest {
                 }
             },
         )
-        // Una sola lectura al conectar, como en los trayectos del 12 de octubre.
-        val once = TripCsv.timing(trip(List(20) { -0.08 }))!!
-        assertEquals(-0.08, once.median, 0.001)
-        assertTrue(once.steady)
-        assertEquals(24.0, once.startCoolant!!, 0.001)
+        // Sin revoluciones grabadas: un solo arranque. Una lectura al conectar, como el 12 de octubre.
+        val once = TripCsv.timing(trip(List(20) { -0.08 }))!!.starts.single()
+        assertEquals(-0.08, once.degrees, 0.001)
+        assertEquals(24.0, once.coolant!!, 0.001)
+        assertFalse(once.warm)
 
-        // Muchas lecturas con una cruzada de otra medida (-94) y otra algo distinta.
+        // Muchas lecturas con una cruzada de otra medida (-94) y otra algo distinta: la mediana.
         val many = TripCsv.timing(trip(listOf(null, -0.13, -0.13, -0.13, -94.43, -0.13, -0.20, -0.13, -0.13)))!!
-        assertEquals(-0.13, many.median, 0.001)
-        assertEquals(-0.20, many.min, 0.001)
-        assertEquals(-0.20, many.farthest, 0.001)
-        assertEquals(-0.13, many.max, 0.001)
-        assertFalse(many.steady)
+        assertEquals(-0.13, many.starts.single().degrees, 0.001)
 
         // Sin esa medida, o solo con valores imposibles, no hay desfase que contar.
         assertNull(TripCsv.timing(trip(List(5) { null })))
@@ -177,10 +173,35 @@ class TripCsvTest {
                 }
             },
         )
-        val offset = TripCsv.timing(data)!!
-        assertEquals(-0.81, offset.median, 0.001)
-        assertTrue(offset.steady)
+        val offset = TripCsv.timing(data)!!.starts.single()
+        assertEquals(-0.81, offset.degrees, 0.001)
+        assertEquals(43.0, offset.coolant!!, 0.001)
         assertEquals(0.81, TripCsv.wear(data)!!.egrCooler!!, 0.001)
+    }
+
+    @Test
+    fun `el desfase cuenta una vez por arranque y no lo que da arrancando`() {
+        // Como el 19 de octubre a las 13:21: -1,51 a 118 rpm y -2,30 ya en marcha. Luego una parada
+        // con el motor caliente: las filas repiten -2,30 hasta que se lee el del nuevo arranque.
+        val timing = Pids.bmw(Pids.BMW_TIMING_OFFSET_ADDRESS)
+        val columns = listOf(Pids.RPM, Pids.COOLANT, timing)
+        val rows = listOf(
+            Triple(0.0, 29.0, 0.0), Triple(118.0, 29.0, -1.51), Triple(940.0, 29.0, -1.51), Triple(940.0, 29.0, -2.30),
+            Triple(1500.0, 60.0, -2.30), Triple(0.0, 75.0, -2.30), Triple(300.0, 75.0, -2.30), Triple(850.0, 75.0, -2.30),
+            Triple(850.0, 75.0, -2.30), Triple(850.0, 76.0, -1.12), Triple(2000.0, 85.0, -1.12),
+        )
+        val data = TripCsv.parse(
+            sequence {
+                yield(TripCsv.header(columns))
+                rows.forEachIndexed { i, (rpm, coolant, value) ->
+                    yield(TripCsv.row(i * 1000L, columns, mapOf(Pids.RPM to rpm, Pids.COOLANT to coolant, timing to value)))
+                }
+            },
+        )
+        val starts = TripCsv.timing(data)!!.starts
+        assertEquals(listOf(-2.30, -1.12), starts.map { it.degrees })
+        assertEquals(listOf(29.0, 75.0), starts.map { it.coolant })
+        assertEquals(listOf(false, true), starts.map { it.warm })
     }
     @Test
     fun `el margen sale del actuador con el turbo estable y del aire frente al que cabe`() {

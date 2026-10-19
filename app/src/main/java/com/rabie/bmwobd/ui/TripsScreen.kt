@@ -47,7 +47,7 @@ import com.rabie.bmwobd.report.ReportLine
 import com.rabie.bmwobd.report.ReportSection
 import com.rabie.bmwobd.report.TripReport
 import com.rabie.bmwobd.trips.TripData
-import com.rabie.bmwobd.trips.TimingOffset
+import com.rabie.bmwobd.trips.TimingStart
 import com.rabie.bmwobd.trips.TripEntry
 import com.rabie.bmwobd.trips.TripFuel
 import com.rabie.bmwobd.trips.TripHealth
@@ -139,11 +139,15 @@ private fun TripList(
 }
 
 /**
- * El desfase de la distribucion trayecto a trayecto, del mas reciente al mas antiguo, con la
- * temperatura a la que arranco el motor. Lo que importa es si crece con el tiempo.
+ * El desfase de la distribucion arranque a arranque, del mas reciente al mas antiguo. Lo que se
+ * compara son los arranques en caliente; los de en frio se enseñan aparte, sin comparar.
  */
 @Composable
 private fun TimingTable(trips: List<TripEntry>) {
+    // Del mas reciente al mas antiguo, tambien dentro de cada trayecto.
+    val starts = trips.flatMap { trip -> trip.timing?.starts.orEmpty().reversed().map { trip to it } }
+    val warm = starts.filter { it.second.warm }.map { it.second.degrees }
+    val cold = starts.filterNot { it.second.warm }.map { it.second.degrees }
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -152,36 +156,50 @@ private fun TimingTable(trips: List<TripEntry>) {
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Label("Cadena de distribución: desfase por trayecto")
-        for (trip in trips) {
-            val timing = trip.timing ?: continue
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(formatStart(trip.startMillis), color = Bmw.TextDim, fontSize = 13.sp, modifier = Modifier.weight(1f))
-                timing.startCoolant?.let { Text(formatValue(it, 0) + " °C", color = Bmw.TextDim, fontSize = 13.sp, modifier = Modifier.padding(end = 14.dp)) }
-                Text(
-                    "%.2f°".format(timing.median) + if (timing.steady) "" else " *",
-                    color = Bmw.Text,
-                    fontSize = 15.sp,
-                )
-            }
-        }
-        Text("Con asterisco, el valor se movió durante el trayecto: se enseña la mediana.", color = Bmw.TextDim, fontSize = 12.sp)
-        val farthest = trips.mapNotNull { it.timing?.farthest }.maxByOrNull { kotlin.math.abs(it) }
-        if (farthest != null) {
-            val far = kotlin.math.abs(farthest) >= TimingOffset.ATTENTION_DEGREES
+        Label("Cadena de distribución: desfase en cada arranque")
+        if (warm.isNotEmpty()) {
+            val recent = warm.take(TIMING_RECENT)
             Text(
-                "Lo más lejos de cero en estos arranques: " + "%.2f°".format(farthest) + ". " +
-                    if (far) {
-                        "Pasa de 2°: conviene que un mecánico escuche la cadena con el motor frío."
-                    } else {
-                        "Por debajo de 2°, que es donde conviene empezar a prestar atención. No es un límite de BMW."
-                    },
-                color = if (far) Bmw.Amber else Bmw.TextDim,
-                fontSize = 12.sp,
+                "En caliente: " + "%.2f°".format(median(recent)) + " (mediana de ${recent.size} arranques, de " +
+                    "%.2f° a %.2f°".format(recent.max(), recent.min()) + ")",
+                color = Bmw.Text,
+                fontSize = 15.sp,
+            )
+            if (warm.size > TIMING_RECENT) {
+                val before = warm.drop(TIMING_RECENT).take(TIMING_RECENT)
+                Text("Los ${before.size} arranques en caliente anteriores: " + "%.2f°".format(median(before)), color = Bmw.TextDim, fontSize = 13.sp)
+            }
+        } else {
+            Text("Aún no hay arranques en caliente, que son los que se pueden comparar.", color = Bmw.TextDim, fontSize = 13.sp)
+        }
+        if (cold.isNotEmpty()) {
+            Text(
+                "En frío: ${cold.size} arranques, de " + "%.2f° a %.2f°".format(cold.max(), cold.min()) +
+                    ". En frío cambia mucho de un arranque a otro y no se compara.",
+                color = Bmw.TextDim,
+                fontSize = 13.sp,
             )
         }
+        for ((trip, start) in starts) {
+            val color = if (start.warm) Bmw.Text else Bmw.TextDim
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(formatStart(trip.startMillis), color = Bmw.TextDim, fontSize = 13.sp, modifier = Modifier.weight(1f))
+                start.coolant?.let { Text(formatValue(it, 0) + " °C", color = color, fontSize = 13.sp, modifier = Modifier.padding(end = 14.dp)) }
+                Text("%.2f°".format(start.degrees), color = color, fontSize = 15.sp)
+            }
+        }
+        Text(
+            "Caliente es con el refrigerante a ${formatValue(TimingStart.WARM_COOLANT, 0)} °C o más al arrancar. " +
+                "Lo que importa es si los arranques en caliente se van alejando de cero con las semanas. No hay un límite de BMW conocido.",
+            color = Bmw.TextDim,
+            fontSize = 12.sp,
+        )
     }
 }
+
+private fun median(values: List<Double>): Double = values.sorted()[values.size / 2]
+
+private const val TIMING_RECENT = 10
 
 /** Cuanto le cuesta llegar a lo pedido, trayecto a trayecto, siempre en las mismas condiciones. */
 @Composable

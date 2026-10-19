@@ -128,7 +128,7 @@ class TripStore(private val dir: File, private val isDiesel: (vehicleKey: String
         const val SUMMARY_EXTENSION = ".sum"
 
         // Subirla cuando cambie lo que se calcula de un trayecto: los resumenes guardados se rehacen.
-        const val SUMMARY_VERSION = 1
+        const val SUMMARY_VERSION = 2
     }
 }
 

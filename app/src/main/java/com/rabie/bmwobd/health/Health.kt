@@ -169,19 +169,21 @@ object Health {
     }
 
     /**
-     * El desfase de la distribucion del trayecto y lo que se sabe para leerlo. El limite de BMW no
-     * esta confirmado: lo unico firme es que, mientras no salte su averia, la centralita lo da por bueno.
+     * El desfase de la distribucion en cada arranque del trayecto y lo que se sabe para leerlo.
+     * No hay un limite de BMW conocido para esta medida.
      */
     fun timingFacts(data: TripData): List<Pair<String, String>> {
         val timing = TripCsv.timing(data) ?: return emptyList()
-        val value = n(timing.median, 2) + "°" + if (timing.steady) "" else " (entre ${n(timing.min, 2)}° y ${n(timing.max, 2)}°)"
-        return listOfNotNull(
-            "Desfase del árbol de levas respecto al cigüeñal" to value,
-            timing.startCoolant?.let { "Motor al arrancar" to n(it) + " °C" },
-            "Cómo leerlo" to "vale por su tendencia de un arranque a otro, en frío con frío y en caliente con caliente",
-            "Referencias sin confirmar" to "se habla de 2° como señal para prestar atención, y de 3,5 a 5° para que salte la avería 42B5",
-            "Qué no dice" to "no mide el estiramiento de la cadena: cambia más de un grado de un arranque a otro. " +
-                "Sirve para estar atento si los arranques se van alejando de cero; quien decide es un mecánico escuchándola en frío",
+        val starts = timing.starts.mapIndexed { i, start ->
+            val label = if (timing.starts.size == 1) "Desfase del árbol de levas" else "Desfase en el arranque ${i + 1}"
+            val coolant = start.coolant?.let { " con el motor a ${n(it)} °C" } ?: ""
+            label to n(start.degrees, 2) + "°" + coolant + if (start.warm) ", en caliente" else ", en frío"
+        }
+        return starts + listOf(
+            "Cómo lo mide" to "la centralita lo mide una vez en cada arranque, al sincronizar cigüeñal y levas, y no lo cambia hasta el siguiente",
+            "Cómo leerlo" to "solo se comparan los arranques en caliente; en frío cambia mucho de un arranque a otro",
+            "Qué no dice" to "no mide directamente el estiramiento de la cadena. Sirve para ver si los arranques en caliente " +
+                "se van alejando de cero con las semanas",
         )
     }
 

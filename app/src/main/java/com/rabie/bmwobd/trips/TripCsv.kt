@@ -35,25 +35,24 @@ data class TripStats(
  * una fila por vuelta de lectura con los milisegundos desde el inicio y el ultimo valor de cada PID.
  */
 /**
- * El desfase de la distribucion en un trayecto: la mediana de lo leido, entre que valores se
- * movio y a que temperatura arranco el motor, para comparar frio con frio y caliente con caliente.
+ * El desfase del arbol de levas medido en un arranque, con el refrigerante de ese momento. La
+ * centralita lo mide al sincronizar cigüeñal y levas y no lo cambia hasta el siguiente arranque.
  */
-data class TimingOffset(val median: Double, val min: Double, val max: Double, val startCoolant: Double?) : java.io.Serializable {
-    /** Si todas las lecturas del trayecto dieron lo mismo, a la centesima. */
-    val steady: Boolean get() = max - min < 0.01
-
-    /** Lo mas lejos de cero que llego en el trayecto, con su signo. */
-    val farthest: Double get() = if (kotlin.math.abs(min) >= kotlin.math.abs(max)) min else max
+data class TimingStart(val degrees: Double, val coolant: Double?) : java.io.Serializable {
+    /**
+     * Arrancado en caliente. En los trayectos del 12 al 19 de octubre los arranques en caliente
+     * dieron entre -0,98 y -1,47° y los de en frio entre +0,09 y -2,30°: solo los primeros se
+     * pueden comparar entre si.
+     */
+    val warm: Boolean get() = coolant != null && coolant >= WARM_COOLANT
 
     companion object {
-        /**
-         * A partir de aqui conviene prestar atencion. No es un limite de BMW: es la cifra que
-         * circula entre quien repara este motor, sin confirmar. La lectura cambia de un arranque a
-         * otro mas de un grado, asi que una sola no dice si la cadena esta estirada.
-         */
-        const val ATTENTION_DEGREES = 2.0
+        const val WARM_COOLANT = 70.0
     }
 }
+
+/** El desfase de la distribucion en un trayecto: un valor por cada arranque. */
+data class TimingOffset(val starts: List<TimingStart>) : java.io.Serializable
 
 /**
  * Lo que la centralita llevaba aprendido en un trayecto para compensar el desgaste. Todo en
@@ -148,16 +147,47 @@ object TripCsv {
     }
 
     /**
-     * El desfase de la distribucion de un trayecto, o null si no se leyo. La mediana hace que una
-     * lectura suelta equivocada no cuente, y lo que no puede ser un desfase se descarta antes.
+     * El desfase de la distribucion de un trayecto, un valor por arranque; null si no se leyo.
+     * Mientras el motor gira por debajo de 500 rpm la centralita aun no ha sincronizado y da 0 o
+     * un valor a medias (el 19 de octubre, -1,51° a 118 rpm y -2,30° ya en marcha), asi que
+     * cuenta la primera lectura nueva con el motor por encima de 500 rpm. Tras una parada, las
+     * filas repiten el valor del arranque anterior hasta que se vuelve a leer: ese no cuenta.
+     * Sin revoluciones grabadas, el trayecto da un solo arranque con la mediana de lo leido.
      */
     fun timing(data: TripData): TimingOffset? {
-        val read = whileRunning(data, TIMING_OFFSET).filter { it > -MAX_TIMING_OFFSET && it < MAX_TIMING_OFFSET }
-        if (read.isEmpty()) return null
-        val sorted = read.sorted()
-        val coolant = data.series[Pids.COOLANT]?.firstOrNull { !it.isNaN() }
-        return TimingOffset(sorted[sorted.size / 2], sorted.first(), sorted.last(), coolant)
+        val series = data.series[TIMING_OFFSET] ?: return null
+        val coolant = data.series[Pids.COOLANT]
+        val rpm = data.series[Pids.RPM]
+        if (rpm == null) {
+            val read = series.filter(::validTiming).sorted()
+            if (read.isEmpty()) return null
+            return TimingOffset(listOf(TimingStart(read[read.size / 2], coolant?.firstOrNull { !it.isNaN() })))
+        }
+        val starts = ArrayList<TimingStart>()
+        var waiting = true
+        var stale = Double.NaN
+        var startCoolant: Double? = null
+        for (i in 0 until data.size) {
+            val value = series[i]
+            if (!(rpm[i] >= RUNNING_RPM)) {
+                waiting = true
+                startCoolant = null
+                if (!value.isNaN()) stale = value
+                continue
+            }
+            if (!waiting || !(rpm[i] >= SYNCED_RPM)) continue
+            if (startCoolant == null) startCoolant = coolant?.get(i)?.takeIf { !it.isNaN() }
+            if (!validTiming(value) || value == stale) continue
+            starts += TimingStart(value, startCoolant)
+            waiting = false
+            stale = Double.NaN
+        }
+        return starts.takeIf { it.isNotEmpty() }?.let(::TimingOffset)
     }
+
+    /** Lo que puede ser un desfase: ni el 0 de antes de sincronizar ni el cruce con otra medida. */
+    private fun validTiming(value: Double): Boolean =
+        !value.isNaN() && kotlin.math.abs(value) >= NOT_SYNCED && kotlin.math.abs(value) < MAX_TIMING_OFFSET
 
     /**
      * Lo leido de una medida con el motor en marcha. Con el motor parado el desfase da 0 y el
@@ -200,6 +230,10 @@ object TripCsv {
     private const val RUNNING_RPM = 400.0
     private val TIMING_OFFSET = Pids.bmw(Pids.BMW_TIMING_OFFSET_ADDRESS)
     private const val MAX_TIMING_OFFSET = 30.0
+    private const val SYNCED_RPM = 500.0
+
+    // 7FFF, lo que da sin sincronizar, sale a 0,0008°; un desfase real no cae tan cerca de cero.
+    private const val NOT_SYNCED = 0.005
     private val BOOST_ASKED = Pids.bmw(0x01F4)
     private val TURBO_ACTUATOR = Pids.bmw(0x0BEB)
     private val INJECTED = Pids.bmw(0x0500)

@@ -119,8 +119,6 @@ object Limits {
     // mucho mas rica de lo normal a esa carga. Visto en un N47: 535-600 °C y lambda 1,2-1,3.
     const val REGEN_EXHAUST = 480.0
 
-    // BMW (SI B18 03 10): la regeneracion periodica se hace como tarde a las 600 millas.
-    const val REGEN_OVERDUE_KM = 965.0
     const val REGEN_MAX_LAMBDA = 1.7
     const val REGEN_HOLD_MS = 45_000L
 
@@ -752,15 +750,6 @@ class Advisor {
                     if (level >= 2) "481A: filtro por encima del máximo" else "480A: filtro muy cargado",
                     "Mientras esté presente no hay regeneración normal. BMW manda unos 45 min seguidos a más de 90 km/h, " +
                         "con luneta, luces y ventilador encendidos y lejos de la reserva, hasta que pase a no presente (SI B18 03 10).",
-                )
-            },
-            Rule("regen_overdue", Limits.REGEN_STOP_HOLD_MS) { m ->
-                val km = m.values[Pids.bmw(Pids.BMW_SINCE_REGEN_ADDRESS)] ?: return@Rule null
-                if (km < Limits.REGEN_OVERDUE_KM || !m.running) return@Rule null
-                Advice(
-                    "regen_overdue", Severity.WARN, "${n(km)} km sin regenerar",
-                    "BMW hace la regeneración periódica como tarde a unos ${n(Limits.REGEN_OVERDUE_KM)} km (SI B18 03 10). " +
-                        "Si pasa de ahí, algo la impide: averías del filtro, del escape o de sus sensores, o trayectos demasiado cortos.",
                 )
             },
             Rule("regen_pending", Limits.REGEN_HOLD_MS) { m ->
