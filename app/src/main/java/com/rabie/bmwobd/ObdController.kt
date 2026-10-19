@@ -19,6 +19,8 @@ import com.rabie.bmwobd.advice.Moment
 import com.rabie.bmwobd.dash.GearGuess
 import com.rabie.bmwobd.dash.ShiftHint
 import com.rabie.bmwobd.obd.BmwFault
+import com.rabie.bmwobd.obd.Actuator
+import com.rabie.bmwobd.obd.BmwService
 import com.rabie.bmwobd.obd.Commands
 import com.rabie.bmwobd.obd.DiagnosticsReport
 import com.rabie.bmwobd.obd.MonitorTest
@@ -495,36 +497,39 @@ class ObdController(
     }
 
     /**
-     * Prueba del motorventilador: solo con el motor apagado (0 rpm leidas) y el coche parado. Mueve
-     * el ventilador unos segundos y le devuelve el control a la centralita.
+     * Prueba de una pieza de la tabla STELLER: solo con el motor apagado (0 rpm leidas) y el coche
+     * parado. La mueve unos segundos y le devuelve el control a la centralita. El ventilador va con
+     * [BmwService.FAN_TEST_READY]; la EGR, las mariposas y el turbo con [BmwService.ACTUATORS_READY].
      */
-    fun testFan() {
-        if (!com.rabie.bmwobd.obd.BmwService.FAN_TEST_READY || !isLive() || _diagnostics.value.busy || !canScan(_state.value.vehicle)) return
+    fun testActuator(actuator: Actuator) {
+        val ready = if (actuator === BmwService.FAN) BmwService.FAN_TEST_READY else BmwService.ACTUATORS_READY
+        if (!ready || !isLive() || _diagnostics.value.busy || !canScan(_state.value.vehicle)) return
         val values = _state.value.values
         if ((values[Pids.RPM] ?: 1.0) >= 1.0 || (values[Pids.SPEED] ?: 1.0) >= 1.0) {
             _diagnostics.update { it.copy(message = "Solo con el motor apagado y el contacto puesto: la app tiene que leer 0 rpm y 0 km/h.") }
             return
         }
+        val name = actuator.name
         _diagnostics.update { it.copy(busy = true, message = null) }
         tasks.trySend { session ->
             logBuffer.pin()
-            appendLog("## Prueba del ventilador: inicio")
+            appendLog("## Prueba $name: inicio")
             try {
-                val test = session.fanTest()
-                for (step in test.steps) appendLog("## Ventilador: ${step.label}: ${step.query} -> ${step.response ?: "-"} (${step.meaning})")
+                val test = session.actuatorTest(actuator)
+                for (step in test.steps) appendLog("## $name: ${step.label}: ${step.query} -> ${step.response ?: "-"} (${step.meaning})")
                 val text = when {
-                    test.accepted == true && test.released == true -> "La centralita ha aceptado mover el ventilador y ha recuperado el control. ¿Has oído o visto el ventilador?"
-                    test.accepted == true -> "La centralita ha aceptado mover el ventilador, pero no ha confirmado que recupera el control. Quita el contacto para que lo recupere."
-                    test.accepted == false -> "La centralita no ha aceptado mover el ventilador. El motivo está abajo."
-                    else -> "No se ha llegado a mover: mira abajo qué ha contestado."
+                    test.accepted == true && test.released == true -> "$name: la centralita ha aceptado la prueba y ha recuperado el control."
+                    test.accepted == true -> "$name: la centralita ha aceptado la prueba, pero no ha confirmado que recupera el control. Quita el contacto para que lo recupere."
+                    test.accepted == false -> "$name: la centralita no ha aceptado la prueba. El motivo está abajo."
+                    else -> "$name: no se ha llegado a mover; mira abajo qué ha contestado."
                 }
-                appendLog("## Prueba del ventilador: $text")
+                appendLog("## Prueba $name: $text")
                 _diagnostics.update { it.copy(busy = false, fanTest = test, message = text) }
             } catch (e: IOException) {
                 appendLog("!! ${e.message}")
-                _diagnostics.update { it.copy(busy = false, message = "El adaptador no ha contestado. Si el ventilador sigue girando, quita el contacto.") }
+                _diagnostics.update { it.copy(busy = false, message = "El adaptador no ha contestado. Si algo sigue moviéndose, quita el contacto.") }
             } finally {
-                appendLog("## Prueba del ventilador: fin")
+                appendLog("## Prueba $name: fin")
                 logBuffer.unpin()
             }
         }

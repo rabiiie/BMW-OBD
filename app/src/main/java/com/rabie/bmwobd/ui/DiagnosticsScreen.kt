@@ -32,6 +32,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rabie.bmwobd.DiagnosticsState
+import com.rabie.bmwobd.obd.Actuator
 import com.rabie.bmwobd.obd.BmwBattery
 import com.rabie.bmwobd.obd.BmwFault
 import com.rabie.bmwobd.obd.BmwIma
@@ -58,13 +59,13 @@ fun DiagnosticsScreen(
     onClear: () -> Unit,
     onClearFilter: () -> Unit = {},
     onReadService: () -> Unit = {},
-    onTestFan: () -> Unit = {},
+    onTestActuator: (Actuator) -> Unit = {},
     bmwService: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     var confirmClear by remember { mutableStateOf(false) }
     var confirmFilter by remember { mutableStateOf(false) }
-    var confirmFan by remember { mutableStateOf(false) }
+    var confirmActuator by remember { mutableStateOf<Actuator?>(null) }
 
     Column(
         modifier = modifier
@@ -131,12 +132,16 @@ fun DiagnosticsScreen(
             OutlinedButton(onClick = onReadService, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
                 Text("Leer datos de servicio (solo lectura)")
             }
-            // Se puede apagar con BmwService.FAN_TEST_READY si la orden diera problemas.
-            OutlinedButton(onClick = { confirmFan = true }, enabled = BmwService.FAN_TEST_READY && !state.busy, modifier = Modifier.fillMaxWidth()) {
+            ActuatorButton(BmwService.FAN, BmwService.FAN_TEST_READY, state.busy) { confirmActuator = it }
+            if (!BmwService.ACTUATORS_READY) {
                 Text(
-                    if (BmwService.FAN_TEST_READY) "Probar ventilador (motor apagado)" else "Probar ventilador (pendiente de confirmar la orden)",
-                    color = if (BmwService.FAN_TEST_READY) Bmw.Accent else Bmw.TextDim,
+                    "La EGR, las mariposas y el turbo se activan cuando la prueba del ventilador haya salido bien en el coche.",
+                    color = Bmw.TextDim,
+                    fontSize = 12.sp,
                 )
+            }
+            for (actuator in BmwService.ACTUATORS) {
+                ActuatorButton(actuator, BmwService.ACTUATORS_READY, state.busy) { confirmActuator = it }
             }
             state.fanTest?.let { FanTestCard(it) }
             state.istaRegen?.let { IstaRegenCard(it) }
@@ -144,25 +149,26 @@ fun DiagnosticsScreen(
         }
     }
 
-    if (confirmFan) {
+    confirmActuator?.let { actuator ->
         AlertDialog(
-            onDismissRequest = { confirmFan = false },
-            title = { Text("¿Probar el ventilador?") },
+            onDismissRequest = { confirmActuator = null },
+            title = { Text("¿Probar: ${actuator.name}?") },
             text = {
                 Text(
-                    "Con el contacto puesto y el motor apagado. La app pide a la centralita el ventilador al 30 % " +
-                        "durante 5 segundos y luego le devuelve el control. Es la misma orden que mueve la EGR, las mariposas " +
-                        "y el turbo: si funciona, sabremos cómo se manda. Mantente lejos del ventilador. " +
-                        "Si se quedara girando, quita el contacto.",
+                    "Con el contacto puesto y el motor apagado. La app pide a la centralita " +
+                        actuator.percents.joinToString(" y luego ") { "%.0f %%".format(it) } +
+                        " durante ${actuator.holdMs / 1000} s cada uno, con la misma orden que manda ISTA, y le devuelve el control. " +
+                        (if (actuator.feedback != null) "Lee su sensor de posición en cada paso. " else "No tiene sensor de posición: fíjate si se oye. ") +
+                        "Mantente lejos de lo que se mueve. Si algo se quedara moviéndose, quita el contacto.",
                 )
             },
             confirmButton = {
                 TextButton(onClick = {
-                    confirmFan = false
-                    onTestFan()
+                    confirmActuator = null
+                    onTestActuator(actuator)
                 }) { Text("Probar", color = Bmw.Accent) }
             },
-            dismissButton = { TextButton(onClick = { confirmFan = false }) { Text("Cancelar") } },
+            dismissButton = { TextButton(onClick = { confirmActuator = null }) { Text("Cancelar") } },
         )
     }
 
@@ -447,11 +453,19 @@ private fun IstaRegenCard(regen: IstaRegen) {
     }
 }
 
-/** Cada paso de la prueba del ventilador: lo que se mando, lo que contesto y que significa. */
+/** El boton de la prueba de una pieza; apagado mientras su prueba no este lista. */
+@Composable
+private fun ActuatorButton(actuator: Actuator, ready: Boolean, busy: Boolean, onClick: (Actuator) -> Unit) {
+    OutlinedButton(onClick = { onClick(actuator) }, enabled = ready && !busy, modifier = Modifier.fillMaxWidth()) {
+        Text("Probar: ${actuator.name} (motor apagado)", color = if (ready) Bmw.Accent else Bmw.TextDim)
+    }
+}
+
+/** Cada paso de la prueba de una pieza: lo que se mando, lo que contesto y que significa. */
 @Composable
 private fun FanTestCard(test: FanTest) {
     Card {
-        Label("Prueba del ventilador")
+        Label("Prueba: ${test.name}")
         for (step in test.steps) {
             Text("${step.label}: ${step.meaning}", color = Bmw.Text, fontSize = 14.sp, modifier = Modifier.padding(top = 4.dp))
             Text("${step.query} → ${step.response ?: "-"}", color = Bmw.TextDim, fontFamily = FontFamily.Monospace, fontSize = 12.sp)

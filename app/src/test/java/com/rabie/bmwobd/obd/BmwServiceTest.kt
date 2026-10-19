@@ -1,5 +1,6 @@
 package com.rabie.bmwobd.obd
 
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -12,7 +13,13 @@ class BmwServiceTest {
     @Test
     fun `todas las lecturas son de solo lectura`() {
         // Servicio 22 lee; el 30 solo con 01, "dame el estado actual".
-        assertTrue(BmwService.QUERIES.all { it.query.startsWith("22") || (it.query.startsWith("30") && it.query.endsWith("01") && it.query.length == 6) })
+        // Y 2C 10 con una medida, la lectura normal de la app.
+        assertTrue(
+            BmwService.QUERIES.all {
+                it.query.startsWith("22") || (it.query.startsWith("30") && it.query.endsWith("01") && it.query.length == 6) ||
+                    (it.query.startsWith("2C10") && it.query.length == 8)
+            },
+        )
     }
 
     @Test
@@ -71,9 +78,25 @@ class BmwServiceTest {
     }
 
     @Test
+    fun `la prueba de la EGR pasa por los dos valores y devuelve el control`() = runBlocking<Unit> {
+        val session = ObdSession(SimulatedTransport(latencyMs = 0)) {}
+        session.connect()
+        val egr = BmwService.ACTUATORS.first()
+        val test = session.actuatorTest(Actuator(egr.name, egr.lid, egr.percents, holdMs = 1, feedback = egr.feedback))
+        val sent = test.steps.map { it.query }
+        assertEquals(listOf("30C201", "2C100BB4", "30C2070666", "2C100BB4", "30C2071999", "2C100BB4", "30C200", "30C201", "2C100BB4"), sent)
+        assertEquals(true, test.accepted)
+        assertEquals(true, test.released)
+    }
+
+    @Test
     fun `la orden del ventilador al 30 por ciento`() {
         // Lo que manda STEUERN_SELECTIV del d70n47b0.prg con ELU al 30 %.
         assertEquals("30C7070999", BmwService.fanCommand(30.0))
+        // Y lo que manda con la EGR al 20 y al 80 %.
+        assertEquals("30C2070666", BmwService.command(0xC2, 20.0))
+        assertEquals("30C2071999", BmwService.command(0xC2, 80.0))
+        assertEquals(listOf(0xC2, 0xCE, 0xCD, 0xC6), BmwService.ACTUATORS.map { it.lid })
         assertEquals("30C701", BmwService.FAN_READ)
         assertEquals("30C700", BmwService.FAN_RELEASE)
         assertEquals(30.0, BmwService.fanPercent(listOf(0x09, 0x99))!!, 0.02)

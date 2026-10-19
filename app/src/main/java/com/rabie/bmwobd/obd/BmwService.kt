@@ -214,6 +214,47 @@ object BmwService {
             note = "Corrección del tiempo de inyección de cada cilindro; BMW no da la unidad (creo que µs).",
         ),
         ServiceQuery(
+            "Mapa aprendido del actuador del turbo", "307A01", "707A01",
+            fields = (0 until 36).map { ServiceField("Fila ${it / 6 + 1}, columna ${it % 6 + 1}", 2 * it, 2, PERCENT, unit = "%", signed = true) },
+            note = "Lo que la centralita ha aprendido a corregir el actuador del turbo, en 6 × 6 puntos. BMW no da los ejes del mapa.",
+        ),
+        ServiceQuery(
+            "Calidad del gasóleo", "30E301", "70E301",
+            fields = listOf(
+                ServiceField("Índice de calidad", 0, 2, 0.00006104, signed = true),
+                ServiceField("Irregularidad del motor por el gasóleo", 2, 2, 0.00305344, unit = "rpm"),
+                ServiceField("Contador 1", 4, 2, signed = true),
+                ServiceField("Contador 2", 6, 2, signed = true),
+                ServiceField("Contador 3", 8, 2, signed = true),
+                ServiceField("Distancia desde que se reiniciaron", 10, 4, 0.001, unit = "km", signed = true),
+            ),
+            note = "El módulo de calidad del combustible de la centralita. BMW no dice qué cuenta cada contador.",
+        ),
+        // STATUS_LAUFUNRUHE_*: medidas de la lectura normal de BMW, una a una (el ELM no manda la consulta de varias).
+        // El orden es el de encendido; en un 4 cilindros en linea es 1-3-4-2 (creo).
+        *listOf(1, 3, 4, 2).mapIndexed { slot, cyl ->
+            ServiceQuery(
+                "Cilindro $cyl: revoluciones propias", feedbackQuery(0x1496 + slot), FEEDBACK_ANSWER,
+                fields = listOf(ServiceField("Revoluciones", 0, 2, 0.091554, unit = "rpm")),
+            )
+        }.toTypedArray(),
+        *listOf(1, 3, 4, 2).mapIndexed { slot, cyl ->
+            ServiceQuery(
+                "Cilindro $cyl: compensación de gasóleo", feedbackQuery(0x149C + slot), FEEDBACK_ANSWER,
+                fields = listOf(ServiceField("Compensación", 0, 2, 0.003052, -100.0, "mg")),
+                note = if (slot == 0) "Al ralentí y caliente es cuando dice algo: un cilindro que pide mucho más o mucho menos que los otros apunta a ese inyector." else "",
+            )
+        }.toTypedArray(),
+        ServiceQuery(
+            "Aceite: temperatura", feedbackQuery(0x0458), FEEDBACK_ANSWER,
+            fields = listOf(ServiceField("Temperatura", 0, 2, 0.01, -100.0, "°C")),
+        ),
+        ServiceQuery(
+            "Aceite: nivel (dibujo del cuadro)", feedbackQuery(0x0454), FEEDBACK_ANSWER,
+            fields = listOf(ServiceField("Código", 0, 1)),
+            note = "Es el dibujo que pondría el cuadro, como código; BMW no da su tabla en este fichero.",
+        ),
+        ServiceQuery(
             "Enfriador de la EGR", "305C01", "705C01",
             fields = (1..4).map { ServiceField("Factor $it", 2 * (it - 1), 2, 1.0 / 8192, signed = true) },
             note = "Factores de eficiencia del enfriador que vigila la centralita.",
@@ -232,32 +273,64 @@ object BmwService {
     fun refusal(response: String, service: String): Int? =
         ObdParser.payloads(response, "7F$service").firstOrNull { it.isNotEmpty() }?.get(0)
 
-    // La prueba del motorventilador (ELU de la tabla STELLER). Los telegramas son los del .prg:
-    // STEUERN_WERT_LESEN manda 30 C7 01, STEUERN_SELECTIV con ELU al 30 % manda 30 C7 07 09 99 y
-    // STEUERN_ENDE_SELECTIV manda 30 C7 00. El mismo trabajo mueve la EGR, las mariposas y el turbo.
+    // Las pruebas de piezas de la tabla STELLER. Los telegramas son los del .prg, iguales para todas:
+    // STEUERN_WERT_LESEN manda 30 <id> 01, STEUERN_SELECTIV manda 30 <id> 07 y el % en dos bytes
+    // (ELU al 30 % es 30 C7 07 09 99, AGR al 20 % es 30 C2 07 06 66) y STEUERN_ENDE_SELECTIV 30 <id> 00.
+    /** El ventilador va primero: si en el coche hace lo esperado, se encienden las demas. */
     const val FAN_TEST_READY = true
+
+    /** EGR, mariposas y turbo: apagadas hasta que la prueba del ventilador salga bien en el coche. */
+    const val ACTUATORS_READY = false
 
     const val FAN_LID = 0xC7
     const val FAN_PERCENT = 30.0
-    const val FAN_HOLD_MS = 5_000L
     private const val PERCENT_PER_BIT = 0.01220703125
 
-    val FAN_READ = "30%02X01".format(FAN_LID)
-    val FAN_RELEASE = "30%02X00".format(FAN_LID)
-    val FAN_ANSWER = "70%02X".format(FAN_LID)
+    val FAN = Actuator("Ventilador", FAN_LID, listOf(FAN_PERCENT), holdMs = 5_000L, feedback = null)
 
-    /** 30 C7 07 y el valor en dos bytes, cortado como ISTA: 30 % son 0999. */
-    fun fanCommand(percent: Double): String = "30%02X07%04X".format(FAN_LID, (percent / PERCENT_PER_BIT).toInt())
+    /**
+     * La EGR, las mariposas y el turbo, del 20 al 80 % y vuelta, con su sensor de posicion (las
+     * medidas "Stellgliedposition" de BMW). El turbo no tiene sensor entre las medidas: solo se oye.
+     */
+    val ACTUATORS = listOf(
+        Actuator("EGR", 0xC2, listOf(20.0, 80.0), feedback = 0x0BB4),
+        Actuator("Mariposas de turbulencia", 0xCE, listOf(20.0, 80.0), feedback = 0x0808),
+        Actuator("Mariposa de admisión", 0xCD, listOf(20.0, 80.0), feedback = 0x0B1F),
+        Actuator("Actuador del turbo", 0xC6, listOf(20.0, 80.0), feedback = null),
+    )
+
+    val FAN_READ = read(FAN_LID)
+    val FAN_RELEASE = release(FAN_LID)
+
+    fun read(lid: Int) = "30%02X01".format(lid)
+    fun release(lid: Int) = "30%02X00".format(lid)
+    fun answer(lid: Int) = "70%02X".format(lid)
+
+    /** 30 <id> 07 y el valor en dos bytes, cortado como ISTA: 30 % son 0999. */
+    fun command(lid: Int, percent: Double): String = "30%02X07%04X".format(lid, (percent / PERCENT_PER_BIT).toInt())
+
+    fun fanCommand(percent: Double): String = command(FAN_LID, percent)
 
     /** El % de un valor en dos bytes de la respuesta, si los trae. */
     fun fanPercent(data: List<Int>): Double? = if (data.size >= 2) (data[0] * 256 + data[1]) * PERCENT_PER_BIT else null
+
+    /** La consulta de la posicion: la misma lectura de medidas de BMW que usa la app. */
+    fun feedbackQuery(id: Int) = "2C10%04X".format(id)
+    const val FEEDBACK_ANSWER = "6C10"
+    const val FEEDBACK_FACTOR = 0.001526
 }
+
+/**
+ * Una pieza de la tabla STELLER: su id, los % a los que se pone, cuanto tiempo cada uno y la medida
+ * que dice donde esta de verdad (null si no hay).
+ */
+class Actuator(val name: String, val lid: Int, val percents: List<Double>, val holdMs: Long = 3_000L, val feedback: Int?)
 
 /** Un paso de la prueba del ventilador: que se mando, que contesto y que significa. */
 class ServiceStep(val label: String, val query: String, val response: String?, val meaning: String)
 
 /**
- * [accepted]: true si la centralita acepto mover el ventilador, false si lo rechazo y null si no
- * contesto. [released]: si acepto devolverle el control.
+ * La prueba de una pieza. [accepted]: true si la centralita acepto moverla, false si lo rechazo y
+ * null si no contesto. [released]: si acepto devolverle el control.
  */
-class FanTest(val steps: List<ServiceStep>, val accepted: Boolean?, val released: Boolean?)
+class FanTest(val name: String, val steps: List<ServiceStep>, val accepted: Boolean?, val released: Boolean?)

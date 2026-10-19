@@ -129,5 +129,5 @@ class ObdViewModel(app: Application) : AndroidViewModel(app) {
 
     fun readService() = controller.readService()
 
-    fun testFan() = controller.testFan()
+    fun testActuator(actuator: com.rabie.bmwobd.obd.Actuator) = controller.testActuator(actuator)
 }

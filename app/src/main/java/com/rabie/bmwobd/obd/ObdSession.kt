@@ -652,7 +652,11 @@ class ObdSession(
 
     /** Las lecturas de servicio de [BmwService.QUERIES], una vez cada una. Solo leen. */
     suspend fun serviceReads(): List<ServiceRead> = withSteadyWait {
-        BmwService.QUERIES.map { BmwService.parse(it, serviceAsk(it.query)) }
+        BmwService.QUERIES.map {
+            // Las medidas de BMW no repiten la direccion: una respuesta tardia se cruzaria con la siguiente.
+            if (it.query.startsWith(BMW_QUERY)) flushLate()
+            BmwService.parse(it, serviceAsk(it.query))
+        }
     }
 
     /** El estado de la regeneracion con la regla de ISTA, de 0404, 05AA y 03EE leidas ahora. */
@@ -664,11 +668,11 @@ class ObdSession(
     }
 
     /**
-     * Mueve el motorventilador al [BmwService.FAN_PERCENT] durante [BmwService.FAN_HOLD_MS] y le
+     * Pone [actuator] en cada uno de sus % el tiempo que toca, mira donde esta si tiene sensor, y le
      * devuelve el control a la centralita. Primero solo pregunta su estado; si eso se rechaza, no
      * sigue. Devolver el control se hace aunque se cancele la tarea, y se repite una vez si no contesta.
      */
-    suspend fun fanTest(): FanTest = withSteadyWait {
+    suspend fun actuatorTest(actuator: Actuator): FanTest = withSteadyWait {
         val steps = ArrayList<ServiceStep>()
         fun step(label: String, query: String, response: String?, accepted: (String) -> Boolean): Boolean? {
             val refused = response?.let { BmwService.refusal(it, "30") }
@@ -682,29 +686,59 @@ class ObdSession(
             steps += ServiceStep(label, query, response?.trim(), meaning)
             return if (refused != null) false else ok?.takeIf { it }
         }
-        fun answered(response: String) = ObdParser.payloads(response, BmwService.FAN_ANSWER).isNotEmpty()
+        fun answered(response: String) = ObdParser.payloads(response, BmwService.answer(actuator.lid)).isNotEmpty()
 
-        val read = serviceAsk(BmwService.FAN_READ)
-        step("Estado del ventilador", BmwService.FAN_READ, read, ::answered)
-        if (read == null || BmwService.refusal(read, "30") != null) return@withSteadyWait FanTest(steps, null, null)
+        // Donde esta la pieza de verdad, si tiene sensor: queda como un paso mas, sin aceptar ni rechazar.
+        suspend fun position(label: String) {
+            val id = actuator.feedback ?: return
+            flushLate()
+            val query = BmwService.feedbackQuery(id)
+            val response = serviceAsk(query)
+            val data = response?.let { ObdParser.payloads(it, BmwService.FEEDBACK_ANSWER).lastOrNull() }
+            val meaning = if (data != null && data.size >= 2) {
+                "posición %.1f %%".format(java.util.Locale.US, (data[0] * 256 + data[1]) * BmwService.FEEDBACK_FACTOR)
+            } else {
+                "sin posición"
+            }
+            steps += ServiceStep(label, query, response?.trim(), meaning)
+        }
 
-        val command = BmwService.fanCommand(BmwService.FAN_PERCENT)
-        val accepted = step("Ventilador al %.0f %%".format(BmwService.FAN_PERCENT), command, serviceAsk(command), ::answered)
+        val readQuery = BmwService.read(actuator.lid)
+        val read = serviceAsk(readQuery)
+        step("Estado", readQuery, read, ::answered)
+        if (read == null || BmwService.refusal(read, "30") != null) return@withSteadyWait FanTest(actuator.name, steps, null, null)
+        position("Posición antes")
+
+        val releaseQuery = BmwService.release(actuator.lid)
+        var accepted: Boolean? = null
+        // Si acepto alguna orden, la pieza esta en manos de la prueba y hay que devolverla.
+        var taken = false
         var released: Boolean? = null
-        if (accepted == true) {
-            try {
-                delay(BmwService.FAN_HOLD_MS)
-            } finally {
+        try {
+            for ((index, percent) in actuator.percents.withIndex()) {
+                val command = BmwService.command(actuator.lid, percent)
+                val ok = step("Al %.0f %%".format(percent), command, serviceAsk(command), ::answered)
+                if (index == 0) accepted = ok
+                if (ok != true) break
+                taken = true
+                delay(actuator.holdMs)
+                position("Posición al %.0f %%".format(percent))
+            }
+        } finally {
+            if (taken) {
                 withContext(NonCancellable) {
-                    released = step("Devolver el control", BmwService.FAN_RELEASE, serviceAsk(BmwService.FAN_RELEASE), ::answered)
+                    released = step("Devolver el control", releaseQuery, serviceAsk(releaseQuery), ::answered)
                     if (released != true) {
-                        released = step("Devolver el control (otra vez)", BmwService.FAN_RELEASE, serviceAsk(BmwService.FAN_RELEASE), ::answered)
+                        released = step("Devolver el control (otra vez)", releaseQuery, serviceAsk(releaseQuery), ::answered)
                     }
                 }
             }
-            step("Estado del ventilador después", BmwService.FAN_READ, serviceAsk(BmwService.FAN_READ), ::answered)
         }
-        FanTest(steps, accepted, released)
+        if (taken) {
+            step("Estado después", readQuery, serviceAsk(readQuery), ::answered)
+            position("Posición después")
+        }
+        FanTest(actuator.name, steps, accepted, released)
     }
 
     /** Una consulta de servicio de BMW; null si no contesta a tiempo. Como las de averias, puede llegar tarde. */
