@@ -122,9 +122,9 @@ class SimulatedTransport(
             bytes.size == 3 && bytes[0] == 0x30 && bytes[1] in STELLER && bytes[2] == 0x01 -> intArrayOf(0x70, bytes[1], 0x01, 0x00, 0x00)
             bytes.size == 5 && bytes[0] == 0x30 && bytes[1] in STELLER && bytes[2] == 0x07 -> intArrayOf(0x70, bytes[1], 0x07, bytes[3], bytes[4])
             bytes.size == 3 && bytes[0] == 0x30 && bytes[1] in STELLER && bytes[2] == 0x00 -> intArrayOf(0x70, bytes[1], 0x00)
-            // El historial de averias: dos codigos y huecos vacios.
+            // El historial de averias: cuantas y, por cada una, codigo y estado.
             bytes.size == 3 && bytes[0] == 0x22 && bytes[1] == 0x21 && bytes[2] == 0x00 ->
-                intArrayOf(0x62, 0x21, 0x00, 0x48, 0x0A, 0x4D, 0x00, 0x00, 0x00, 0x00, 0x00)
+                intArrayOf(0x62, 0x21, 0x00, 0x03, 0x48, 0x0A, 0x11, 0x4D, 0x00, 0x21, 0x48, 0x0A, 0x11)
             // Los servicios: rutinas (31, 32, 33) y los ajustes del ralenti, del turbo y del caudalimetro aceptados con eco.
             bytes.isNotEmpty() && bytes[0] in 0x31..0x33 -> intArrayOf(bytes[0] + 0x40) + bytes.drop(1)
             bytes.size >= 3 && bytes[0] == 0x30 && bytes[1] in setOf(0xB3, 0x7A, 0xF6) -> intArrayOf(0x70) + bytes.drop(1)

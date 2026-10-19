@@ -113,7 +113,14 @@ class BmwServiceTest {
 
     @Test
     fun `el historial de averias`() {
-        assertEquals(listOf(0x480A, 0x4D00), BmwFault.parseHistory(intArrayOf(0x48, 0x0A, 0x4D, 0x00, 0x00, 0x00)))
+        // Lo que dio el coche el 19 de octubre tras 62 21 00: cuantas y, por cada una, codigo y estado.
+        val payload = ("0E 49 33 01 3F F1 01 3F F0 01 4B 10 01 48 1A 11 4D 00 21 40 10 01 4B 11 01 3F 03 01 " +
+            "48 0A 11 48 0A 11 48 0A 11 48 0A 11 48 0A 11").split(' ').map { it.toInt(16) }.toIntArray()
+        val history = BmwFault.parseHistory(payload)
+        assertEquals(14, history.size)
+        assertEquals(listOf(0x4933, 0x3FF1, 0x3FF0, 0x4B10, 0x481A, 0x4D00), history.take(6).map { it.code })
+        assertEquals(5, history.count { it.code == 0x480A })
+        assertEquals(0x21, history.first { it.code == 0x4D00 }.status)
     }
 
     @Test
