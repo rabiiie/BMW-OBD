@@ -138,6 +138,10 @@ object BmwService {
     // mueve la EGR, las mariposas y el turbo, asi que si esto funciona sabemos como se manda lo demas.
     // 07 es "ajuste temporal" y 00 "devuelve el control a la centralita" en KWP2000: creo que son los
     // que usa ISTA, pero la documentacion no da los bytes.
+    // Apagada: en d70n47b0.prg el byte de control del servicio 30 cambia segun el trabajo (00, 07,
+    // 08) y no coincide con el estandar. Hasta sacar del .prg los bytes de STEUERN_SELECTIV no se manda.
+    const val FAN_TEST_READY = false
+
     const val FAN_LID = 0xC7
     const val FAN_PERCENT = 30.0
     const val FAN_HOLD_MS = 5_000L

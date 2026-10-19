@@ -495,7 +495,7 @@ class ObdController(
      * el ventilador unos segundos y le devuelve el control a la centralita.
      */
     fun testFan() {
-        if (!isLive() || _diagnostics.value.busy || !canScan(_state.value.vehicle)) return
+        if (!com.rabie.bmwobd.obd.BmwService.FAN_TEST_READY || !isLive() || _diagnostics.value.busy || !canScan(_state.value.vehicle)) return
         val values = _state.value.values
         if ((values[Pids.RPM] ?: 1.0) >= 1.0 || (values[Pids.SPEED] ?: 1.0) >= 1.0) {
             _diagnostics.update { it.copy(message = "Solo con el motor apagado y el contacto puesto: la app tiene que leer 0 rpm y 0 km/h.") }

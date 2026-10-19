@@ -35,6 +35,7 @@ import com.rabie.bmwobd.DiagnosticsState
 import com.rabie.bmwobd.obd.BmwBattery
 import com.rabie.bmwobd.obd.BmwFault
 import com.rabie.bmwobd.obd.BmwIma
+import com.rabie.bmwobd.obd.BmwService
 import com.rabie.bmwobd.obd.DiagnosticsReport
 import com.rabie.bmwobd.obd.FanTest
 import com.rabie.bmwobd.obd.ServiceRead
@@ -129,8 +130,13 @@ fun DiagnosticsScreen(
             OutlinedButton(onClick = onReadService, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
                 Text("Leer datos de servicio (solo lectura)")
             }
-            OutlinedButton(onClick = { confirmFan = true }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
-                Text("Probar ventilador (motor apagado)", color = Bmw.Accent)
+            // Apagado hasta sacar del d70n47b0.prg los bytes exactos de STEUERN_SELECTIV: en esta
+            // centralita el byte de control del servicio 30 no sigue el estandar.
+            OutlinedButton(onClick = { confirmFan = true }, enabled = BmwService.FAN_TEST_READY && !state.busy, modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    if (BmwService.FAN_TEST_READY) "Probar ventilador (motor apagado)" else "Probar ventilador (pendiente de confirmar la orden)",
+                    color = if (BmwService.FAN_TEST_READY) Bmw.Accent else Bmw.TextDim,
+                )
             }
             state.fanTest?.let { FanTestCard(it) }
             state.service?.let { ServiceCard(it) }
