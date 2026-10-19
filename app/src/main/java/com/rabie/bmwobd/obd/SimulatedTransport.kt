@@ -118,6 +118,12 @@ class SimulatedTransport(
             bytes.size == 3 && bytes[0] == 0x22 && bytes[1] == 0x40 && bytes[2] == 0x23 -> intArrayOf(0x62, 0x40, 0x23) + unhex(BATTERY_2)
             // Los codigos de los inyectores no se han pedido nunca al coche: el simulado los rechaza.
             bytes.size == 3 && bytes[0] == 0x30 && bytes[1] == 0xBB -> intArrayOf(0x7F, 0x30, 0x12)
+            // El motorventilador: contesta como creemos que lo hace la centralita, con el eco y el valor.
+            bytes.size == 3 && bytes[0] == 0x30 && bytes[1] == BmwService.FAN_LID && bytes[2] == 0x01 -> intArrayOf(0x70, bytes[1], 0x01, 0x00, 0x00)
+            bytes.size == 5 && bytes[0] == 0x30 && bytes[1] == BmwService.FAN_LID && bytes[2] == 0x07 -> intArrayOf(0x70, bytes[1], 0x07, bytes[3], bytes[4])
+            bytes.size == 3 && bytes[0] == 0x30 && bytes[1] == BmwService.FAN_LID && bytes[2] == 0x00 -> intArrayOf(0x70, bytes[1], 0x00)
+            // Una correccion guardada sin corregir (8192 = 1,0), para ver la tarjeta de servicio.
+            bytes.size == 3 && bytes[0] == 0x30 && bytes[1] == 0xA4 && bytes[2] == 0x01 -> intArrayOf(0x70, 0xA4, 0x01, 0x20, 0x00)
             // Como la centralita de verdad: a una direccion que no existe contesta, pero sin dato.
             bytes.size == 4 && bytes[0] == 0x2C && bytes[1] == 0x10 ->
                 intArrayOf(0x6C, 0x10) + (SimulatedDde.value(bytes[2] * 256 + bytes[3], engine()) ?: IntArray(0))

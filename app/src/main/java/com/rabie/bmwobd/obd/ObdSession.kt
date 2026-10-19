@@ -2,6 +2,9 @@ package com.rabie.bmwobd.obd
 
 import java.io.IOException
 import java.net.SocketTimeoutException
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 
 data class SessionInfo(
     val summary: String,
@@ -645,6 +648,55 @@ class ObdSession(
         val filtered = decode(Pids.bmw(FILTER_FILTERED), readFirst(Pids.bmw(FILTER_FILTERED)))
         val ambient = decode(BAROMETRIC, read(BAROMETRIC))?.let { it * HPA_PER_KPA }
         return FilterSensorCheck(sensor, filtered, ambient, engineRunning = rpm > 0)
+    }
+
+    /** Las lecturas de servicio de [BmwService.QUERIES], una vez cada una. Solo leen. */
+    suspend fun serviceReads(): List<ServiceRead> = withSteadyWait {
+        BmwService.QUERIES.map { BmwService.parse(it, serviceAsk(it.query)) }
+    }
+
+    /**
+     * Mueve el motorventilador al [BmwService.FAN_PERCENT] durante [BmwService.FAN_HOLD_MS] y le
+     * devuelve el control a la centralita. Primero solo pregunta su estado; si eso se rechaza, no
+     * sigue. Devolver el control se hace aunque se cancele la tarea, y se repite una vez si no contesta.
+     */
+    suspend fun fanTest(): FanTest = withSteadyWait {
+        val steps = ArrayList<ServiceStep>()
+        fun step(label: String, query: String, response: String?, accepted: (String) -> Boolean): Boolean? {
+            val refused = response?.let { BmwService.refusal(it, "30") }
+            val ok = response?.let(accepted)
+            val meaning = when {
+                response == null -> "sin respuesta"
+                refused != null -> "rechazado: " + BmwIma.refusalText(refused)
+                ok == true -> "aceptado"
+                else -> "respuesta no esperada"
+            }
+            steps += ServiceStep(label, query, response?.trim(), meaning)
+            return if (refused != null) false else ok?.takeIf { it }
+        }
+        fun answered(response: String) = ObdParser.payloads(response, BmwService.FAN_ANSWER).isNotEmpty()
+
+        val read = serviceAsk(BmwService.FAN_READ)
+        step("Estado del ventilador", BmwService.FAN_READ, read, ::answered)
+        if (read == null || BmwService.refusal(read, "30") != null) return@withSteadyWait FanTest(steps, null, null)
+
+        val command = BmwService.fanCommand(BmwService.FAN_PERCENT)
+        val accepted = step("Ventilador al %.0f %%".format(BmwService.FAN_PERCENT), command, serviceAsk(command), ::answered)
+        var released: Boolean? = null
+        if (accepted == true) {
+            try {
+                delay(BmwService.FAN_HOLD_MS)
+            } finally {
+                withContext(NonCancellable) {
+                    released = step("Devolver el control", BmwService.FAN_RELEASE, serviceAsk(BmwService.FAN_RELEASE), ::answered)
+                    if (released != true) {
+                        released = step("Devolver el control (otra vez)", BmwService.FAN_RELEASE, serviceAsk(BmwService.FAN_RELEASE), ::answered)
+                    }
+                }
+            }
+            step("Estado del ventilador después", BmwService.FAN_READ, serviceAsk(BmwService.FAN_READ), ::answered)
+        }
+        FanTest(steps, accepted, released)
     }
 
     /** Una consulta de servicio de BMW; null si no contesta a tiempo. Como las de averias, puede llegar tarde. */

@@ -98,6 +98,10 @@ data class DiagnosticsState(
     val tests: List<MonitorTest>? = null,
     /** La bateria y los codigos de los inyectores de un BMW, leidos al conectar. */
     val car: com.rabie.bmwobd.obd.BmwCarInfo? = null,
+    /** Las ultimas lecturas de servicio pedidas. */
+    val service: List<com.rabie.bmwobd.obd.ServiceRead>? = null,
+    /** La ultima prueba del ventilador. */
+    val fanTest: com.rabie.bmwobd.obd.FanTest? = null,
 )
 
 /** [finished] cuenta los sondeos terminados, para que la pantalla sepa cuando acaba uno. */
@@ -461,6 +465,63 @@ class ObdController(
                         file.writeText((listOf(owner, "## Centralitas guardadas de la conexión del $stamp") + answered).joinToString("\n"))
                     }
                 }
+            }
+        }
+    }
+
+    /** Las lecturas de servicio de la centralita del motor de BMW. Solo leen; todo queda en el registro. */
+    fun readService() {
+        if (!isLive() || _diagnostics.value.busy || !canScan(_state.value.vehicle)) return
+        _diagnostics.update { it.copy(busy = true, message = null) }
+        tasks.trySend { session ->
+            logBuffer.pin()
+            appendLog("## Lecturas de servicio: inicio")
+            try {
+                val reads = session.serviceReads()
+                for (read in reads) appendLog("## Servicio: ${read.query.name} (${read.query.query}): ${read.status}")
+                _diagnostics.update { it.copy(busy = false, service = reads) }
+            } catch (e: IOException) {
+                appendLog("!! ${e.message}")
+                _diagnostics.update { it.copy(busy = false, message = "El adaptador no ha contestado.") }
+            } finally {
+                appendLog("## Lecturas de servicio: fin")
+                logBuffer.unpin()
+            }
+        }
+    }
+
+    /**
+     * Prueba del motorventilador: solo con el motor apagado (0 rpm leidas) y el coche parado. Mueve
+     * el ventilador unos segundos y le devuelve el control a la centralita.
+     */
+    fun testFan() {
+        if (!isLive() || _diagnostics.value.busy || !canScan(_state.value.vehicle)) return
+        val values = _state.value.values
+        if ((values[Pids.RPM] ?: 1.0) >= 1.0 || (values[Pids.SPEED] ?: 1.0) >= 1.0) {
+            _diagnostics.update { it.copy(message = "Solo con el motor apagado y el contacto puesto: la app tiene que leer 0 rpm y 0 km/h.") }
+            return
+        }
+        _diagnostics.update { it.copy(busy = true, message = null) }
+        tasks.trySend { session ->
+            logBuffer.pin()
+            appendLog("## Prueba del ventilador: inicio")
+            try {
+                val test = session.fanTest()
+                for (step in test.steps) appendLog("## Ventilador: ${step.label}: ${step.query} -> ${step.response ?: "-"} (${step.meaning})")
+                val text = when {
+                    test.accepted == true && test.released == true -> "La centralita ha aceptado mover el ventilador y ha recuperado el control. ¿Has oído o visto el ventilador?"
+                    test.accepted == true -> "La centralita ha aceptado mover el ventilador, pero no ha confirmado que recupera el control. Quita el contacto para que lo recupere."
+                    test.accepted == false -> "La centralita no ha aceptado mover el ventilador. El motivo está abajo."
+                    else -> "No se ha llegado a mover: mira abajo qué ha contestado."
+                }
+                appendLog("## Prueba del ventilador: $text")
+                _diagnostics.update { it.copy(busy = false, fanTest = test, message = text) }
+            } catch (e: IOException) {
+                appendLog("!! ${e.message}")
+                _diagnostics.update { it.copy(busy = false, message = "El adaptador no ha contestado. Si el ventilador sigue girando, quita el contacto.") }
+            } finally {
+                appendLog("## Prueba del ventilador: fin")
+                logBuffer.unpin()
             }
         }
     }

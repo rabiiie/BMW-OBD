@@ -36,6 +36,8 @@ import com.rabie.bmwobd.obd.BmwBattery
 import com.rabie.bmwobd.obd.BmwFault
 import com.rabie.bmwobd.obd.BmwIma
 import com.rabie.bmwobd.obd.DiagnosticsReport
+import com.rabie.bmwobd.obd.FanTest
+import com.rabie.bmwobd.obd.ServiceRead
 import com.rabie.bmwobd.obd.FaultSnapshot
 import com.rabie.bmwobd.obd.Dtcs
 import com.rabie.bmwobd.obd.FilterSensorCheck
@@ -53,10 +55,14 @@ fun DiagnosticsScreen(
     onReadTests: () -> Unit,
     onClear: () -> Unit,
     onClearFilter: () -> Unit = {},
+    onReadService: () -> Unit = {},
+    onTestFan: () -> Unit = {},
+    bmwService: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     var confirmClear by remember { mutableStateOf(false) }
     var confirmFilter by remember { mutableStateOf(false) }
+    var confirmFan by remember { mutableStateOf(false) }
 
     Column(
         modifier = modifier
@@ -117,6 +123,40 @@ fun DiagnosticsScreen(
             Report(report, vehicleTerms)
         }
         state.tests?.takeIf { it.isNotEmpty() }?.let { Tests(it) }
+
+        if (bmwService) {
+            Label("Servicio (como ISTA)", color = Bmw.Text)
+            OutlinedButton(onClick = onReadService, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
+                Text("Leer datos de servicio (solo lectura)")
+            }
+            OutlinedButton(onClick = { confirmFan = true }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
+                Text("Probar ventilador (motor apagado)", color = Bmw.Accent)
+            }
+            state.fanTest?.let { FanTestCard(it) }
+            state.service?.let { ServiceCard(it) }
+        }
+    }
+
+    if (confirmFan) {
+        AlertDialog(
+            onDismissRequest = { confirmFan = false },
+            title = { Text("¿Probar el ventilador?") },
+            text = {
+                Text(
+                    "Con el contacto puesto y el motor apagado. La app pide a la centralita el ventilador al 30 % " +
+                        "durante 5 segundos y luego le devuelve el control. Es la misma orden que mueve la EGR, las mariposas " +
+                        "y el turbo: si funciona, sabremos cómo se manda. Mantente lejos del ventilador. " +
+                        "Si se quedara girando, quita el contacto.",
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmFan = false
+                    onTestFan()
+                }) { Text("Probar", color = Bmw.Accent) }
+            },
+            dismissButton = { TextButton(onClick = { confirmFan = false }) { Text("Cancelar") } },
+        )
     }
 
     if (confirmFilter) {
@@ -380,7 +420,41 @@ private fun ImaCard(ima: BmwIma) {
     }
 }
 
-private fun thousands(value: Int) = String.format(java.util.Locale.US, "%,d", value).replace(',', '.')
+/** Cada paso de la prueba del ventilador: lo que se mando, lo que contesto y que significa. */
+@Composable
+private fun FanTestCard(test: FanTest) {
+    Card {
+        Label("Prueba del ventilador")
+        for (step in test.steps) {
+            Text("${step.label}: ${step.meaning}", color = Bmw.Text, fontSize = 14.sp, modifier = Modifier.padding(top = 4.dp))
+            Text("${step.query} → ${step.response ?: "-"}", color = Bmw.TextDim, fontFamily = FontFamily.Monospace, fontSize = 12.sp)
+        }
+    }
+}
+
+/**
+ * Las lecturas de servicio. Siempre va la respuesta tal cual; el valor y los bits solo cuando la
+ * tabla de BMW dice como leerlos, con la nota de lo que no esta comprobado.
+ */
+@Composable
+private fun ServiceCard(reads: List<ServiceRead>) {
+    Card {
+        Label("Datos de servicio")
+        Text("Solo lectura. Lo que no está comprobado con el coche lo dice su nota.", color = Bmw.TextDim, fontSize = 13.sp)
+        for (read in reads) {
+            Text(read.query.name, color = Bmw.Text, fontSize = 14.sp, modifier = Modifier.padding(top = 8.dp))
+            read.valueText?.let { Text("Valor: $it", color = Bmw.Accent, fontSize = 14.sp) }
+            if (read.data != null && read.query.bits.isNotEmpty()) {
+                val bits = read.activeBits
+                Text("Bits: " + (if (bits.isEmpty()) "ninguno a 1" else bits.joinToString(", ")), color = Bmw.Text, fontSize = 13.sp)
+            }
+            Text(read.status, color = Bmw.TextDim, fontFamily = FontFamily.Monospace, fontSize = 12.sp)
+            if (read.query.note.isNotEmpty()) Text(read.query.note, color = Bmw.TextDim, fontSize = 12.sp)
+        }
+    }
+}
+
+private fun thousands(value: Int) =String.format(java.util.Locale.US, "%,d", value).replace(',', '.')
 
 /**
  * Las autocomprobaciones del coche. Es lo que lee una estacion de ITV por el conector: testigo,
