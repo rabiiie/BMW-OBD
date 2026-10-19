@@ -290,4 +290,18 @@ class AdvisorTest {
         assertEquals(Severity.ALERT, findings.single().advice.severity)
         assertEquals(55L, findings.single().seconds)
     }
+    @Test
+    fun `la EGR solo avisa en modo normal, no regenerando ni en proteccion`() {
+        // EGR mandada al 20 % y el coche dandola cerrada: error -100 %.
+        val cruising = mapOf(
+            Pids.RPM to 2000.0, Pids.SPEED to 100.0, Pids.COOLANT to 90.0, Pids.LOAD to 40.0,
+            Moment.EGR_COMMANDED to 20.0, Moment.EGR_ERROR to -100.0,
+        )
+        val normal = cruising + (Pids.BMW_ENGINE_MODE to Pids.MODE_NORMAL.toDouble()) + (Pids.BMW_REGEN_REQUEST to 0.0)
+        assertEquals(Severity.WARN, hold(normal, 20).find("egr")?.severity)
+        assertNull(hold(cruising + (Pids.BMW_ENGINE_MODE to Pids.MODE_PROTECTION.toDouble()) + (Pids.BMW_REGEN_REQUEST to 7.0), 20).find("egr"))
+        assertNull(hold(cruising + (Pids.BMW_ENGINE_MODE to Pids.MODE_REGENERATING.toDouble()) + (Pids.BMW_REGEN_REQUEST to 5.0), 20).find("egr"))
+        // En pausa dentro de la regeneracion tampoco: la peticion sigue en 5.
+        assertNull(hold(normal + (Pids.BMW_REGEN_REQUEST to 5.0), 20).find("egr"))
+    }
 }

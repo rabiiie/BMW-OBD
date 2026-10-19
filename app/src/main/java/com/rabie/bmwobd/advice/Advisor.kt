@@ -671,6 +671,12 @@ class Advisor {
                 // Con la EGR mandada cerrada el coche da el error como -100 %: no significa nada.
                 val commanded = m.values[Moment.EGR_COMMANDED] ?: return@Rule null
                 if (commanded < Limits.EGR_MIN_COMMANDED) return@Rule null
+                // Regenerando o en proteccion la centralita lleva la EGR a su manera (la cierra para
+                // calentar el escape) y el error del OBD no lo refleja: en los trayectos de octubre el
+                // error pasaba del 15 % el 4,8 % del tiempo en modo normal y el 13,4 % en proteccion.
+                val mode = m.values[Pids.BMW_ENGINE_MODE]?.toLong()?.toInt()
+                if (mode == Pids.MODE_REGENERATING || mode == Pids.MODE_PROTECTION) return@Rule null
+                if ((m.values[Pids.BMW_REGEN_REQUEST] ?: 0.0) >= Pids.BMW_REGEN_RUNNING) return@Rule null
                 if (!m.warm || kotlin.math.abs(error) < Limits.EGR_ERROR_WARN) return@Rule null
                 Advice(
                     "egr", Severity.WARN, "La EGR no sigue lo que se le pide",
