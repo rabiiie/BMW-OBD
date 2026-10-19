@@ -550,7 +550,14 @@ class ObdSession(
         }
         if (!bmw) return report
         val faults = bmwFaults()
-        return report.copy(bmwFaults = faults, bmwInfo = bmwInfo(), bmwFaultKm = faults.orEmpty().mapNotNull { fault -> faultKm(fault.code)?.let { fault.code to it } }.toMap())
+        // Un solo detalle por averia: de el salen el kilometraje y las condiciones de entorno.
+        val details = faults.orEmpty().mapNotNull { fault -> faultDetail(fault.code)?.let { fault.code to it } }.toMap()
+        return report.copy(
+            bmwFaults = faults,
+            bmwInfo = bmwInfo(),
+            bmwFaultKm = details.mapNotNull { (code, payload) -> BmwFault.detailKm(payload, code)?.let { code to it } }.toMap(),
+            bmwFaultShots = details.mapValues { (code, payload) -> FaultEnvironment.snapshots(payload, code) }.filterValues { it.isNotEmpty() },
+        )
     }
 
     /**
@@ -575,7 +582,7 @@ class ObdSession(
 
     private suspend fun bmwInfo(): List<BmwFault>? = bmwAsk(BmwFault.INFO_QUERY, BmwFault.INFO_ANSWER)?.let(BmwFault::parse)
 
-    private suspend fun faultKm(code: Int): Int? = bmwAsk(BmwFault.detailQuery(code), BmwFault.DETAIL_ANSWER)?.let { BmwFault.detailKm(it, code) }
+    private suspend fun faultDetail(code: Int): IntArray? = bmwAsk(BmwFault.detailQuery(code), BmwFault.DETAIL_ANSWER)
 
     /** Una consulta de la memoria de averias de BMW. Si no contesta a tiempo, su respuesta podria llegar tarde y cruzarse. */
     private suspend fun bmwAsk(query: String, answer: String): IntArray? = try {

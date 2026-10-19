@@ -36,6 +36,7 @@ import com.rabie.bmwobd.obd.BmwBattery
 import com.rabie.bmwobd.obd.BmwFault
 import com.rabie.bmwobd.obd.BmwIma
 import com.rabie.bmwobd.obd.DiagnosticsReport
+import com.rabie.bmwobd.obd.FaultSnapshot
 import com.rabie.bmwobd.obd.Dtcs
 import com.rabie.bmwobd.obd.FilterSensorCheck
 import com.rabie.bmwobd.obd.Mode06
@@ -183,7 +184,7 @@ private fun Report(report: DiagnosticsReport, vehicleTerms: String) {
     if (listOfNotNull(report.stored, report.pending, report.permanent).any { it.isNotEmpty() }) {
         Text("Toca un código para buscarlo en internet con los datos de este coche.", color = Bmw.TextDim, fontSize = 12.sp)
     }
-    report.bmwFaults?.let { BmwFaultsCard(it, report.bmwFaultKm, vehicleTerms) }
+    report.bmwFaults?.let { BmwFaultsCard(it, report.bmwFaultKm, report.bmwFaultShots, vehicleTerms) }
     report.bmwInfo?.let { BmwInfoCard(it) }
 
     if (report.freezeDtc != null) {
@@ -216,7 +217,7 @@ private fun Report(report: DiagnosticsReport, vehicleTerms: String) {
  * no las borra; el boton de borrar solo borra las del OBD estandar.
  */
 @Composable
-private fun BmwFaultsCard(faults: List<BmwFault>, kms: Map<Int, Int>, vehicleTerms: String) {
+private fun BmwFaultsCard(faults: List<BmwFault>, kms: Map<Int, Int>, shots: Map<Int, List<FaultSnapshot>>, vehicleTerms: String) {
     val context = LocalContext.current
     Card {
         Label("En la memoria propia de BMW")
@@ -247,6 +248,31 @@ private fun BmwFaultsCard(faults: List<BmwFault>, kms: Map<Int, Int>, vehicleTer
                     color = Bmw.TextDim,
                     fontSize = 13.sp,
                 )
+            }
+            shots[fault.code]?.let { FaultShots(it) }
+        }
+    }
+}
+
+/** Las condiciones de la primera y la ultima vez, plegadas: son veinticuatro valores por foto. */
+@Composable
+private fun FaultShots(shots: List<FaultSnapshot>) {
+    var open by remember { mutableStateOf(false) }
+    TextButton(onClick = { open = !open }) {
+        Text(if (open) "Ocultar cómo estaba el motor" else "Ver cómo estaba el motor (${shots.size} fotos)", color = Bmw.Accent, fontSize = 13.sp)
+    }
+    if (!open) return
+    shots.forEachIndexed { index, shot ->
+        val title = when {
+            shots.size == 1 -> "Al apuntarse"
+            index == 0 -> "La primera vez"
+            else -> "La última vez"
+        }
+        Text(title + (shot.km?.let { " · ${thousands(it)} km" } ?: ""), color = Bmw.Text, fontSize = 14.sp, modifier = Modifier.padding(top = 6.dp))
+        for (value in shot.values) {
+            Row {
+                Text(value.name + if (value.translated) "" else " (texto de BMW)", color = Bmw.TextDim, fontSize = 12.sp, modifier = Modifier.weight(1f))
+                Text(value.text, color = Bmw.Text, fontSize = 12.sp)
             }
         }
     }
