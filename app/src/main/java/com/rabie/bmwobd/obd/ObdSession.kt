@@ -655,6 +655,14 @@ class ObdSession(
         BmwService.QUERIES.map { BmwService.parse(it, serviceAsk(it.query)) }
     }
 
+    /** El estado de la regeneracion con la regla de ISTA, de 0404, 05AA y 03EE leidas ahora. */
+    suspend fun istaRegen(): IstaRegen? {
+        fun decode(id: Int, data: IntArray?) = data?.let { Pids.byId[id]?.decodeOrNull(it) }
+        val ids = listOf(Pids.BMW_REGEN_REQUEST, Pids.BMW_ENGINE_MODE, Pids.bmw(REGEN_LOCK))
+        val (request, mode, lock) = ids.map { decode(it, readFirst(it)) }
+        return IstaRegen.of(request, mode, lock)
+    }
+
     /**
      * Mueve el motorventilador al [BmwService.FAN_PERCENT] durante [BmwService.FAN_HOLD_MS] y le
      * devuelve el control a la centralita. Primero solo pregunta su estado; si eso se rechaza, no
@@ -842,6 +850,7 @@ class ObdSession(
         const val BMW_IDENT = "1A80"
         const val FILTER_SENSOR = 0x043B
         const val FILTER_FILTERED = 0x0432
+        const val REGEN_LOCK = 0x03EE
         const val BAROMETRIC = 0x33
         const val HPA_PER_KPA = 10.0
 

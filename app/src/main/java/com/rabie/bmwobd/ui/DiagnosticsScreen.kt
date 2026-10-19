@@ -38,6 +38,7 @@ import com.rabie.bmwobd.obd.BmwIma
 import com.rabie.bmwobd.obd.BmwService
 import com.rabie.bmwobd.obd.DiagnosticsReport
 import com.rabie.bmwobd.obd.FanTest
+import com.rabie.bmwobd.obd.IstaRegen
 import com.rabie.bmwobd.obd.ServiceRead
 import com.rabie.bmwobd.obd.FaultSnapshot
 import com.rabie.bmwobd.obd.Dtcs
@@ -130,8 +131,7 @@ fun DiagnosticsScreen(
             OutlinedButton(onClick = onReadService, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
                 Text("Leer datos de servicio (solo lectura)")
             }
-            // Apagado hasta sacar del d70n47b0.prg los bytes exactos de STEUERN_SELECTIV: en esta
-            // centralita el byte de control del servicio 30 no sigue el estandar.
+            // Se puede apagar con BmwService.FAN_TEST_READY si la orden diera problemas.
             OutlinedButton(onClick = { confirmFan = true }, enabled = BmwService.FAN_TEST_READY && !state.busy, modifier = Modifier.fillMaxWidth()) {
                 Text(
                     if (BmwService.FAN_TEST_READY) "Probar ventilador (motor apagado)" else "Probar ventilador (pendiente de confirmar la orden)",
@@ -139,6 +139,7 @@ fun DiagnosticsScreen(
                 )
             }
             state.fanTest?.let { FanTestCard(it) }
+            state.istaRegen?.let { IstaRegenCard(it) }
             state.service?.let { ServiceCard(it) }
         }
     }
@@ -426,6 +427,26 @@ private fun ImaCard(ima: BmwIma) {
     }
 }
 
+/** El estado de la regeneracion con la regla de ISTA, para compararlo con lo que dice la app. */
+@Composable
+private fun IstaRegenCard(regen: IstaRegen) {
+    Card {
+        Label("Regeneración según ISTA")
+        for ((name, on) in listOf("Pedida" to regen.requested, "En marcha" to regen.running, "Bloqueada" to regen.locked)) {
+            Row {
+                Text(name, color = Bmw.Text, modifier = Modifier.weight(1f))
+                Text(if (on) "sí" else "no", color = if (on) Bmw.Accent else Bmw.TextDim)
+            }
+        }
+        Text(
+            "ISTA cuenta como pedida la petición 4, 5 o 6, y como en marcha cualquier modo del motor que acabe en 2, " +
+                "también el de protección (0x00210002). Bloqueada es la medida 03EE distinta de 0.",
+            color = Bmw.TextDim,
+            fontSize = 12.sp,
+        )
+    }
+}
+
 /** Cada paso de la prueba del ventilador: lo que se mando, lo que contesto y que significa. */
 @Composable
 private fun FanTestCard(test: FanTest) {
@@ -446,10 +467,16 @@ private fun FanTestCard(test: FanTest) {
 private fun ServiceCard(reads: List<ServiceRead>) {
     Card {
         Label("Datos de servicio")
-        Text("Solo lectura. Lo que no está comprobado con el coche lo dice su nota.", color = Bmw.TextDim, fontSize = 13.sp)
+        Text("Solo lectura, con los mismos telegramas que ISTA.", color = Bmw.TextDim, fontSize = 13.sp)
         for (read in reads) {
             Text(read.query.name, color = Bmw.Text, fontSize = 14.sp, modifier = Modifier.padding(top = 8.dp))
             read.valueText?.let { Text("Valor: $it", color = Bmw.Accent, fontSize = 14.sp) }
+            for ((name, value) in read.fieldTexts) {
+                Row {
+                    Text(name, color = Bmw.TextDim, fontSize = 12.sp, modifier = Modifier.weight(1f))
+                    Text(value, color = Bmw.Text, fontSize = 12.sp)
+                }
+            }
             if (read.data != null && read.query.bits.isNotEmpty()) {
                 val bits = read.activeBits
                 Text("Bits: " + (if (bits.isEmpty()) "ninguno a 1" else bits.joinToString(", ")), color = Bmw.Text, fontSize = 13.sp)

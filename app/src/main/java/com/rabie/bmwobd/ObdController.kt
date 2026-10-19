@@ -100,6 +100,8 @@ data class DiagnosticsState(
     val car: com.rabie.bmwobd.obd.BmwCarInfo? = null,
     /** Las ultimas lecturas de servicio pedidas. */
     val service: List<com.rabie.bmwobd.obd.ServiceRead>? = null,
+    /** El estado de la regeneracion con la regla de ISTA, leido junto a las de servicio. */
+    val istaRegen: com.rabie.bmwobd.obd.IstaRegen? = null,
     /** La ultima prueba del ventilador. */
     val fanTest: com.rabie.bmwobd.obd.FanTest? = null,
 )
@@ -479,7 +481,9 @@ class ObdController(
             try {
                 val reads = session.serviceReads()
                 for (read in reads) appendLog("## Servicio: ${read.query.name} (${read.query.query}): ${read.status}")
-                _diagnostics.update { it.copy(busy = false, service = reads) }
+                val regen = session.istaRegen()
+                appendLog("## Servicio: regeneración según ISTA: " + (regen?.let { r -> listOf("pedida" to r.requested, "en marcha" to r.running, "bloqueada" to r.locked).joinToString(", ") { (k, v) -> "$k " + if (v) "sí" else "no" } } ?: "sin datos"))
+                _diagnostics.update { it.copy(busy = false, service = reads, istaRegen = regen) }
             } catch (e: IOException) {
                 appendLog("!! ${e.message}")
                 _diagnostics.update { it.copy(busy = false, message = "El adaptador no ha contestado.") }

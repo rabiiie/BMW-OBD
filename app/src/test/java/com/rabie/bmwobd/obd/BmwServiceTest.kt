@@ -43,10 +43,39 @@ class BmwServiceTest {
     }
 
     @Test
+    fun `los datos del filtro en las posiciones de CSF_WERTE`() {
+        // Bytes numerados tras el eco, como en la prueba con el .prg: el byte i vale i + 3.
+        val data = (3..70).joinToString(" ") { "%02X".format(it) }
+        val read = BmwService.parse(query("305001"), "70 50 01 $data")
+        val values = read.fieldTexts.toMap()
+        assertEquals("1286 km", values["Km desde el último cambio de filtro"])
+        assertEquals("12594", values["Regeneraciones completas"])
+        assertEquals("13108", values["Regeneraciones pedidas"])
+        assertEquals("1397,5 °C", values["Máxima antes del filtro en regeneración"])
+    }
+
+    @Test
+    fun `la correccion de un inyector lleva signo`() {
+        val read = BmwService.parse(query("305701"), "70 57 01 " + "FF F0 ".repeat(20))
+        assertEquals("-6,4", read.fieldTexts.toMap()["Cilindro 1 a 400 bar"])
+    }
+
+    @Test
+    fun `la regeneracion segun ISTA`() {
+        assertEquals(IstaRegen(requested = true, running = true, locked = false), IstaRegen.of(5.0, 0x02010002.toDouble(), 0.0))
+        assertEquals(IstaRegen(requested = true, running = false, locked = false), IstaRegen.of(5.0, 0x00100001.toDouble(), 0.0))
+        // La proteccion cuenta como en marcha y la peticion 7 no cuenta como pedida.
+        assertEquals(IstaRegen(requested = false, running = true, locked = true), IstaRegen.of(7.0, 0x00210002.toDouble(), 1.0))
+        assertEquals(IstaRegen(requested = false, running = false, locked = false), IstaRegen.of(1.0, 0x80100001.toDouble(), 0.0))
+        assertNull(IstaRegen.of(null, 1.0, 0.0))
+    }
+
+    @Test
     fun `la orden del ventilador al 30 por ciento`() {
-        assertEquals("30C707099A", BmwService.fanCommand(30.0))
+        // Lo que manda STEUERN_SELECTIV del d70n47b0.prg con ELU al 30 %.
+        assertEquals("30C7070999", BmwService.fanCommand(30.0))
         assertEquals("30C701", BmwService.FAN_READ)
         assertEquals("30C700", BmwService.FAN_RELEASE)
-        assertEquals(30.0, BmwService.fanPercent(listOf(0x09, 0x9A))!!, 0.01)
+        assertEquals(30.0, BmwService.fanPercent(listOf(0x09, 0x99))!!, 0.02)
     }
 }

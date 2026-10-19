@@ -4,49 +4,78 @@ import java.util.Locale
 
 /**
  * Lecturas de servicio de la centralita del motor que ISTA hace con sus trabajos de d70n47b0 y la
- * lectura normal no: la codificacion (LESEN_CODIERWERTE, servicio 22 con 3900 y 3901), las
- * correcciones guardadas (tabla ABGLEICH), el aprendizaje de la EGR y de las mariposas de
- * turbulencia (STATUS_OFFSETLERNEN), la correccion de cada inyector (ABGLEICH_NMK_LESEN) y la
- * vigilancia del enfriador de la EGR (ABGLEICH_LESEN_AGRKUEHLER). Todas son de solo lectura: el
- * servicio 22 lee, y el 30 va con 01, "dame el estado actual", que es como la documentacion pide
- * NMK. La documentacion da el identificador y la escala, pero no donde empieza el dato en la
- * respuesta: lo que no esta comprobado con el coche lo dice su nota, y siempre va la respuesta tal cual.
+ * lectura normal no: la codificacion (LESEN_CODIERWERTE), las correcciones guardadas (ABGLEICH_LESEN),
+ * el aprendizaje de la EGR y de las mariposas de turbulencia (STATUS_OFFSETLERNEN), la correccion de
+ * cada inyector (ABGLEICH_NMK_LESEN), la vigilancia del enfriador de la EGR (ABGLEICH_LESEN_AGRKUEHLER)
+ * y los datos del filtro (ABGLEICH_CSF_LESEN).
+ *
+ * Los telegramas y donde va cada valor salen de ejecutar esos trabajos del d70n47b0.prg con EdiabasLib
+ * contra un coche falso (docs/jobtrace): son los mismos bytes que manda ISTA. Todas son de lectura.
  */
 class ServiceQuery(
     val name: String,
     val query: String,
     val answer: String,
-    /** De la tabla de BMW: cuantos bytes ocupa el valor, la escala y la unidad. Null si no se interpreta. */
+    /** Un solo valor al principio de la respuesta: cuantos bytes, la escala y la unidad. */
     val bytes: Int? = null,
     val factor: Double = 1.0,
     val unit: String = "",
-    val signed: Boolean = false,
     val note: String = "",
-    /** Bits con nombre del primer y segundo byte, como DIG_OFFSET_LERNFUNKTIONEN. */
+    /** Bits con nombre: el byte 0 es el penultimo de la respuesta y el 1 el ultimo, como los lee ISTA. */
     val bits: List<Triple<Int, Int, String>> = emptyList(),
+    /** Varios valores en la misma respuesta. */
+    val fields: List<ServiceField> = emptyList(),
 )
+
+/** Un valor dentro de una respuesta: desde que byte tras el eco, cuantos, su escala y si lleva signo. */
+class ServiceField(
+    val name: String,
+    val at: Int,
+    val bytes: Int,
+    val factor: Double = 1.0,
+    val offset: Double = 0.0,
+    val unit: String = "",
+    val signed: Boolean = false,
+) {
+    fun value(data: List<Int>): Double? {
+        if (data.size < at + bytes) return null
+        var v = data.subList(at, at + bytes).fold(0L) { acc, b -> acc * 256 + b }
+        if (signed && v >= 1L shl (8 * bytes - 1)) v -= 1L shl (8 * bytes)
+        return v * factor + offset
+    }
+}
 
 /** Lo que contesto la centralita a una [ServiceQuery]. [data] va sin el eco de la consulta. */
 class ServiceRead(val query: ServiceQuery, val data: List<Int>?, val refusal: Int?) {
 
     val raw: String get() = data?.joinToString(" ") { "%02X".format(it) } ?: ""
 
-    /** El valor con la escala de BMW si la respuesta trae al menos esos bytes. */
+    /** El valor de [ServiceQuery.bytes], con signo como ISTA. */
     val value: Double?
         get() {
             val size = query.bytes ?: return null
-            val d = data?.takeIf { it.size >= size } ?: return null
-            var v = d.take(size).fold(0L) { acc, b -> acc * 256 + b }
-            if (query.signed && v >= 1L shl (8 * size - 1)) v -= 1L shl (8 * size)
-            return v * query.factor
+            return data?.let { ServiceField("", 0, size, query.factor, signed = true).value(it) }
         }
 
     val valueText: String?
-        get() = value?.let { String.format(Locale.US, "%.3f", it).trimEnd('0').trimEnd('.').replace('.', ',') + if (query.unit.isEmpty()) "" else " ${query.unit}" }
+        get() = value?.let { format(it, query.unit, 4) }
+
+    /** Los valores de [ServiceQuery.fields] con su unidad, o vacio si la respuesta no los trae. */
+    val fieldTexts: List<Pair<String, String>>
+        get() {
+            val d = data ?: return emptyList()
+            return query.fields.mapNotNull { f -> f.value(d)?.let { f.name to format(it, f.unit, 2) } }
+        }
+
+    private fun format(v: Double, unit: String, decimals: Int): String =
+        String.format(Locale.US, "%.${decimals}f", v).trimEnd('0').trimEnd('.').replace('.', ',') + if (unit.isEmpty()) "" else " $unit"
 
     /** Los bits con nombre que estan a 1. */
     val activeBits: List<String>
-        get() = query.bits.filter { (byte, mask, _) -> data?.getOrNull(byte)?.let { it and mask != 0 } == true }.map { it.third }
+        get() {
+            val d = data?.takeIf { it.size >= 2 } ?: return emptyList()
+            return query.bits.filter { (byte, mask, _) -> d[d.size - 2 + byte] and mask != 0 }.map { it.third }
+        }
 
     val status: String
         get() = when {
@@ -57,9 +86,29 @@ class ServiceRead(val query: ServiceQuery, val data: List<Int>?, val refusal: In
         }
 }
 
+/**
+ * El estado de la regeneracion como lo da ISTA (STATUS_REGENERATION_CSF), calculado de las mismas
+ * medidas: pedida si 0404 es 4, 5 o 6; en marcha si el byte bajo del modo del motor (05AA) es 2 o
+ * mas, lo que incluye el modo de proteccion 0x00210002; bloqueada si 03EE no es 0. Sacado del .prg
+ * probando todos los valores contra el trabajo.
+ */
+data class IstaRegen(val requested: Boolean, val running: Boolean, val locked: Boolean) {
+    companion object {
+        fun of(request: Double?, mode: Double?, lock: Double?): IstaRegen? {
+            if (request == null || mode == null || lock == null || request.isNaN() || mode.isNaN() || lock.isNaN()) return null
+            return IstaRegen(
+                requested = request.toInt() in 4..6,
+                running = (mode.toLong() and 0xFF) >= 2,
+                locked = lock.toInt() != 0,
+            )
+        }
+    }
+}
+
 object BmwService {
 
     private const val ADJUST = 0.00012207
+    private const val PERCENT = 0.012207
 
     private val OFFSET_BITS = listOf(
         Triple(1, 0x01, "aprendizaje en marcha"),
@@ -74,52 +123,101 @@ object BmwService {
         Triple(0, 0x02, "cable cortado"),
     )
 
-    private const val BITS_NOTE = "Los bits salen de la tabla de BMW, contando el byte 0 como el primero tras el eco; sin comprobar con el coche."
-    private const val FACTOR_NOTE = "Factor de corrección: 1 es sin corregir. El valor toma los primeros bytes tras el eco; si sale cerca de 1, la posición es buena."
+    private val OFFSET_FIELDS = listOf(
+        ServiceField("Valor aprendido, primero", 0, 2, PERCENT, unit = "%", signed = true),
+        ServiceField("Valor aprendido, último", 2, 2, PERCENT, unit = "%", signed = true),
+        ServiceField("Arranques desde el último aprendizaje", 4, 2, signed = true),
+        ServiceField("Estado del aprendizaje (código)", 6, 2, signed = true),
+    )
 
-    private fun adjust(name: String, lid: Int, bytes: Int = 2, factor: Double = ADJUST, unit: String = "", signed: Boolean = false, note: String = FACTOR_NOTE) =
-        ServiceQuery(name, "30%02X01".format(lid), "70%02X01".format(lid), bytes, factor, unit, signed, note)
+    private const val FACTOR_NOTE = "Factor de corrección: 1 es sin corregir."
+
+    private fun adjust(name: String, lid: Int, bytes: Int = 2, factor: Double = ADJUST, unit: String = "", note: String = FACTOR_NOTE) =
+        ServiceQuery(name, "30%02X01".format(lid), "70%02X01".format(lid), bytes, factor, unit, note)
+
+    private fun nmk(): List<ServiceField> {
+        val fields = ArrayList<ServiceField>()
+        listOf(400, 700, 1000).forEachIndexed { i, bar -> fields += ServiceField("Ciclos de aprendizaje a $bar bar", 4 + 2 * i, 2, signed = true) }
+        listOf(400, 700, 1000).forEachIndexed { i, bar ->
+            for (cyl in 1..4) fields += ServiceField("Cilindro $cyl a $bar bar", 10 + 8 * i + 2 * (cyl - 1), 2, 0.4, signed = true)
+        }
+        return fields
+    }
+
+    // Las posiciones de la tabla CSF_WERTE de BMW cuentan desde la cabecera: tras el eco es POS - 4.
+    private val FILTER_FIELDS = listOf(
+        ServiceField("Km desde el último cambio de filtro", 2, 2, unit = "km"),
+        ServiceField("Cuentakilómetros en la última regeneración completa", 8, 4, 0.001, unit = "km"),
+        ServiceField("Tiempo para pedir regeneración por contador", 12, 4, 0.01, unit = "s"),
+        ServiceField("Tiempo para pedir regeneración por protección del motor", 16, 4, unit = "s"),
+        ServiceField("Regeneración que faltó en el último ciclo", 20, 4, unit = "s"),
+        ServiceField("Momento de la última regeneración completa", 24, 4, unit = "s"),
+        ServiceField("Tiempo de bloqueo que queda", 36, 4, 0.01, unit = "s"),
+        ServiceField("Hollín (cálculo por tramos)", 40, 2, 0.01, unit = "g"),
+        ServiceField("Hollín (cálculo continuo)", 42, 2, 0.01, unit = "g"),
+        ServiceField("Gasóleo desde la última regeneración", 44, 2, 0.01, unit = "l"),
+        ServiceField("Regeneraciones completas", 46, 2),
+        ServiceField("Regeneraciones pedidas", 48, 2),
+        ServiceField("Regeneración sin terminar (código)", 50, 2),
+        ServiceField("Gasóleo desde el cambio de filtro", 52, 4, 0.01, unit = "l"),
+        ServiceField("Máxima antes del catalizador", 56, 2, 0.1, -273.1, "°C"),
+        ServiceField("Máxima antes del filtro", 58, 2, 0.1, -273.1, "°C"),
+        ServiceField("Máxima antes del catalizador en regeneración", 60, 2, 0.1, -273.1, "°C"),
+        ServiceField("Máxima antes del filtro en regeneración", 62, 2, 0.1, -273.1, "°C"),
+    )
 
     val QUERIES: List<ServiceQuery> = listOf(
         ServiceQuery(
+            "Datos del filtro (los de ISTA)", "305001", "705001",
+            fields = FILTER_FIELDS,
+            note = "Las máximas son las más altas que ha visto la centralita; no sé desde cuándo cuentan.",
+        ),
+        ServiceQuery(
             "Codificación (con límite de tiempo)", "223900", "623900",
-            note = "Según BMW lleva la lámpara de avería, el par en el embrague, el par interno, la velocidad máxima y la clase de potencia, " +
-                "en las posiciones 4 a 8 de su tabla. No sé desde qué byte cuenta: va tal cual.",
+            fields = listOf(
+                ServiceField("Lámpara de avería", 0, 1),
+                ServiceField("Par en el embrague", 1, 1),
+                ServiceField("Par interno", 2, 1),
+                ServiceField("Velocidad máxima", 3, 1),
+                ServiceField("Clase de potencia", 4, 1),
+            ),
+            note = "Son códigos: BMW no dice en este fichero a qué potencia corresponde cada uno.",
         ),
         ServiceQuery(
             "Codificación (sin límite de tiempo)", "223901", "623901",
-            note = "Según BMW: factor del intervalo de aceite, regulación del alternador, indicador de cambio de marcha y arranque y parada. Va tal cual.",
+            fields = listOf(
+                ServiceField("Factor del intervalo de aceite", 0, 2),
+                ServiceField("Regulación del alternador", 10, 1),
+                ServiceField("Indicador de cambio de marcha", 12, 1),
+                ServiceField("Arranque y parada", 13, 1),
+                ServiceField("Corte con el contacto", 14, 1),
+                ServiceField("Tipo de alternador", 15, 1),
+                ServiceField("Ayuda de arranque en cuesta", 16, 1),
+            ),
         ),
-        ServiceQuery(
-            "Aprendizaje de la EGR", "305B01", "705B01",
-            note = BITS_NOTE + " Tras los bits, según BMW: los valores aprendidos en las dos posiciones y los arranques desde el último aprendizaje.",
-            bits = OFFSET_BITS,
-        ),
-        ServiceQuery(
-            "Aprendizaje de las mariposas de turbulencia", "305A01", "705A01",
-            note = BITS_NOTE,
-            bits = OFFSET_BITS,
-        ),
+        ServiceQuery("Aprendizaje de la EGR", "305B01", "705B01", bits = OFFSET_BITS, fields = OFFSET_FIELDS),
+        ServiceQuery("Aprendizaje de las mariposas de turbulencia", "305A01", "705A01", bits = OFFSET_BITS, fields = OFFSET_FIELDS),
         adjust("Corrección de la EGR (normal)", 0xA4),
         adjust("Corrección de la EGR (en regeneración)", 0xE4),
         adjust("Corrección del caudalímetro al ralentí", 0xAE),
         adjust("Corrección del caudalímetro en carga", 0xAF),
-        adjust("Corrección del ralentí", 0xA3, factor = 0.5, unit = "rpm", signed = true, note = "En rpm; con signo (creo)."),
-        adjust("Corrección del par máximo", 0xA2, bytes = 4, factor = 0.012207, unit = "%", note = "Según BMW, en %."),
-        adjust("Corrección del consumo", 0xB0, factor = 0.012207, unit = "%", note = "Según BMW, en %."),
+        adjust("Corrección del ralentí", 0xA3, factor = 0.5, unit = "rpm", note = ""),
+        adjust("Corrección del par máximo", 0xA2, bytes = 4, factor = PERCENT, unit = "%", note = ""),
+        adjust("Corrección del consumo", 0xB0, factor = PERCENT, unit = "%", note = ""),
         adjust("Filtro: corrección de la vida restante", 0x79),
         adjust("Filtro: corrección de la distancia máxima entre regeneraciones", 0xE6),
         adjust("Filtro: corrección del gasóleo entre regeneraciones", 0xE5),
-        adjust("Filtro: tiempo de regeneración", 0xF7, bytes = 4, factor = 0.01, unit = "s", note = "Según BMW, en segundos."),
+        adjust("Filtro: tiempo total de regeneración", 0xF7, bytes = 4, factor = 0.01, unit = "s", note = ""),
         ServiceQuery(
             "Corrección de cada inyector (NMK)", "305701", "705701",
-            note = "Según BMW: contadores de aprendizaje a 400, 700 y 1.000 bar y la corrección del tiempo de inyección de cada cilindro en esos tres puntos. Va tal cual.",
+            fields = nmk(),
+            note = "Corrección del tiempo de inyección de cada cilindro; BMW no da la unidad (creo que µs).",
         ),
         ServiceQuery(
-            "Enfriador de la EGR (5C)", "305C01", "705C01",
-            note = "Según BMW, cuatro factores de eficiencia del enfriador (valor / 8192). No sé cuál de los dos, 5C o 5D, es el de este motor. Va tal cual.",
+            "Enfriador de la EGR", "305C01", "705C01",
+            fields = (1..4).map { ServiceField("Factor $it", 2 * (it - 1), 2, 1.0 / 8192, signed = true) },
+            note = "Factores de eficiencia del enfriador que vigila la centralita.",
         ),
-        ServiceQuery("Enfriador de la EGR (5D)", "305D01", "705D01", note = "Ver 5C."),
     )
 
     /** La respuesta a [query], o null si no contesta. */
@@ -134,13 +232,10 @@ object BmwService {
     fun refusal(response: String, service: String): Int? =
         ObdParser.payloads(response, "7F$service").firstOrNull { it.isNotEmpty() }?.get(0)
 
-    // La prueba del motorventilador (ELU de la tabla STELLER): el mismo trabajo, STEUERN_SELECTIV,
-    // mueve la EGR, las mariposas y el turbo, asi que si esto funciona sabemos como se manda lo demas.
-    // 07 es "ajuste temporal" y 00 "devuelve el control a la centralita" en KWP2000: creo que son los
-    // que usa ISTA, pero la documentacion no da los bytes.
-    // Apagada: en d70n47b0.prg el byte de control del servicio 30 cambia segun el trabajo (00, 07,
-    // 08) y no coincide con el estandar. Hasta sacar del .prg los bytes de STEUERN_SELECTIV no se manda.
-    const val FAN_TEST_READY = false
+    // La prueba del motorventilador (ELU de la tabla STELLER). Los telegramas son los del .prg:
+    // STEUERN_WERT_LESEN manda 30 C7 01, STEUERN_SELECTIV con ELU al 30 % manda 30 C7 07 09 99 y
+    // STEUERN_ENDE_SELECTIV manda 30 C7 00. El mismo trabajo mueve la EGR, las mariposas y el turbo.
+    const val FAN_TEST_READY = true
 
     const val FAN_LID = 0xC7
     const val FAN_PERCENT = 30.0
@@ -151,8 +246,8 @@ object BmwService {
     val FAN_RELEASE = "30%02X00".format(FAN_LID)
     val FAN_ANSWER = "70%02X".format(FAN_LID)
 
-    /** 30 C7 07 y el valor en dos bytes: 30 % son 099A. */
-    fun fanCommand(percent: Double): String = "30%02X07%04X".format(FAN_LID, Math.round(percent / PERCENT_PER_BIT))
+    /** 30 C7 07 y el valor en dos bytes, cortado como ISTA: 30 % son 0999. */
+    fun fanCommand(percent: Double): String = "30%02X07%04X".format(FAN_LID, (percent / PERCENT_PER_BIT).toInt())
 
     /** El % de un valor en dos bytes de la respuesta, si los trae. */
     fun fanPercent(data: List<Int>): Double? = if (data.size >= 2) (data[0] * 256 + data[1]) * PERCENT_PER_BIT else null
