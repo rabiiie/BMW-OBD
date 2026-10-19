@@ -53,7 +53,8 @@ object FaultEnvironment {
         val stream = FaultEnvironment::class.java.getResourceAsStream(FILE)
         stream?.bufferedReader(Charsets.UTF_8)?.useLines { lines ->
             for (line in lines) {
-                val c = line.split('\t')
+                // Con git en Windows el fichero puede llegar con fin de linea \r\n.
+                val c = line.trimEnd('\r').split('\t')
                 when (c.firstOrNull()) {
                     "U" -> if (c.size >= 8) {
                         measures[c[1].toInt(16)] = Measure(c[2].toInt(), c[3].toDouble(), c[4].toDouble(), c[5], c[6], c[7] == "1")
