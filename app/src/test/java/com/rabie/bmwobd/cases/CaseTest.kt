@@ -63,6 +63,16 @@ class CaseTest {
     }
 
     @Test
+    fun `con el caso de potencia el par se lee en todas las vueltas`() {
+        val turns = Turns(base, Pids.bmwCases)
+        turns.use(Case.POWER)
+        val torque = Pids.bmw(0x07D1)
+        assertTrue(turns.ids(50).all { turn -> torque in turn })
+        val card = CaseCards.card(Case.POWER, mapOf(torque to 300.0, Pids.RPM to 3000.0))!!
+        assertEquals("300 Nm a 3.000 rpm: unos 128 CV ahora.", card.headline)
+    }
+
+    @Test
     fun `al quitar el caso se dejan de pedir sus medidas y durante un barrido espera`() {
         val turns = Turns(base, Pids.bmwCases)
         turns.use(Case.FILTER)

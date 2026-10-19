@@ -16,8 +16,9 @@ enum class Case(val title: String, val watch: List<Int>, val also: List<Int>) {
     NORMAL("Normal", emptyList(), emptyList()),
     FILTER(
         "Filtro de partículas",
-        // 03EC, la interrupcion de la regeneracion, va con las de cada vuelta: dice segundo a segundo
-        // por que se pausa (visto 4 al pisar fuerte o soltar, 0 calentando, 2 antes de un corte).
+        // 03EC, la interrupcion de la regeneracion, va con las vigiladas: dice por que se pausa (2 con
+        // la temperatura alcanzada, 4 y 6 al pisar fuerte o soltar, 0 calentando). Con once vigiladas
+        // y una por vuelta, cada una se repite cada ~7 s.
         watch = listOf(0x0404, 0x05AA, 0x03EC, 0x03EA, 0x03ED, 0x03F1, 0x0424, 0x0C83, 0x0420, 0x041E, 0x0434).map(Pids::bmw),
         also = listOf(0x0405, 0x0408, 0x03EE, 0x03DE, 0x03E0, 0x0426, 0x0432, 0x043B, 0x0C81).map(Pids::bmw),
     ),
@@ -49,6 +50,13 @@ enum class Case(val title: String, val watch: List<Int>, val also: List<Int>) {
         "Conducción",
         watch = listOf(0x0EA6, 0x07D1, 0x0DE3, 0x0DE2, 0x0500).map(Pids::bmw),
         also = listOf(0x0578, 0x0579, 0x1036, 0x0DDF, 0x106B, 0x0F0A, 0x1068, 0x05D3).map(Pids::bmw),
+    ),
+    POWER(
+        "Potencia",
+        // Solo el par en la lista de cada vuelta: con mas medidas cada una tardaria varias vueltas
+        // en repetirse, y para la curva de potencia hace falta el par al mismo tiempo que las vueltas.
+        watch = listOf(0x07D1).map(Pids::bmw),
+        also = listOf(0x0500, 0x0578, 0x1036).map(Pids::bmw),
     ),
     ELECTRIC(
         "Eléctrico",
@@ -122,6 +130,23 @@ object CaseCards {
         Case.COLD_START -> coldStart(values)
         Case.DRIVING -> driving(values)
         Case.ELECTRIC -> electric(values)
+        Case.POWER -> power(values)
+    }
+
+    /** Par y potencia de ahora, con el par que calcula la centralita; para la curva, una aceleracion a fondo en 3ª. */
+    private fun power(values: Map<Int, Double>): HealthCard {
+        val torque = values[TORQUE]
+        val rpm = values[Pids.RPM]
+        if (torque == null || rpm == null) {
+            return HealthCard(HealthSystem.DRIVING, HealthLevel.UNKNOWN, "Esperando el par y las vueltas.", emptyList())
+        }
+        val horsepower = if (torque > 0) torque * rpm / RPM_NM_PER_KW * HP_PER_KW else 0.0
+        return HealthCard(
+            HealthSystem.DRIVING, HealthLevel.OK,
+            "${n(torque)} Nm a ${thousands(rpm)} rpm: unos ${n(horsepower)} CV ahora.",
+            listOfNotNull(values[Pids.BMW_INJECTION]?.let { "Inyecta ${n(it, 1)} mg por embolada." }),
+            "Para la curva: en 3ª, a fondo desde 1500 hasta 4500 rpm, en un sitio donde se pueda. El par es el que calcula la centralita.",
+        )
     }
 
     /**
