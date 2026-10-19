@@ -558,6 +558,7 @@ class ObdSession(
         return report.copy(
             bmwFaults = faults,
             bmwInfo = bmwInfo(),
+            bmwHistory = bmwAsk(BmwFault.HISTORY_QUERY, BmwFault.HISTORY_ANSWER)?.let(BmwFault::parseHistory),
             bmwFaultKm = details.mapNotNull { (code, payload) -> BmwFault.detailKm(payload, code)?.let { code to it } }.toMap(),
             bmwFaultShots = details.mapValues { (code, payload) -> FaultEnvironment.snapshots(payload, code) }.filterValues { it.isNotEmpty() },
         )
@@ -696,9 +697,10 @@ class ObdSession(
             val response = serviceAsk(query)
             val data = response?.let { ObdParser.payloads(it, BmwService.FEEDBACK_ANSWER).lastOrNull() }
             val meaning = if (data != null && data.size >= 2) {
-                "posición %.1f %%".format(java.util.Locale.US, (data[0] * 256 + data[1]) * BmwService.FEEDBACK_FACTOR)
+                (if (actuator.feedbackIsOutput) "la centralita manda %.1f %%" else "posición %.1f %%")
+                    .format(java.util.Locale.US, (data[0] * 256 + data[1]) * BmwService.FEEDBACK_FACTOR)
             } else {
-                "sin posición"
+                "sin dato"
             }
             steps += ServiceStep(label, query, response?.trim(), meaning)
         }
@@ -798,7 +800,16 @@ class ObdSession(
     }
 
     /** Una consulta de servicio de BMW; null si no contesta a tiempo. Como las de averias, puede llegar tarde. */
-    private suspend fun serviceAsk(query: String): String? = try {
+    private suspend fun serviceAsk(query: String): String? {
+        repeat(PENDING_RETRIES) {
+            val response = serviceAskOnce(query)
+            if (response == null || BmwService.refusal(response, query.substring(0, 2)) != RESPONSE_PENDING) return response
+            delay(PENDING_WAIT_MS)
+        }
+        return serviceAskOnce(query)
+    }
+
+    private suspend fun serviceAskOnce(query: String): String? = try {
         elm.send(query, READ_TIMEOUT_MS)
     } catch (e: SocketTimeoutException) {
         null
@@ -941,6 +952,11 @@ class ObdSession(
         const val FILTER_SENSOR = 0x043B
         const val FILTER_FILTERED = 0x0432
         const val REGEN_LOCK = 0x03EE
+
+        // "Sigue procesando" en KWP2000: la respuesta buena llega despues.
+        const val RESPONSE_PENDING = 0x78
+        const val PENDING_RETRIES = 2
+        const val PENDING_WAIT_MS = 1_000L
         const val BAROMETRIC = 0x33
         const val HPA_PER_KPA = 10.0
 

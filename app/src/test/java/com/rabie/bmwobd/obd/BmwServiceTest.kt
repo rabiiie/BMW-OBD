@@ -62,6 +62,46 @@ class BmwServiceTest {
     }
 
     @Test
+    fun `los datos del filtro que dio el coche el 19 de octubre`() {
+        val response = "063\n0: 705001070000\n1: 00000000001674\n2: CB870000000000\n3: 01194000000000\n4: 018DE59C000000\n" +
+            "5: 00000000000000\n6: 000000000D5914\n7: EE01781CD10001\n8: 0007CEBB231B23\n9: AF2366245E0000\nA: 00000000000000\n" +
+            "B: 00000000000000\nC: 00000000000000\nD: 00000000000000\nE: 0000AAAAAAAAAA"
+        val values = BmwService.parse(query("305001"), response).fieldTexts.toMap()
+        // Cuadran con 03FD (376.753,03 km), 0407 (376), 03E8 (53,58 l) y 03ED (34,17 g) leidas a la vez.
+        assertEquals("376753,03 km", values["Cuentakilómetros en la última regeneración completa"])
+        assertEquals("376", values["Regeneraciones completas"])
+        assertEquals("53,58 l", values["Gasóleo desde la última regeneración"])
+        assertEquals("34,17 g", values["Hollín (cálculo continuo)"])
+        assertEquals("0 s", values["Tiempo de bloqueo que queda"])
+        assertEquals("657,9 °C", values["Máxima antes del filtro en regeneración"])
+    }
+
+    @Test
+    fun `la correccion del sensor de presion es negativa`() {
+        // Cuadra con el cero aprendido 0428: -8,04 hPa.
+        val values = BmwService.parse(query("220107"), "620107FFF8FFF9").fieldTexts.toMap()
+        assertEquals("-8 hPa", values["Valor 1"])
+        assertEquals("-7 hPa", values["Valor 2"])
+    }
+
+    @Test
+    fun `la NMK del coche coincide con los tiempos aprendidos`() {
+        val response = "031\n0: 705701060000\n1: 0F0B2B0B2C0B2C\n2: 006700DE00A900\n3: AB003E0036005A\n4: 0053002D001B00\n" +
+            "5: 37003900000000\n6: 000000000D5914\n7: EEAAAAAAAAAAAA"
+        val values = BmwService.parse(query("305701"), response).fieldTexts.toMap()
+        // 1461 a 1464 dieron 41,12, 67,51, 68,28 y 88,57 µs: el mismo juego en otro orden.
+        assertEquals("41,2", values["Cilindro 1 a 400 bar"])
+        assertEquals("88,8", values["Cilindro 2 a 400 bar"])
+        assertEquals("67,6", values["Cilindro 3 a 400 bar"])
+        assertEquals("68,4", values["Cilindro 4 a 400 bar"])
+    }
+
+    @Test
+    fun `el historial de averias`() {
+        assertEquals(listOf(0x480A, 0x4D00), BmwFault.parseHistory(intArrayOf(0x48, 0x0A, 0x4D, 0x00, 0x00, 0x00)))
+    }
+
+    @Test
     fun `la correccion de un inyector lleva signo`() {
         val read = BmwService.parse(query("305701"), "70 57 01 " + "FF F0 ".repeat(20))
         assertEquals("-6,4", read.fieldTexts.toMap()["Cilindro 1 a 400 bar"])

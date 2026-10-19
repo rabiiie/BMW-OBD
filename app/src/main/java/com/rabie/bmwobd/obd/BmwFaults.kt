@@ -109,6 +109,16 @@ data class BmwFault(val code: Int, val status: Int) {
         const val INFO_QUERY = "222000"
         const val INFO_ANSWER = "622000"
 
+        /**
+         * El historial (HISTORY_BUFFER_LESEN de d70n47b0): tras 62 21 00, los codigos de las ultimas
+         * averias, dos bytes cada uno, sin estado; 0000 es un hueco vacio. Formato sacado del .prg.
+         */
+        const val HISTORY_QUERY = "222100"
+        const val HISTORY_ANSWER = "622100"
+
+        fun parseHistory(payload: IntArray): List<Int> =
+            (0 until payload.size / 2).map { payload[2 * it] * 256 + payload[2 * it + 1] }.filter { it != 0 }
+
         /** El detalle de una averia: 17 y su codigo. Contesta con 57. */
         fun detailQuery(code: Int) = "17%04X".format(code)
         const val DETAIL_ANSWER = "57"

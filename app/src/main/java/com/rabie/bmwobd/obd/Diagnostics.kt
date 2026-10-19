@@ -19,6 +19,8 @@ data class DiagnosticsReport(
     val bmwFaults: List<BmwFault>? = null,
     /** La memoria de informacion de BMW: avisos sin testigo. */
     val bmwInfo: List<BmwFault>? = null,
+    /** Los codigos del historial de averias de BMW, de las ultimas que ha habido. */
+    val bmwHistory: List<Int>? = null,
     /** El kilometraje en que se apunto cada averia de BMW, por su codigo; solo las que lo dieron. */
     val bmwFaultKm: Map<Int, Int> = emptyMap(),
     /** Como estaba el motor la primera y la ultima vez de cada averia de BMW, por su codigo. */

@@ -192,9 +192,9 @@ object Health {
      */
     fun wearFacts(data: TripData): List<Pair<String, String>> {
         val wear = TripCsv.wear(data) ?: return emptyList()
-        val injectors = wear.injectorTimes.mapIndexedNotNull { cylinder, points ->
+        val injectors = wear.injectorTimes.mapIndexedNotNull { slot, points ->
             if (points.all { it == null }) return@mapIndexedNotNull null
-            "Inyector ${cylinder + 1}, tiempo de más aprendido en sus tres puntos de presión" to
+            "Inyector del cilindro ${Pids.FIRING_ORDER[slot]}, tiempo de más aprendido en sus tres puntos de presión" to
                 points.joinToString(" / ") { it?.let { time -> n(time) } ?: "—" } + " µs"
         }
         return listOfNotNull(

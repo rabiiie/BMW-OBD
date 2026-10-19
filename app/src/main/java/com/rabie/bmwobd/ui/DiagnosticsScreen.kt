@@ -295,6 +295,7 @@ private fun Report(report: DiagnosticsReport, vehicleTerms: String) {
     }
     report.bmwFaults?.let { BmwFaultsCard(it, report.bmwFaultKm, report.bmwFaultShots, vehicleTerms) }
     report.bmwInfo?.let { BmwInfoCard(it) }
+    report.bmwHistory?.let { BmwHistoryCard(it) }
 
     if (report.freezeDtc != null) {
         Card {
@@ -404,6 +405,26 @@ private fun BmwInfoCard(info: List<BmwFault>) {
                     Text(entry.text ?: "Sin descripción en la app", color = Bmw.Text, fontSize = 15.sp, modifier = Modifier.weight(1f))
                 }
                 entry.kind?.let { Text(it, color = Bmw.Text, fontSize = 14.sp) }
+            }
+        }
+    }
+}
+
+/** El historial de averias de BMW: las ultimas que ha habido, aunque ya se hayan borrado. */
+@Composable
+private fun BmwHistoryCard(codes: List<Int>) {
+    Card {
+        Label("Historial de averías de BMW")
+        if (codes.isEmpty()) {
+            Text("Vacío.", color = Bmw.Text)
+            return@Card
+        }
+        Text("Las últimas averías que ha apuntado la centralita, aunque ya no estén en la memoria. Sin fecha ni km.", color = Bmw.TextDim, fontSize = 13.sp)
+        for (code in codes) {
+            val fault = BmwFault(code, 0)
+            Row(Modifier.padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(fault.label, color = Bmw.Accent, fontFamily = FontFamily.Monospace, fontSize = 16.sp)
+                Text(fault.text ?: "Sin descripción en la app", color = Bmw.Text, fontSize = 14.sp, modifier = Modifier.weight(1f))
             }
         }
     }

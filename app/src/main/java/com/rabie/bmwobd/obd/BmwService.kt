@@ -130,7 +130,7 @@ object BmwService {
         ServiceField("Estado del aprendizaje (código)", 6, 2, signed = true),
     )
 
-    private const val FACTOR_NOTE = "Factor de corrección: 1 es sin corregir."
+    private const val FACTOR_NOTE = "Sin corregir es 1 si es un factor y 0 si es un ajuste que se suma; BMW no dice cuál de los dos es."
 
     private fun adjust(name: String, lid: Int, bytes: Int = 2, factor: Double = ADJUST, unit: String = "", note: String = FACTOR_NOTE) =
         ServiceQuery(name, "30%02X01".format(lid), "70%02X01".format(lid), bytes, factor, unit, note)
@@ -180,7 +180,7 @@ object BmwService {
         ),
         ServiceQuery(
             "Filtro: corrección del sensor de presión", "220107", "620107",
-            fields = listOf(ServiceField("Valor 1", 0, 2, unit = "hPa"), ServiceField("Valor 2", 2, 2, unit = "hPa")),
+            fields = listOf(ServiceField("Valor 1", 0, 2, unit = "hPa", signed = true), ServiceField("Valor 2", 2, 2, unit = "hPa", signed = true)),
             note = "La corrección de cero guardada del sensor de presión diferencial (ABGLEICH CSFDRUCKSENSOR).",
         ),
         ServiceQuery(
@@ -297,17 +297,19 @@ object BmwService {
     const val FAN_PERCENT = 30.0
     private const val PERCENT_PER_BIT = 0.01220703125
 
-    val FAN = Actuator("Ventilador", FAN_LID, listOf(FAN_PERCENT), holdMs = 5_000L, feedback = null)
+    // El ventilador no tiene sensor: se lee lo que manda la centralita (09C4), para saber si lo ha
+    // encendido aunque no se oiga.
+    val FAN = Actuator("Ventilador", FAN_LID, listOf(FAN_PERCENT), holdMs = 5_000L, feedback = 0x09C4, feedbackIsOutput = true)
 
     /**
      * La EGR, las mariposas y el turbo, del 20 al 80 % y vuelta, con su sensor de posicion (las
-     * medidas "Stellgliedposition" de BMW). El turbo no tiene sensor entre las medidas: solo se oye.
+     * medidas "Stellgliedposition" de BMW). El turbo no tiene sensor entre las medidas: se lee lo que manda la centralita (0BEB).
      */
     val ACTUATORS = listOf(
         Actuator("EGR", 0xC2, listOf(20.0, 80.0), feedback = 0x0BB4),
         Actuator("Mariposas de turbulencia", 0xCE, listOf(20.0, 80.0), feedback = 0x0808),
         Actuator("Mariposa de admisión", 0xCD, listOf(20.0, 80.0), feedback = 0x0B1F),
-        Actuator("Actuador del turbo", 0xC6, listOf(20.0, 80.0), feedback = null),
+        Actuator("Actuador del turbo", 0xC6, listOf(20.0, 80.0), feedback = 0x0BEB, feedbackIsOutput = true),
     )
 
     val FAN_READ = read(FAN_LID)
@@ -409,7 +411,15 @@ private val GLOW_STATUS = ServiceQuery(
  * Una pieza de la tabla STELLER: su id, los % a los que se pone, cuanto tiempo cada uno y la medida
  * que dice donde esta de verdad (null si no hay).
  */
-class Actuator(val name: String, val lid: Int, val percents: List<Double>, val holdMs: Long = 3_000L, val feedback: Int?)
+class Actuator(
+    val name: String,
+    val lid: Int,
+    val percents: List<Double>,
+    val holdMs: Long = 3_000L,
+    val feedback: Int?,
+    /** True si [feedback] es lo que manda la centralita y no un sensor de posicion. */
+    val feedbackIsOutput: Boolean = false,
+)
 
 /** Un paso de la prueba del ventilador: que se mando, que contesto y que significa. */
 class ServiceStep(val label: String, val query: String, val response: String?, val meaning: String)

@@ -426,11 +426,18 @@ object Pids {
      * del sensor de aceite: no se leen. Tampoco hay sensor de presion diferencial: la del filtro
      * sale del sensor de presion absoluta que lleva delante.
      */
+    /**
+     * Las cuatro direcciones de cada punto del tiempo aprendido van en orden de encendido (1-3-4-2),
+     * creo: la tabla de BMW las llama cilindro 1 a 4, pero ABGLEICH_NMK_LESEN, que da los mismos
+     * valores, los pone en otro orden, y los dos solo cuadran si estas van en orden de encendido.
+     */
+    val FIRING_ORDER = listOf(1, 3, 4, 2)
+
     // Lo aprendido de cada inyector cambia muy despacio: se lee una vez al conectar, como el
     // resto del desgaste, y con el caso de los inyectores puesto se sigue leyendo.
     private val bmwInjectorTimes: List<PidDef> = BMW_INJECTOR_TIMES.flatMapIndexed { point, ids ->
-        ids.mapIndexed { cylinder, id ->
-            PidDef(id, "Inyector ${cylinder + 1}: tiempo aprendido (${BMW_CALIBRATION_BAR[point]} bar)", "µs", 2, 1, Tier.ONCE, PidGroup.FUEL) {
+        ids.mapIndexed { slot, id ->
+            PidDef(id, "Cilindro ${FIRING_ORDER[slot]}: tiempo aprendido del inyector (${BMW_CALIBRATION_BAR[point]} bar)", "µs", 2, 1, Tier.ONCE, PidGroup.FUEL) {
                 word(it) * 0.15259 - 5000.0
             }
         }
