@@ -77,6 +77,21 @@ class BmwServiceTest {
     }
 
     @Test
+    fun `los datos del filtro van a sus columnas del CSV`() {
+        val response = "063\n0: 705001070000\n1: 00000000001674\n2: CB870000000000\n3: 01194000000000\n4: 018DE59C000000\n" +
+            "5: 00000000000000\n6: 000000000D5914\n7: EE01781CD10001\n8: 0007CEBB231B23\n9: AF2366245E0000\nA: 00000000000000\n" +
+            "B: 00000000000000\nC: 00000000000000\nD: 00000000000000\nE: 0000AAAAAAAAAA"
+        val values = BmwService.filterValues(BmwService.parse(BmwService.FILTER_QUERY, response))
+        assertEquals(376.0, values.getValue(Pids.BMW_ISTA_REGENS_DONE), 0.0)
+        assertEquals(7377.0, values.getValue(Pids.BMW_ISTA_REGENS_ASKED), 0.0)
+        assertEquals(1.0, values.getValue(Pids.BMW_ISTA_REGEN_UNFINISHED), 0.0)
+        assertEquals(0.0, values.getValue(Pids.BMW_ISTA_LOCK_SECONDS), 0.0)
+        assertEquals(657.9, values.getValue(Pids.BMW_ISTA_MAX_REGEN_TEMP), 0.01)
+        assertEquals(640.4, values.getValue(Pids.BMW_ISTA_MAX_TEMP), 0.01)
+        assertTrue(BmwService.filterValues(BmwService.parse(BmwService.FILTER_QUERY, null)).isEmpty())
+    }
+
+    @Test
     fun `la correccion del sensor de presion es negativa`() {
         // Cuadra con el cero aprendido 0428: -8,04 hPa.
         val values = BmwService.parse(query("220107"), "620107FFF8FFF9").fieldTexts.toMap()

@@ -22,6 +22,8 @@ import com.rabie.bmwobd.obd.BmwFault
 import com.rabie.bmwobd.obd.Actuator
 import com.rabie.bmwobd.obd.BmwService
 import com.rabie.bmwobd.obd.Need
+import com.rabie.bmwobd.obd.IstaRegen
+import com.rabie.bmwobd.obd.ServiceRead
 import com.rabie.bmwobd.obd.ServiceRoutine
 import com.rabie.bmwobd.obd.Commands
 import com.rabie.bmwobd.obd.DiagnosticsReport
@@ -193,9 +195,15 @@ class ObdController(
                 if (blind.isNotEmpty()) appendLog("## Aceite: el sensor de nivel tiene una avería presente; no se enseñan su nivel ni su temperatura")
                 faultValues = BmwFault.appValues(ownFaults)
                 faultValues[Pids.BMW_FILTER_FAULTS]?.let { appendLog("## Filtro: " + BmwFault.filterLevelText(it)) }
+                istaValues = emptyMap()
                 if (profile.ownDiagnostics) {
                     val car = session.carInfo()
-                    _diagnostics.update { it.copy(car = car) }
+                    // Los datos de servicio se leen solos al conectar: quedan en el registro y en Averías.
+                    val reads = session.serviceReads()
+                    val regen = session.istaRegen()
+                    logService(reads, regen)
+                    istaValues = reads.firstOrNull { it.query.query == BmwService.FILTER_QUERY.query }?.let(BmwService::filterValues).orEmpty()
+                    _diagnostics.update { it.copy(car = car, service = reads, istaRegen = regen) }
                 }
                 val defs = (standard + own).filterNot { it.id in blind }
                 // Las medidas de los casos tienen su columna desde el principio, aunque no se pidan.
@@ -205,7 +213,7 @@ class ObdController(
                 val started = withContext(Dispatchers.IO) {
                     TripRecorder(
                         trips.newFile(simulated, vehicle.key),
-                        (defs + extras).map { it.id }.distinct() + (if (profile.ownDiagnostics) listOf(Pids.BMW_FILTER_FAULTS, Pids.BMW_GLOW_FAULT_COUNT, Pids.BMW_GLOW_FAULT_CYLINDERS) else emptyList()),
+                        (defs + extras).map { it.id }.distinct() + (if (profile.ownDiagnostics) listOf(Pids.BMW_FILTER_FAULTS, Pids.BMW_GLOW_FAULT_COUNT, Pids.BMW_GLOW_FAULT_CYLINDERS) + Pids.BMW_ISTA_FILTER else emptyList()),
                     )
                 }
                 recorder = started
@@ -484,9 +492,8 @@ class ObdController(
             appendLog("## Lecturas de servicio: inicio")
             try {
                 val reads = session.serviceReads()
-                for (read in reads) appendLog("## Servicio: ${read.query.name} (${read.query.query}): ${read.status}")
                 val regen = session.istaRegen()
-                appendLog("## Servicio: regeneración según ISTA: " + (regen?.let { r -> listOf("pedida" to r.requested, "en marcha" to r.running, "bloqueada" to r.locked).joinToString(", ") { (k, v) -> "$k " + if (v) "sí" else "no" } } ?: "sin datos"))
+                logService(reads, regen)
                 _diagnostics.update { it.copy(busy = false, service = reads, istaRegen = regen) }
             } catch (e: IOException) {
                 appendLog("!! ${e.message}")
@@ -582,6 +589,17 @@ class ObdController(
                 logBuffer.unpin()
             }
         }
+    }
+
+    private fun logService(reads: List<ServiceRead>, regen: IstaRegen?) {
+        for (read in reads) appendLog("## Servicio: ${read.query.name} (${read.query.query}): ${read.status}")
+        appendLog(
+            "## Servicio: regeneración según ISTA: " + (
+                regen?.let { r ->
+                    listOf("pedida" to r.requested, "en marcha" to r.running, "bloqueada" to r.locked).joinToString(", ") { (k, v) -> "$k " + if (v) "sí" else "no" }
+                } ?: "sin datos"
+                ),
+        )
     }
 
     fun readDiagnostics() = diagnose(clearFirst = false)
@@ -693,6 +711,9 @@ class ObdController(
     // Lo que dicen ahora las averias que la app apunta en el trayecto (BmwFault.appValues).
     private var faultValues: Map<Int, Double> = emptyMap()
 
+    // Los datos del filtro de ISTA de la ultima lectura, para el CSV.
+    private var istaValues: Map<Int, Double> = emptyMap()
+
     private suspend fun poll(session: ObdSession, defs: List<PidDef>, extras: List<PidDef>, recorder: TripRecorder, ownDiagnostics: Boolean) {
         val turns = Turns(defs, extras, Dashboard.background)
         silence = Silence()
@@ -716,6 +737,7 @@ class ObdController(
         for (request in turns.requests) read(session, request, values, first = true)
         var lastAnswerNanos = System.nanoTime()
         var lastFaultCheckNanos = lastAnswerNanos
+        var lastIstaCheckNanos = lastAnswerNanos
         var windowStartNanos = lastAnswerNanos
         var cyclesInWindow = 0
         var rate = 0.0
@@ -771,6 +793,17 @@ class ObdController(
                     faultValues = read
                 }
             }
+            // Los datos del filtro de ISTA cada dos minutos: dicen si una regeneracion se ha completado.
+            if (ownDiagnostics && now - lastIstaCheckNanos >= ISTA_CHECK_NANOS) {
+                lastIstaCheckNanos = now
+                val read = session.istaFilter()
+                if (read.isNotEmpty()) {
+                    val done = read[Pids.BMW_ISTA_REGENS_DONE]
+                    val before = istaValues[Pids.BMW_ISTA_REGENS_DONE]
+                    if (done != null && before != null && done > before) appendLog("## Filtro (ISTA): regeneración completada; van %.0f".format(done))
+                    istaValues = read
+                }
+            }
             // Tras un arranque en frio, ademas, a los 60 y 120 s: es cuando el calentador se comprueba.
             if (ownDiagnostics) coldStart.due(now / 1_000_000, values[Pids.RPM], values[Pids.COOLANT])?.let { seconds ->
                 session.ownFaults()?.let { faults ->
@@ -790,7 +823,7 @@ class ObdController(
             }
 
             Plausible.clean(values)
-            val snapshot = values + faultValues
+            val snapshot = values + faultValues + istaValues
             jumps?.found?.takeIf { it.size > jumpsSaved }?.let { found ->
                 jumpsSaved = found.size
                 val text = (listOf(SAVED_FOR + _state.value.vehicle.name, JUMPS_TITLE) + found + JUMPS_END).joinToString("\n")
@@ -946,6 +979,7 @@ class ObdController(
         private val SOUNDING = setOf("lugging")
         private const val IDLE_DELAY_MS = 200L
         private const val FAULT_CHECK_NANOS = 180_000_000_000L
+        private const val ISTA_CHECK_NANOS = 120_000_000_000L
         private const val SCAN_PER_TURN = 3
         private const val SCAN_SLOW_QUERY_NANOS = 700_000_000L
         private const val BEEP_MS = 600

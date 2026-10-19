@@ -197,6 +197,18 @@ object Pids {
 
     /** Igual: en que cilindros hay una averia de calentador presente, con un digito por cilindro (14 = el 1 y el 4). */
     const val BMW_GLOW_FAULT_CYLINDERS = 0x10003
+
+    /**
+     * Igual: los datos del filtro que lee ISTA (ABGLEICH_CSF_LESEN, 30 50 01), que la app relee cada
+     * dos minutos. Si sube [BMW_ISTA_REGENS_DONE] es que una regeneracion se ha completado.
+     */
+    const val BMW_ISTA_REGENS_DONE = 0x10004
+    const val BMW_ISTA_REGENS_ASKED = 0x10005
+    const val BMW_ISTA_REGEN_UNFINISHED = 0x10006
+    const val BMW_ISTA_LOCK_SECONDS = 0x10007
+    const val BMW_ISTA_MAX_REGEN_TEMP = 0x10008
+    const val BMW_ISTA_MAX_TEMP = 0x10009
+    val BMW_ISTA_FILTER = listOf(BMW_ISTA_REGENS_DONE, BMW_ISTA_REGENS_ASKED, BMW_ISTA_REGEN_UNFINISHED, BMW_ISTA_LOCK_SECONDS, BMW_ISTA_MAX_REGEN_TEMP, BMW_ISTA_MAX_TEMP)
     private const val APP_PID = -2
 
     /**
@@ -385,6 +397,12 @@ object Pids {
         PidDef(BMW_FILTER_FAULTS, "Filtro: averías 480A/481A (0 ninguna, 1 480A, 2 481A)", "", 0, 0, pid = APP_PID) { null },
         PidDef(BMW_GLOW_FAULT_COUNT, "Calentadores: averías presentes", "", 0, 0, pid = APP_PID) { null },
         PidDef(BMW_GLOW_FAULT_CYLINDERS, "Calentadores: cilindros con avería presente (14 = el 1 y el 4; 0 ninguno)", "", 0, 0, pid = APP_PID) { null },
+        PidDef(BMW_ISTA_REGENS_DONE, "Filtro (ISTA): regeneraciones completas", "", 0, 0, pid = APP_PID) { null },
+        PidDef(BMW_ISTA_REGENS_ASKED, "Filtro (ISTA): regeneraciones pedidas", "", 0, 0, pid = APP_PID) { null },
+        PidDef(BMW_ISTA_REGEN_UNFINISHED, "Filtro (ISTA): regeneración sin terminar (código)", "", 0, 0, pid = APP_PID) { null },
+        PidDef(BMW_ISTA_LOCK_SECONDS, "Filtro (ISTA): tiempo de bloqueo que queda", "s", 0, 0, pid = APP_PID) { null },
+        PidDef(BMW_ISTA_MAX_REGEN_TEMP, "Filtro (ISTA): máxima antes del filtro en regeneración", "°C", 0, 0, pid = APP_PID) { null },
+        PidDef(BMW_ISTA_MAX_TEMP, "Filtro (ISTA): máxima antes del filtro", "°C", 0, 0, pid = APP_PID) { null },
         PidDef(0x46, "Temp. ambiente", "°C", 1, 0) { temp(it) },
     )
 

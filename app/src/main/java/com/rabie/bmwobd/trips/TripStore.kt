@@ -30,23 +30,27 @@ class TripStore(private val dir: File, private val isDiesel: (vehicleKey: String
         return File(dir, prefix + stamp().format(now) + "_" + vehicleKey + EXTENSION)
     }
 
-    /** Del mas reciente al mas antiguo. */
+    /**
+     * Del mas reciente al mas antiguo. Lo que se calcula de cada trayecto se guarda al lado de su
+     * CSV la primera vez: la lista ya no relee los CSV enteros, solo los nuevos o los que cambiaron.
+     */
     fun list(): List<TripEntry> {
         val files = dir.listFiles { file -> file.name.endsWith(EXTENSION) } ?: return emptyList()
         return files.map { file ->
             val vehicleKey = file.name.removeSuffix(EXTENSION).split('_').getOrNull(3)
-            val data = load(file)
+            val diesel = isDiesel(vehicleKey)
+            val summary = readSummary(file, diesel) ?: summarize(load(file), diesel).also { writeSummary(file, it) }
             TripEntry(
                 file = file,
                 startMillis = startOf(file),
                 simulated = file.name.startsWith(SIMULATED_PREFIX),
                 vehicleKey = vehicleKey,
-                stats = TripCsv.stats(data, isDiesel(vehicleKey)),
-                timing = TripCsv.timing(data),
-                wear = TripCsv.wear(data),
-                margin = TripCsv.margin(data),
-                health = TripHealth.of(data),
-                fuel = TripFuel.of(data, isDiesel(vehicleKey)),
+                stats = summary.stats,
+                timing = summary.timing,
+                wear = summary.wear,
+                margin = summary.margin,
+                health = summary.health,
+                fuel = summary.fuel,
             )
         }.sortedByDescending { it.startMillis }
     }
@@ -55,6 +59,58 @@ class TripStore(private val dir: File, private val isDiesel: (vehicleKey: String
 
     fun delete(file: File) {
         file.delete()
+        summaryFile(file).delete()
+    }
+
+    /** Lo que la lista y los resumenes necesitan de un trayecto. */
+    private class Summary(
+        val diesel: Boolean,
+        val stats: TripStats,
+        val timing: TimingOffset?,
+        val wear: Wear?,
+        val margin: Margin?,
+        val health: TripHealth?,
+        val fuel: TripFuel?,
+    ) : java.io.Serializable {
+        private companion object {
+            private const val serialVersionUID = 1L
+        }
+    }
+
+    private fun summarize(data: TripData, diesel: Boolean) = Summary(
+        diesel = diesel,
+        stats = TripCsv.stats(data, diesel),
+        timing = TripCsv.timing(data),
+        wear = TripCsv.wear(data),
+        margin = TripCsv.margin(data),
+        health = TripHealth.of(data),
+        fuel = TripFuel.of(data, diesel),
+    )
+
+    private fun summaryFile(file: File) = File(file.parentFile, file.name.removeSuffix(EXTENSION) + SUMMARY_EXTENSION)
+
+    /**
+     * El resumen guardado, si es del mismo CSV y de la misma version del calculo. Si no se puede
+     * leer (otra version de la app, fichero a medias), se vuelve a calcular.
+     */
+    private fun readSummary(file: File, diesel: Boolean): Summary? {
+        val saved = summaryFile(file)
+        if (!saved.exists() || saved.lastModified() < file.lastModified()) return null
+        return runCatching {
+            java.io.ObjectInputStream(saved.inputStream().buffered()).use { input ->
+                if (input.readInt() != SUMMARY_VERSION) return null
+                input.readObject() as Summary
+            }
+        }.getOrNull()?.takeIf { it.diesel == diesel }
+    }
+
+    private fun writeSummary(file: File, summary: Summary) {
+        runCatching {
+            java.io.ObjectOutputStream(summaryFile(file).outputStream().buffered()).use { output ->
+                output.writeInt(SUMMARY_VERSION)
+                output.writeObject(summary)
+            }
+        }
     }
 
     private fun startOf(file: File): Long {
@@ -69,6 +125,10 @@ class TripStore(private val dir: File, private val isDiesel: (vehicleKey: String
         const val REAL_PREFIX = "trip_"
         const val SIMULATED_PREFIX = "sim_"
         const val EXTENSION = ".csv"
+        const val SUMMARY_EXTENSION = ".sum"
+
+        // Subirla cuando cambie lo que se calcula de un trayecto: los resumenes guardados se rehacen.
+        const val SUMMARY_VERSION = 1
     }
 }
 

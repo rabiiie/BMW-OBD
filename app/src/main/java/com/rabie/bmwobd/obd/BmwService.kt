@@ -272,6 +272,26 @@ object BmwService {
         ),
     )
 
+    /** La lectura de los datos del filtro de ISTA, la que se repite durante el trayecto. */
+    val FILTER_QUERY: ServiceQuery get() = QUERIES.first { it.query == "305001" }
+
+    private val FILTER_COLUMNS = mapOf(
+        Pids.BMW_ISTA_REGENS_DONE to "Regeneraciones completas",
+        Pids.BMW_ISTA_REGENS_ASKED to "Regeneraciones pedidas",
+        Pids.BMW_ISTA_REGEN_UNFINISHED to "Regeneración sin terminar (código)",
+        Pids.BMW_ISTA_LOCK_SECONDS to "Tiempo de bloqueo que queda",
+        Pids.BMW_ISTA_MAX_REGEN_TEMP to "Máxima antes del filtro en regeneración",
+        Pids.BMW_ISTA_MAX_TEMP to "Máxima antes del filtro",
+    )
+
+    /** Los valores de [FILTER_QUERY] que van al CSV, por su columna; vacio si no contesto. */
+    fun filterValues(read: ServiceRead): Map<Int, Double> {
+        val data = read.data ?: return emptyMap()
+        return FILTER_COLUMNS.mapNotNull { (id, name) ->
+            FILTER_FIELDS.firstOrNull { it.name == name }?.value(data)?.let { id to it }
+        }.toMap()
+    }
+
     /** La respuesta a [query], o null si no contesta. */
     fun parse(query: ServiceQuery, response: String?): ServiceRead {
         if (response == null) return ServiceRead(query, null, null)

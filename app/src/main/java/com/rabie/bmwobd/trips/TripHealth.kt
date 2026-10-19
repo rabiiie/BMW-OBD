@@ -10,25 +10,25 @@ import java.util.Locale
  * Como se calento el motor. [minutesTo80] solo existe si arranco frio; [steady] es la temperatura
  * en la que se quedo, la mediana pasado un cuarto de hora de marcha.
  */
-data class WarmUp(val startCoolant: Double, val outside: Double?, val minutesTo80: Double?, val steady: Double?)
+data class WarmUp(val startCoolant: Double, val outside: Double?, val minutesTo80: Double?, val steady: Double?) : java.io.Serializable
 
 /**
  * El primer arranque grabado. [seconds] va de la ultima lectura con el motor parado a la primera
  * ya a ralenti: con dos lecturas por segundo, tiene medio segundo de margen.
  */
-data class EngineStart(val seconds: Double, val restVolts: Double?, val coolant: Double?, val parkedMinutes: Double? = null)
+data class EngineStart(val seconds: Double, val restVolts: Double?, val coolant: Double?, val parkedMinutes: Double? = null) : java.io.Serializable
 
 /**
  * Lo que da el coche frente a lo que pide la centralita, en los ratos en que las dos cosas estan
  * quietas. [median] negativa es que da menos de lo pedido; [low] es el decil mas bajo.
  */
-data class Gap(val median: Double, val low: Double, val samples: Int)
+data class Gap(val median: Double, val low: Double, val samples: Int) : java.io.Serializable
 
 /** El ralenti con el motor caliente y el coche parado: a cuantas vueltas va y cuanto baila (del 5 % al 95 % de las lecturas). */
-data class Idle(val rpm: Double, val spread: Double, val samples: Int)
+data class Idle(val rpm: Double, val spread: Double, val samples: Int) : java.io.Serializable
 
 /** La tension con el motor en marcha: la mediana y el decil mas bajo. */
-data class Charge(val volts: Double, val low: Double)
+data class Charge(val volts: Double, val low: Double) : java.io.Serializable
 
 /**
  * El filtro de particulas: la presion que le cuesta al escape pasar por el a ralenti en caliente,
@@ -51,7 +51,7 @@ data class FilterCheck(
     /** Como estaban 480A y 481A al empezar y al acabar (BmwFault.filterLevel). */
     val faultsStart: Double? = null,
     val faultsEnd: Double? = null,
-)
+) : java.io.Serializable
 
 /**
  * Lo mas que dio el motor en el trayecto, segun el par que calcula la centralita, y la mejor
@@ -64,7 +64,7 @@ data class Performance(
     val horsepower: Double,
     val horsepowerRpm: Double,
     val from80To120: Double?,
-)
+) : java.io.Serializable
 
 /**
  * Lo que solo sirve para las causas de un filtro cargado: si el trayecto dio señal de filtro cargado
@@ -76,7 +76,7 @@ data class FilterCauses(
     val glowFaults: Double?,
     val mafCorrection: Double?,
     val airDeviation: Double?,
-) {
+) : java.io.Serializable {
     companion object {
         private val MAF_CORRECTION = Pids.bmw(0x0713)
         private val AIR_DEVIATION = Pids.bmw(0x07A2)
@@ -120,7 +120,7 @@ data class TripHealth(
     val luggingSeconds: Long? = null,
     /** Lo que hace falta para las causas que BMW manda descartar cuando el filtro se carga. */
     val causes: FilterCauses? = null,
-) {
+) : java.io.Serializable {
 
     private val empty: Boolean
         get() = listOf(warmUp, start, boost, rail, egr, idle, charge, filter, coldPushSeconds, performance, luggingSeconds).all { it == null } &&

@@ -660,6 +660,11 @@ class ObdSession(
         }
     }
 
+    /** Los datos del filtro de ISTA para el CSV (BmwService.filterValues); vacio si no contesta. */
+    suspend fun istaFilter(): Map<Int, Double> = withSteadyWait {
+        BmwService.filterValues(BmwService.parse(BmwService.FILTER_QUERY, serviceAsk(BmwService.FILTER_QUERY.query)))
+    }
+
     /** El estado de la regeneracion con la regla de ISTA, de 0404, 05AA y 03EE leidas ahora. */
     suspend fun istaRegen(): IstaRegen? {
         fun decode(id: Int, data: IntArray?) = data?.let { Pids.byId[id]?.decodeOrNull(it) }

@@ -27,6 +27,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -102,12 +103,24 @@ private fun TripList(
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Label("Trayectos", color = Bmw.Text)
+        // La lista y las tablas por separado: las tablas comparan muchos trayectos y se ven aparte.
+        var summaries by rememberSaveable { mutableStateOf(false) }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Chip("Trayectos", selected = !summaries) { summaries = false }
+            Chip("Resúmenes", selected = summaries) { summaries = true }
+        }
         when {
             trips == null -> Text("Cargando…", color = Bmw.TextDim)
             trips.isEmpty() -> Text(
                 "Todavía no hay trayectos. Cada conexión se graba sola; prueba con el coche simulado.",
                 color = Bmw.TextDim,
             )
+            !summaries -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(trips, key = { it.file.name }) { trip ->
+                    val name = remember(trip.vehicleKey) { trip.vehicleKey?.let(vehicles::byKey)?.name }
+                    TripRow(trip, name, onOpen)
+                }
+            }
             else -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 val timed = trips.filter { !it.simulated && it.timing != null }.take(TIMING_ROWS)
                 if (timed.isNotEmpty()) item(key = "distribucion") { TimingTable(timed) }
@@ -120,10 +133,6 @@ private fun TripList(
                 if (checked.isNotEmpty()) item(key = "salud2") { RunningTable(checked) }
                 val spent = trips.filter { !it.simulated && (it.fuel?.km ?: 0.0) >= 1.0 }.take(TIMING_ROWS)
                 if (spent.isNotEmpty()) item(key = "consumo") { FuelTable(spent, fuelPrice) }
-                items(trips, key = { it.file.name }) { trip ->
-                    val name = remember(trip.vehicleKey) { trip.vehicleKey?.let(vehicles::byKey)?.name }
-                    TripRow(trip, name, onOpen)
-                }
             }
         }
     }

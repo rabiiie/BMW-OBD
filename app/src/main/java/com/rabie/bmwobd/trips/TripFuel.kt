@@ -50,7 +50,7 @@ class FuelCounter {
 }
 
 /** Una parte del trayecto por su velocidad, con lo que se anduvo y lo que se gasto en ella. */
-data class SpeedBand(val name: String, val km: Double, val liters: Double) {
+data class SpeedBand(val name: String, val km: Double, val liters: Double) : java.io.Serializable {
     val per100: Double? get() = if (km >= MIN_BAND_KM) liters / km * 100.0 else null
 
     private companion object {
@@ -59,7 +59,7 @@ data class SpeedBand(val name: String, val km: Double, val liters: Double) {
 }
 
 /** El consumo a una velocidad mantenida: [seconds] es el rato que se llevo asi. */
-data class SteadySpeed(val speed: Int, val per100: Double, val seconds: Long)
+data class SteadySpeed(val speed: Int, val per100: Double, val seconds: Long) : java.io.Serializable
 
 /**
  * El gasto de un trayecto. [real] dice que los litros salen del contador de la centralita; si no,
@@ -73,7 +73,7 @@ data class TripFuel(
     val estimatedLiters: Double?,
     val bands: List<SpeedBand>,
     val steady: List<SteadySpeed>,
-) {
+) : java.io.Serializable {
     val per100: Double? get() = if (km >= MIN_KM) liters / km * 100.0 else null
 
     fun cost(price: Double?): Double? = price?.let { liters * it }

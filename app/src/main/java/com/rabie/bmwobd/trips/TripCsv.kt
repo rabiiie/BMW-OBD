@@ -28,7 +28,7 @@ data class TripStats(
     val fuelEstimated: Boolean = false,
     /** Kilometros en los que habia dato de consumo; menos que la distancia si falto un rato. */
     val fuelKm: Double? = null,
-)
+) : java.io.Serializable
 
 /**
  * Formato del fichero de un trayecto: cabecera `t_ms,0C,0D,...` con los PIDs en hexadecimal y
@@ -38,7 +38,7 @@ data class TripStats(
  * El desfase de la distribucion en un trayecto: la mediana de lo leido, entre que valores se
  * movio y a que temperatura arranco el motor, para comparar frio con frio y caliente con caliente.
  */
-data class TimingOffset(val median: Double, val min: Double, val max: Double, val startCoolant: Double?) {
+data class TimingOffset(val median: Double, val min: Double, val max: Double, val startCoolant: Double?) : java.io.Serializable {
     /** Si todas las lecturas del trayecto dieron lo mismo, a la centesima. */
     val steady: Boolean get() = max - min < 0.01
 
@@ -67,7 +67,7 @@ data class Wear(
     val egrCooler: Double?,
     /** El tiempo de mas aprendido para cada inyector: una lista por cilindro, con sus tres puntos de presion. */
     val injectorTimes: List<List<Double?>> = emptyList(),
-) {
+) : java.io.Serializable {
     val empty: Boolean get() = listOf(railValve, lambda, egrZero, filterZero, egrCooler).all { it == null } && largestInjectorTime == null
 
     /** El mayor tiempo aprendido de un inyector, sin signo: el que mas ha habido que corregir. */
@@ -84,7 +84,7 @@ data class Margin(
     val turboActuator: Double?,
     /** El aire que entra respecto al que cabria, a carga con la EGR cerrada, en %: si baja, admision sucia o fuga. */
     val filling: Double?,
-) {
+) : java.io.Serializable {
     val empty: Boolean get() = turboActuator == null && filling == null
 }
 
