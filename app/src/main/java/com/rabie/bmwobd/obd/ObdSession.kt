@@ -741,6 +741,62 @@ class ObdSession(
         FanTest(actuator.name, steps, accepted, released)
     }
 
+    /**
+     * Un servicio que escribe: manda [ServiceRoutine.start] en orden y se para en el primero que no
+     * se acepte; si alguno se acepto, espera, lee [ServiceRoutine.reads] y manda siempre
+     * [ServiceRoutine.finish], aunque la tarea se corte.
+     */
+    suspend fun runRoutine(routine: ServiceRoutine): FanTest = withSteadyWait {
+        val steps = ArrayList<ServiceStep>()
+        suspend fun send(label: String, query: String): Boolean? {
+            val service = query.substring(0, 2)
+            val positive = "%02X".format(service.toInt(16) + 0x40)
+            val response = serviceAsk(query)
+            val refused = response?.let { BmwService.refusal(it, service) }
+            val ok = response?.let { ObdParser.payloads(it, positive).isNotEmpty() }
+            steps += ServiceStep(
+                label,
+                query,
+                response?.trim(),
+                when {
+                    response == null -> "sin respuesta"
+                    refused != null -> "rechazado: " + BmwIma.refusalText(refused)
+                    ok == true -> "aceptado"
+                    else -> "respuesta no esperada"
+                },
+            )
+            return if (refused != null) false else ok?.takeIf { it }
+        }
+
+        var accepted: Boolean? = null
+        var taken = false
+        var released: Boolean? = null
+        try {
+            for ((index, query) in routine.start.withIndex()) {
+                val ok = send(if (routine.start.size == 1) "Orden" else "Orden ${index + 1}", query)
+                if (index == 0) accepted = ok
+                if (ok != true) break
+                taken = true
+            }
+            if (taken) {
+                delay(routine.holdMs)
+                for (read in routine.reads) {
+                    if (read.query.startsWith(BMW_QUERY)) flushLate()
+                    val result = BmwService.parse(read, serviceAsk(read.query))
+                    val meaning = result.fieldTexts.joinToString(", ") { (name, value) -> "$name $value" }.ifEmpty { result.status }
+                    steps += ServiceStep(read.name, read.query, result.raw.ifEmpty { null }, meaning)
+                }
+            }
+        } finally {
+            if (taken && routine.finish.isNotEmpty()) {
+                withContext(NonCancellable) {
+                    released = routine.finish.map { send("Volver a lo normal", it) }.all { it == true }
+                }
+            }
+        }
+        FanTest(routine.name, steps, accepted, if (routine.finish.isEmpty()) accepted else released)
+    }
+
     /** Una consulta de servicio de BMW; null si no contesta a tiempo. Como las de averias, puede llegar tarde. */
     private suspend fun serviceAsk(query: String): String? = try {
         elm.send(query, READ_TIMEOUT_MS)

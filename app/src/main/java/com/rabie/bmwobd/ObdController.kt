@@ -21,6 +21,8 @@ import com.rabie.bmwobd.dash.ShiftHint
 import com.rabie.bmwobd.obd.BmwFault
 import com.rabie.bmwobd.obd.Actuator
 import com.rabie.bmwobd.obd.BmwService
+import com.rabie.bmwobd.obd.Need
+import com.rabie.bmwobd.obd.ServiceRoutine
 import com.rabie.bmwobd.obd.Commands
 import com.rabie.bmwobd.obd.DiagnosticsReport
 import com.rabie.bmwobd.obd.MonitorTest
@@ -530,6 +532,53 @@ class ObdController(
                 _diagnostics.update { it.copy(busy = false, message = "El adaptador no ha contestado. Si algo sigue moviéndose, quita el contacto.") }
             } finally {
                 appendLog("## Prueba $name: fin")
+                logBuffer.unpin()
+            }
+        }
+    }
+
+    /**
+     * Un servicio que escribe en la centralita. Con [Need.ENGINE_OFF] solo con 0 rpm y 0 km/h; con
+     * [Need.IDLE] solo al ralenti (500 a 1.100 rpm), parado y con el refrigerante a 70 °C o mas.
+     */
+    fun runRoutine(routine: ServiceRoutine) {
+        if (!isLive() || _diagnostics.value.busy || !canScan(_state.value.vehicle)) return
+        val values = _state.value.values
+        val rpm = values[Pids.RPM]
+        val stopped = (values[Pids.SPEED] ?: 1.0) < 1.0
+        val problem = when (routine.need) {
+            Need.ENGINE_OFF -> if (rpm == null || rpm >= 1.0 || !stopped) "Solo con el motor apagado y el contacto puesto: la app tiene que leer 0 rpm y 0 km/h." else null
+            Need.IDLE -> if (rpm == null || rpm < 500 || rpm > 1100 || !stopped || (values[Pids.COOLANT] ?: 0.0) < 70.0) {
+                "Solo al ralentí, parado y con el motor caliente: entre 500 y 1.100 rpm, 0 km/h y el refrigerante a 70 °C o más."
+            } else {
+                null
+            }
+        }
+        if (problem != null) {
+            _diagnostics.update { it.copy(message = problem) }
+            return
+        }
+        val name = routine.name
+        _diagnostics.update { it.copy(busy = true, message = null) }
+        tasks.trySend { session ->
+            logBuffer.pin()
+            appendLog("## Servicio $name: inicio")
+            try {
+                val result = session.runRoutine(routine)
+                for (step in result.steps) appendLog("## $name: ${step.label}: ${step.query} -> ${step.response ?: "-"} (${step.meaning})")
+                val text = when {
+                    result.accepted == true && result.released == true -> "$name: hecho."
+                    result.accepted == true -> "$name: aceptado, pero la vuelta a lo normal no se ha confirmado. Quita el contacto para que la centralita vuelva a lo suyo."
+                    result.accepted == false -> "$name: la centralita no lo ha aceptado. El motivo está abajo."
+                    else -> "$name: la centralita no ha contestado."
+                }
+                appendLog("## Servicio $name: $text")
+                _diagnostics.update { it.copy(busy = false, fanTest = result, message = text) }
+            } catch (e: IOException) {
+                appendLog("!! ${e.message}")
+                _diagnostics.update { it.copy(busy = false, message = "El adaptador no ha contestado. Quita el contacto para que la centralita vuelva a lo suyo.") }
+            } finally {
+                appendLog("## Servicio $name: fin")
                 logBuffer.unpin()
             }
         }

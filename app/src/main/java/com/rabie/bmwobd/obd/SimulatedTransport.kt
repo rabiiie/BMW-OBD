@@ -122,6 +122,9 @@ class SimulatedTransport(
             bytes.size == 3 && bytes[0] == 0x30 && bytes[1] in STELLER && bytes[2] == 0x01 -> intArrayOf(0x70, bytes[1], 0x01, 0x00, 0x00)
             bytes.size == 5 && bytes[0] == 0x30 && bytes[1] in STELLER && bytes[2] == 0x07 -> intArrayOf(0x70, bytes[1], 0x07, bytes[3], bytes[4])
             bytes.size == 3 && bytes[0] == 0x30 && bytes[1] in STELLER && bytes[2] == 0x00 -> intArrayOf(0x70, bytes[1], 0x00)
+            // Los servicios: rutinas (31, 32, 33) y los ajustes del ralenti, del turbo y del caudalimetro aceptados con eco.
+            bytes.isNotEmpty() && bytes[0] in 0x31..0x33 -> intArrayOf(bytes[0] + 0x40) + bytes.drop(1)
+            bytes.size >= 3 && bytes[0] == 0x30 && bytes[1] in setOf(0xB3, 0x7A, 0xF6) -> intArrayOf(0x70) + bytes.drop(1)
             // Una correccion guardada sin corregir (8192 = 1,0), para ver la tarjeta de servicio.
             bytes.size == 3 && bytes[0] == 0x30 && bytes[1] == 0xA4 && bytes[2] == 0x01 -> intArrayOf(0x70, 0xA4, 0x01, 0x20, 0x00)
             // Como la centralita de verdad: a una direccion que no existe contesta, pero sin dato.

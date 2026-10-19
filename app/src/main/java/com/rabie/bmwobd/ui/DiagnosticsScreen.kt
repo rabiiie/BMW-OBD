@@ -40,6 +40,12 @@ import com.rabie.bmwobd.obd.BmwService
 import com.rabie.bmwobd.obd.DiagnosticsReport
 import com.rabie.bmwobd.obd.FanTest
 import com.rabie.bmwobd.obd.IstaRegen
+import com.rabie.bmwobd.obd.Need
+import com.rabie.bmwobd.obd.ServiceRoutine
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import com.rabie.bmwobd.obd.ServiceRead
 import com.rabie.bmwobd.obd.FaultSnapshot
 import com.rabie.bmwobd.obd.Dtcs
@@ -60,12 +66,19 @@ fun DiagnosticsScreen(
     onClearFilter: () -> Unit = {},
     onReadService: () -> Unit = {},
     onTestActuator: (Actuator) -> Unit = {},
+    onRunRoutine: (ServiceRoutine) -> Unit = {},
+    servicePin: String? = null,
+    onSetServicePin: (String) -> Unit = {},
     bmwService: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     var confirmClear by remember { mutableStateOf(false) }
     var confirmFilter by remember { mutableStateOf(false) }
     var confirmActuator by remember { mutableStateOf<Actuator?>(null) }
+    var confirmRoutine by remember { mutableStateOf<ServiceRoutine?>(null) }
+    // Los servicios que escriben y las pruebas de piezas se abren con el PIN y se cierran al salir de la pantalla.
+    var serviceOpen by remember { mutableStateOf(false) }
+    var askPin by remember { mutableStateOf(false) }
 
     Column(
         modifier = modifier
@@ -133,20 +146,63 @@ fun DiagnosticsScreen(
                 Text("Leer datos de servicio (solo lectura)")
             }
             ActuatorButton(BmwService.FAN, BmwService.FAN_TEST_READY, state.busy) { confirmActuator = it }
-            if (!BmwService.ACTUATORS_READY) {
-                Text(
-                    "La EGR, las mariposas y el turbo se activan cuando la prueba del ventilador haya salido bien en el coche.",
-                    color = Bmw.TextDim,
-                    fontSize = 12.sp,
-                )
-            }
-            for (actuator in BmwService.ACTUATORS) {
-                ActuatorButton(actuator, BmwService.ACTUATORS_READY, state.busy) { confirmActuator = it }
+            if (!serviceOpen) {
+                OutlinedButton(onClick = { askPin = true }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
+                    Text(if (servicePin == null) "Servicios y pruebas de piezas (crear PIN)" else "Servicios y pruebas de piezas (PIN)", color = Bmw.MRed)
+                }
+            } else {
+                Label("Pruebas de piezas", color = Bmw.Text)
+                for (actuator in BmwService.ACTUATORS) {
+                    ActuatorButton(actuator, BmwService.ACTUATORS_READY, state.busy) { confirmActuator = it }
+                }
+                Label("Servicios que escriben en la centralita", color = Bmw.MRed)
+                for (routine in BmwService.ROUTINES) {
+                    OutlinedButton(onClick = { confirmRoutine = routine }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
+                        Text(routine.name + if (routine.need == Need.IDLE) " (al ralentí)" else " (motor apagado)", color = Bmw.MRed)
+                    }
+                }
+                TextButton(onClick = { serviceOpen = false }) { Text("Cerrar servicios", color = Bmw.TextDim) }
             }
             state.fanTest?.let { FanTestCard(it) }
             state.istaRegen?.let { IstaRegenCard(it) }
             state.service?.let { ServiceCard(it) }
         }
+    }
+
+    if (askPin) {
+        PinDialog(
+            existing = servicePin,
+            onDismiss = { askPin = false },
+            onCreate = { pin ->
+                onSetServicePin(pin)
+                askPin = false
+                serviceOpen = true
+            },
+            onOpen = {
+                askPin = false
+                serviceOpen = true
+            },
+        )
+    }
+
+    confirmRoutine?.let { routine ->
+        AlertDialog(
+            onDismissRequest = { confirmRoutine = null },
+            title = { Text("¿${routine.name}?") },
+            text = {
+                Text(
+                    routine.description + " Telegramas: " + (routine.start + routine.finish).joinToString(", ") +
+                        ", los mismos que manda ISTA. Escribe en la centralita.",
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmRoutine = null
+                    onRunRoutine(routine)
+                }) { Text("Hacerlo", color = Bmw.MRed) }
+            },
+            dismissButton = { TextButton(onClick = { confirmRoutine = null }) { Text("Cancelar") } },
+        )
     }
 
     confirmActuator?.let { actuator ->
@@ -452,6 +508,68 @@ private fun IstaRegenCard(regen: IstaRegen) {
         )
     }
 }
+
+/**
+ * Crear el PIN de servicio (cuatro cifras, dos veces) o escribirlo para abrir. No es seguridad: es
+ * para que no se pulse un servicio sin querer.
+ */
+@Composable
+private fun PinDialog(existing: String?, onDismiss: () -> Unit, onCreate: (String) -> Unit, onOpen: () -> Unit) {
+    var pin by remember { mutableStateOf("") }
+    var again by remember { mutableStateOf("") }
+    var wrong by remember { mutableStateOf(false) }
+    fun digits(text: String) = text.filter { it.isDigit() }.take(PIN_LENGTH)
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(if (existing == null) "Crear el PIN de servicio" else "PIN de servicio") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    if (existing == null) {
+                        "Abre las pruebas de piezas y los servicios que escriben en la centralita. Cuatro cifras."
+                    } else {
+                        "Escribe el PIN para abrir las pruebas de piezas y los servicios."
+                    },
+                    fontSize = 14.sp,
+                )
+                OutlinedTextField(
+                    value = pin,
+                    onValueChange = { pin = digits(it); wrong = false },
+                    label = { Text("PIN") },
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                )
+                if (existing == null) {
+                    OutlinedTextField(
+                        value = again,
+                        onValueChange = { again = digits(it); wrong = false },
+                        label = { Text("Otra vez") },
+                        singleLine = true,
+                        visualTransformation = PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                    )
+                }
+                if (wrong) Text(if (existing == null) "No coinciden." else "No es el PIN.", color = Bmw.MRed, fontSize = 13.sp)
+            }
+        },
+        confirmButton = {
+            TextButton(
+                enabled = pin.length == PIN_LENGTH,
+                onClick = {
+                    when {
+                        existing == null && pin == again -> onCreate(pin)
+                        existing != null && pin == existing -> onOpen()
+                        else -> wrong = true
+                    }
+                },
+            ) { Text(if (existing == null) "Crear" else "Abrir") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } },
+    )
+}
+
+private const val PIN_LENGTH = 4
 
 /** El boton de la prueba de una pieza; apagado mientras su prueba no este lista. */
 @Composable

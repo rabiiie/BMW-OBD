@@ -170,7 +170,18 @@ object BmwService {
         ServiceQuery(
             "Datos del filtro (los de ISTA)", "305001", "705001",
             fields = FILTER_FIELDS,
-            note = "Las máximas son las más altas que ha visto la centralita; no sé desde cuándo cuentan.",
+            note = "Las máximas son las más altas que ha visto la centralita; no sé desde cuándo cuentan. " +
+                "Si el tiempo de bloqueo no es 0, la centralita tiene la regeneración bloqueada por tiempo: ISTA tiene un servicio para reiniciarlo.",
+        ),
+        ServiceQuery(
+            "Filtro: temperatura antes del filtro (corregida)", feedbackQuery(0x041B), FEEDBACK_ANSWER,
+            fields = listOf(ServiceField("Temperatura", 0, 2, 0.031281, -50.0, "°C")),
+            note = "La que usa ISTA (STATUS_ABGASTEMPERATUR_CSF).",
+        ),
+        ServiceQuery(
+            "Filtro: corrección del sensor de presión", "220107", "620107",
+            fields = listOf(ServiceField("Valor 1", 0, 2, unit = "hPa"), ServiceField("Valor 2", 2, 2, unit = "hPa")),
+            note = "La corrección de cero guardada del sensor de presión diferencial (ABGLEICH CSFDRUCKSENSOR).",
         ),
         ServiceQuery(
             "Codificación (con límite de tiempo)", "223900", "623900",
@@ -279,8 +290,8 @@ object BmwService {
     /** El ventilador va primero: si en el coche hace lo esperado, se encienden las demas. */
     const val FAN_TEST_READY = true
 
-    /** EGR, mariposas y turbo: apagadas hasta que la prueba del ventilador salga bien en el coche. */
-    const val ACTUATORS_READY = false
+    /** EGR, mariposas y turbo: disponibles, pero en la pantalla van detras del PIN de servicio, como los servicios. */
+    const val ACTUATORS_READY = true
 
     const val FAN_LID = 0xC7
     const val FAN_PERCENT = 30.0
@@ -314,11 +325,85 @@ object BmwService {
     /** El % de un valor en dos bytes de la respuesta, si los trae. */
     fun fanPercent(data: List<Int>): Double? = if (data.size >= 2) (data[0] * 256 + data[1]) * PERCENT_PER_BIT else null
 
+    // Los servicios que escriben, con los telegramas del .prg. Solo los que caben en un mensaje de
+    // siete bytes: el ELM327 no manda mensajes mas largos, y por eso quedan fuera reaprender la EGR o
+    // las mariposas, la prueba del rail y los servicios del filtro (RESETLOCK son 99 bytes).
+    private val CYLINDER_READS = QUERIES.filter { it.query.startsWith("2C1014") }
+
+    val ROUTINES = listOf(
+        ServiceRoutine(
+            "Prueba de cilindros", Need.IDLE,
+            "Al ralentí y caliente. Durante 10 s la centralita deja de igualar los cilindros (START_SYSTEMCHECK_ZYL) y la app lee " +
+                "las revoluciones y la compensación de cada uno; luego se vuelve a lo normal (STOP_SYSTEMCHECK_ZYL). El motor puede ir menos fino esos segundos.",
+            start = listOf("318501"), holdMs = 10_000, reads = CYLINDER_READS, finish = listOf("3285"),
+        ),
+        ServiceRoutine(
+            "Subir el ralentí a 1.200 rpm", Need.IDLE,
+            "Al ralentí y caliente, parado y en punto muerto. Durante 20 s el motor va a 1.200 rpm (START_SYSTEMCHECK_LLERH); luego se manda volver al ralentí normal.",
+            start = listOf("30B3070960"), holdMs = 20_000, finish = listOf("30B3070000"),
+        ),
+        *(1..4).map { cyl ->
+            ServiceRoutine(
+                "Registrar el cambio del calentador $cyl", Need.ENGINE_OFF,
+                "Solo tras cambiar el calentador del cilindro $cyl: borra lo que la unidad de calentadores aprendió de él (STEUERN_GLUEHKERZENTAUSCH GLU$cyl).",
+                start = listOf("31E0%02X".format(cyl)), reads = listOf(GLOW_STATUS),
+            )
+        }.toTypedArray(),
+        ServiceRoutine(
+            "Registrar el cambio de todos los calentadores", Need.ENGINE_OFF,
+            "Solo tras cambiar los cuatro calentadores (STEUERN_GLUEHKERZENTAUSCH GLUALLE).",
+            start = listOf("31E010"), reads = listOf(GLOW_STATUS),
+        ),
+        ServiceRoutine(
+            "Registrar batería nueva", Need.ENGINE_OFF,
+            "Solo tras cambiar la batería por otra igual: la gestión de energía empieza de cero con ella (STEUERN_BATTERIETAUSCH_REGISTRIEREN).",
+            start = listOf("3130001000"),
+        ),
+        ServiceRoutine(
+            "Borrar el mapa aprendido del turbo", Need.ENGINE_OFF,
+            "Solo tras cambiar el turbo o su actuador: la centralita vuelve a aprender sus correcciones (RESET_ATL_LERNKF).",
+            start = listOf("307A04"),
+        ),
+        ServiceRoutine(
+            "Borrar la corrección del caudalímetro", Need.ENGINE_OFF,
+            "Solo tras cambiar el caudalímetro (LERNWERTE_RUECKSETZEN MMAR).",
+            start = listOf("30F60804"),
+        ),
+        ServiceRoutine(
+            "Borrar la corrección del caudalímetro y de la sonda lambda", Need.ENGINE_OFF,
+            "Solo tras cambiar el caudalímetro y la sonda (LERNWERTE_RUECKSETZEN MMALSUR).",
+            start = listOf("30F60802"),
+        ),
+    )
+
     /** La consulta de la posicion: la misma lectura de medidas de BMW que usa la app. */
     fun feedbackQuery(id: Int) = "2C10%04X".format(id)
     const val FEEDBACK_ANSWER = "6C10"
     const val FEEDBACK_FACTOR = 0.001526
 }
+
+/** Lo que necesita un servicio: motor apagado con el contacto puesto, o al ralenti y caliente. */
+enum class Need { ENGINE_OFF, IDLE }
+
+/**
+ * Un servicio que escribe: [start] en orden, [holdMs] de espera, [reads] para ver el resultado y
+ * [finish], que se manda siempre que algo de [start] se haya aceptado, aunque la tarea se corte.
+ */
+class ServiceRoutine(
+    val name: String,
+    val need: Need,
+    val description: String,
+    val start: List<String>,
+    val holdMs: Long = 0,
+    val reads: List<ServiceQuery> = emptyList(),
+    val finish: List<String> = emptyList(),
+)
+
+/** El estado de la unidad de calentadores tras registrar un cambio (STATUS_GLUEHKERZENTAUSCH). */
+private val GLOW_STATUS = ServiceQuery(
+    "Calentadores registrados", "33E0", "73E0",
+    fields = listOf(ServiceField("Último registrado (1 a 4; 16 = todos)", 0, 1)),
+)
 
 /**
  * Una pieza de la tabla STELLER: su id, los % a los que se pone, cuanto tiempo cada uno y la medida

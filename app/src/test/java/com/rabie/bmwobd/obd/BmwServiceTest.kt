@@ -90,6 +90,28 @@ class BmwServiceTest {
     }
 
     @Test
+    fun `la prueba de cilindros vuelve siempre a lo normal`() = runBlocking<Unit> {
+        val session = ObdSession(SimulatedTransport(latencyMs = 0)) {}
+        session.connect()
+        val test = BmwService.ROUTINES.first()
+        val result = session.runRoutine(ServiceRoutine(test.name, test.need, test.description, test.start, holdMs = 1, reads = test.reads, finish = test.finish))
+        val sent = result.steps.map { it.query }
+        assertEquals("318501", sent.first())
+        assertEquals("3285", sent.last())
+        assertEquals(8, sent.count { it.startsWith("2C1014") })
+        assertEquals(true, result.accepted)
+        assertEquals(true, result.released)
+    }
+
+    @Test
+    fun `los servicios son los telegramas del prg y caben en un mensaje`() {
+        val sent = BmwService.ROUTINES.flatMap { it.start + it.finish }
+        assertTrue(sent.containsAll(listOf("318501", "3285", "30B3070960", "30B3070000", "31E001", "31E010", "3130001000", "307A04", "30F60804", "30F60802")))
+        // El ELM327 manda como mucho siete bytes de datos en un mensaje.
+        assertTrue(sent.all { it.length <= 14 })
+    }
+
+    @Test
     fun `la orden del ventilador al 30 por ciento`() {
         // Lo que manda STEUERN_SELECTIV del d70n47b0.prg con ELU al 30 %.
         assertEquals("30C7070999", BmwService.fanCommand(30.0))

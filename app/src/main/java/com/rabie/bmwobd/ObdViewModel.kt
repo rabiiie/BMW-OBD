@@ -130,4 +130,6 @@ class ObdViewModel(app: Application) : AndroidViewModel(app) {
     fun readService() = controller.readService()
 
     fun testActuator(actuator: com.rabie.bmwobd.obd.Actuator) = controller.testActuator(actuator)
+
+    fun runRoutine(routine: com.rabie.bmwobd.obd.ServiceRoutine) = controller.runRoutine(routine)
 }
