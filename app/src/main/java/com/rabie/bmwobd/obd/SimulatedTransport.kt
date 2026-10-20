@@ -479,6 +479,7 @@ object SimulatedDde {
         // Las post-inyecciones: sin regenerar, 0, como en el coche.
         measure(0x04B5) { _ -> word(0.0) },
         measure(0x04B6) { _ -> word(0.0) },
+        measure(0x0840) { _ -> word(0.0) },
         measure(0x1964) { _ -> byte(2.0) },
         measure(0x145E) { _ -> word(1_900.0) },
         measure(0x145F) { _ -> word(1_902.0) },

@@ -587,6 +587,9 @@ object Pids {
         // regenerando con el modo normal, dieron 226-312 µs la primera y 629-652 µs la segunda.
         bmwDef(0x04B5, "Post-inyección 1: tiempo abierta", "µs", 0, PidGroup.FUEL) { it * 0.4 },
         bmwDef(0x04B6, "Post-inyección 2: tiempo abierta", "µs", 0, PidGroup.FUEL) { it * 0.4 },
+        // La cantidad que pide la centralita para la segunda (InjCrv_qPoI2Des). El 11 de octubre,
+        // regenerando con el modo normal, 14,5 y 14,8 mg; sin regenerar, 0.
+        bmwDef(0x0840, "Post-inyección 2: cantidad pedida", "mg/emb", 1, PidGroup.FUEL) { it * 0.003891 },
         bmwDef(0x1964, "Calibración de cantidad mínima: estado", "", 0, PidGroup.FUEL, size = 1) { it.toDouble() },
     ) + (0..2).map { point ->
         bmwDef(0x145E + point, "Calibración de inyectores: ciclos (${BMW_CALIBRATION_BAR[point]} bar)", "", 0, PidGroup.FUEL) { it.toDouble() }

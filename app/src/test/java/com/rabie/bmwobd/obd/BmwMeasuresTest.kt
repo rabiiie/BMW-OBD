@@ -66,6 +66,11 @@ class BmwMeasuresTest {
         assertEquals(312.4, Pids.byId.getValue(Pids.bmw(0x04B5)).decodeOrNull(intArrayOf(0x03, 0x0D))!!, 0.01)
         assertEquals(629.2, Pids.byId.getValue(Pids.bmw(0x04B6)).decodeOrNull(intArrayOf(0x06, 0x25))!!, 0.01)
         assertTrue(Pids.bmw(0x04B5) in com.rabie.bmwobd.cases.Case.FILTER.watch)
+        // 12:15 y 12:21 del mismo barrido: 2C100840 contesto 0E89 y 0EDE.
+        val poi2 = Pids.byId.getValue(Pids.bmw(0x0840))
+        assertEquals(14.48, poi2.decodeOrNull(intArrayOf(0x0E, 0x89))!!, 0.01)
+        assertEquals(14.81, poi2.decodeOrNull(intArrayOf(0x0E, 0xDE))!!, 0.01)
+        assertTrue(Pids.bmw(0x0840) in com.rabie.bmwobd.cases.Case.FILTER.watch)
     }
 
     @Test
