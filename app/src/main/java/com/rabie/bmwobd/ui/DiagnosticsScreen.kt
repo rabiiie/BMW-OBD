@@ -65,6 +65,7 @@ fun DiagnosticsScreen(
     onClear: () -> Unit,
     onClearFilter: () -> Unit = {},
     onClearFilterAll: () -> Unit = {},
+    onClearBmwAll: () -> Unit = {},
     onReadService: () -> Unit = {},
     onTestActuator: (Actuator) -> Unit = {},
     onRunRoutine: (ServiceRoutine) -> Unit = {},
@@ -76,6 +77,7 @@ fun DiagnosticsScreen(
     var confirmClear by remember { mutableStateOf(false) }
     var confirmFilter by remember { mutableStateOf(false) }
     var confirmFilterAll by remember { mutableStateOf(false) }
+    var confirmBmwAll by remember { mutableStateOf(false) }
     // Lo del filtro y la contrapresion que trajo la ultima lectura, en averias o en avisos.
     val filterPresent = state.report?.let { r -> (r.bmwFaults.orEmpty() + r.bmwInfo.orEmpty()).map { it.code }.distinct().filter { it in BmwFault.FILTER_ALL_CODES } }.orEmpty()
     var confirmActuator by remember { mutableStateOf<Actuator?>(null) }
@@ -121,6 +123,14 @@ fun DiagnosticsScreen(
         if (filterPresent.isNotEmpty()) {
             OutlinedButton(onClick = { confirmFilterAll = true }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
                 Text("Borrar todo lo del filtro en la memoria de BMW", color = Bmw.MRed)
+            }
+        }
+
+        // Solo si la ultima lectura trajo algo en la memoria de averias o en la de informacion de BMW.
+        val bmwAny = state.report?.let { it.bmwFaults.orEmpty().isNotEmpty() || it.bmwInfo.orEmpty().isNotEmpty() } == true
+        if (bmwAny) {
+            OutlinedButton(onClick = { confirmBmwAll = true }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
+                Text("Borrar toda la memoria de BMW", color = Bmw.MRed)
             }
         }
 
@@ -258,6 +268,28 @@ fun DiagnosticsScreen(
                 }) { Text("Borrar 480A/481A", color = Bmw.MRed) }
             },
             dismissButton = { TextButton(onClick = { confirmFilter = false }) { Text("Cancelar") } },
+        )
+    }
+
+    if (confirmBmwAll) {
+        AlertDialog(
+            onDismissRequest = { confirmBmwAll = false },
+            title = { Text("¿Borrar toda la memoria de BMW?") },
+            text = {
+                Text(
+                    "Se manda la orden de BMW que borra todas las averías de su memoria (14 FFFF). Si después quedan avisos " +
+                        "en la memoria de información, se borran uno a uno. El historial no se toca. Con el coche parado, " +
+                        "mejor con el contacto puesto y el motor parado. Lee antes las averías para que su detalle quede en el " +
+                        "registro. Las que estén presentes (como la del sensor de aceite) volverán a salir enseguida.",
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmBmwAll = false
+                    onClearBmwAll()
+                }) { Text("Borrar todo", color = Bmw.MRed) }
+            },
+            dismissButton = { TextButton(onClick = { confirmBmwAll = false }) { Text("Cancelar") } },
         )
     }
 

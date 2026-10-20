@@ -106,6 +106,9 @@ data class BmwFault(val code: Int, val status: Int) {
          * Contesta 54 si lo acepta y 7F 14 con el motivo si no.
          */
         fun clearQuery(code: Int) = "14%04X".format(code)
+
+        /** El codigo de FS_LOESCHEN para borrarlas todas ("alle Fehler"). */
+        const val ALL_FAULTS = 0xFFFF
         const val CLEAR_ANSWER = "54"
         const val CLEAR_REFUSED = "7F14"
 

@@ -646,6 +646,69 @@ class ObdController(
         clearCodes(present, "filtro", "No hay nada del filtro en la memoria de BMW.", "Las demás averías se conservan.")
     }
 
+    /**
+     * Borra toda la memoria propia de BMW con 14 FFFF (FS_LOESCHEN, "alle Fehler") y vuelve a leer.
+     * BMW no dice si eso vacia tambien la memoria de informacion: si despues quedan avisos, se borran
+     * uno a uno con 14 y su codigo. Solo con el coche parado. Las averias presentes vuelven a salir.
+     */
+    fun clearBmwAll() {
+        if (!isLive() || _diagnostics.value.busy) return
+        if ((_state.value.values[Pids.SPEED] ?: 0.0) >= 1.0) {
+            _diagnostics.update { it.copy(message = "Solo con el coche parado.") }
+            return
+        }
+        _diagnostics.update { it.copy(busy = true, message = null) }
+        tasks.trySend { session ->
+            logBuffer.pin()
+            appendLog("## Borrar toda la memoria de BMW: inicio")
+            try {
+                val all = session.clearBmwFault(BmwFault.ALL_FAULTS)
+                appendLog("## Borrar toda la memoria de BMW: FFFF " + when (all) {
+                    true -> "aceptado"
+                    false -> "rechazado"
+                    null -> "sin respuesta"
+                })
+                var report = session.diagnostics(bmw = canScan(_state.value.vehicle))
+                val left = report.bmwInfo.orEmpty().map { it.code }
+                val infoDone = ArrayList<String>()
+                for (code in left) {
+                    val label = "%04X".format(code)
+                    val ok = session.clearBmwFault(code)
+                    appendLog("## Borrar toda la memoria de BMW: aviso $label " + when (ok) {
+                        true -> "aceptado"
+                        false -> "rechazado"
+                        null -> "sin respuesta"
+                    })
+                    if (ok == true) infoDone += label
+                }
+                if (left.isNotEmpty()) report = session.diagnostics(bmw = canScan(_state.value.vehicle))
+                logDetails(report)
+                val faultsLeft = report.bmwFaults.orEmpty().joinToString(", ") { it.label }
+                val infoLeft = report.bmwInfo.orEmpty().joinToString(", ") { it.label }
+                val text = listOfNotNull(
+                    when (all) {
+                        true -> "Memoria de averías de BMW borrada."
+                        false -> "La centralita no ha aceptado borrar la memoria de averías. Prueba con el contacto puesto y el motor parado."
+                        null -> "La centralita no ha contestado al borrar la memoria de averías."
+                    },
+                    infoDone.takeIf { it.isNotEmpty() }?.let { "Avisos borrados uno a uno: " + it.joinToString(", ") + "." },
+                    faultsLeft.takeIf { it.isNotEmpty() }?.let { "Siguen o han vuelto: $it." },
+                    infoLeft.takeIf { it.isNotEmpty() }?.let { "Avisos que siguen: $it." },
+                ).joinToString(" ")
+                appendLog("## Borrar toda la memoria de BMW: $text")
+                _diagnostics.update {
+                    it.copy(busy = false, report = report, readAtMillis = System.currentTimeMillis(), message = text)
+                }
+            } catch (e: IOException) {
+                appendLog("!! ${e.message}")
+                _diagnostics.update { it.copy(busy = false, message = "El adaptador no ha contestado.") }
+            } finally {
+                appendLog("## Borrar toda la memoria de BMW: fin")
+                logBuffer.unpin()
+            }
+        }
+    }
+
     private fun clearCodes(present: List<Int>, title: String, missing: String, kept: String) {
         if (!isLive() || _diagnostics.value.busy) return
         if ((_state.value.values[Pids.SPEED] ?: 0.0) >= 1.0) {

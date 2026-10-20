@@ -137,6 +137,20 @@ class BmwFaultsTest {
     }
 
     @Test
+    fun `borrar toda la memoria es 14 FFFF y los avisos se borran aparte`() = runBlocking<Unit> {
+        val session = ObdSession(SimulatedTransport(latencyMs = 0)) {}
+        session.connect()
+        assertEquals("14FFFF", BmwFault.clearQuery(BmwFault.ALL_FAULTS))
+        assertEquals(true, session.clearBmwFault(BmwFault.ALL_FAULTS))
+        val report = session.diagnostics(bmw = true)
+        assertTrue(report.bmwFaults!!.isEmpty())
+        // El simulado, como no sabemos que hace el coche, deja los avisos: se borran uno a uno.
+        assertEquals(2, report.bmwInfo!!.size)
+        for (fault in report.bmwInfo!!) assertEquals(true, session.clearBmwFault(fault.code))
+        assertTrue(session.diagnostics(bmw = true).bmwInfo!!.isEmpty())
+    }
+
+    @Test
     fun `se pueden borrar los avisos del filtro y las averias se quedan`() = runBlocking<Unit> {
         val session = ObdSession(SimulatedTransport(latencyMs = 0)) {}
         session.connect()
