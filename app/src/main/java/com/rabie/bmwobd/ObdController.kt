@@ -629,7 +629,7 @@ class ObdController(
 
     /**
      * Borra solo 480A y 481A de la memoria propia de BMW, las que esten, y vuelve a leer. Solo con
-     * el coche parado. Si la centralita rechaza la primera no se intenta la otra.
+     * el coche parado.
      */
     fun clearFilterFaults() {
         val present = _diagnostics.value.report?.bmwFaults.orEmpty().map { it.code }.filter { it in BmwFault.FILTER_CODES }
@@ -637,12 +637,13 @@ class ObdController(
     }
 
     /**
-     * Borra solo 4CE0 y 44CF de la memoria de informacion, los que esten, y vuelve a leer. Solo con
-     * el coche parado. Si la centralita rechaza el primero no se intenta el otro.
+     * Borra de una vez todo lo del filtro y la contrapresion que este en la memoria de averias o en
+     * la de informacion de BMW (BmwFault.FILTER_ALL_CODES), y vuelve a leer. Solo con el coche parado.
      */
-    fun clearFilterInfo() {
-        val present = _diagnostics.value.report?.bmwInfo.orEmpty().map { it.code }.filter { it in BmwFault.FILTER_INFO_CODES }
-        clearCodes(present, "4CE0/44CF", "4CE0 y 44CF no están en la memoria de información.", "Lo demás se conserva.")
+    fun clearFilterAll() {
+        val report = _diagnostics.value.report
+        val present = (report?.bmwFaults.orEmpty() + report?.bmwInfo.orEmpty()).map { it.code }.distinct().filter { it in BmwFault.FILTER_ALL_CODES }
+        clearCodes(present, "filtro", "No hay nada del filtro en la memoria de BMW.", "Las demás averías se conservan.")
     }
 
     private fun clearCodes(present: List<Int>, title: String, missing: String, kept: String) {
@@ -660,23 +661,28 @@ class ObdController(
             logBuffer.pin()
             appendLog("## Borrar $title: inicio")
             try {
+                // Se intentan todos: uno rechazado no impide borrar los demas.
                 val done = ArrayList<String>()
-                var message: String? = null
+                val refused = ArrayList<String>()
+                val silent = ArrayList<String>()
                 for (code in present) {
                     val label = "%04X".format(code)
                     when (session.clearBmwFault(code)) {
                         true -> done += label
-                        false -> {
-                            message = "La centralita no ha aceptado borrar $label. Prueba con el contacto puesto y el motor parado."
-                            break
-                        }
-                        null -> {
-                            message = "La centralita no ha contestado al borrar $label."
-                            break
-                        }
+                        false -> refused += label
+                        null -> silent += label
                     }
+                    appendLog("## Borrar $title: $label " + when (label) {
+                        in done -> "aceptado"
+                        in refused -> "rechazado"
+                        else -> "sin respuesta"
+                    })
                 }
-                val text = message ?: (done.joinToString(" y ") + " borrados. $kept")
+                val text = listOfNotNull(
+                    done.takeIf { it.isNotEmpty() }?.let { it.joinToString(", ") + " borrados. $kept" },
+                    refused.takeIf { it.isNotEmpty() }?.let { "La centralita no ha aceptado borrar " + it.joinToString(", ") + ". Prueba con el contacto puesto y el motor parado." },
+                    silent.takeIf { it.isNotEmpty() }?.let { "Sin respuesta al borrar " + it.joinToString(", ") + "." },
+                ).joinToString(" ")
                 appendLog("## Borrar $title: $text")
                 val report = session.diagnostics(bmw = canScan(_state.value.vehicle))
                 logDetails(report)

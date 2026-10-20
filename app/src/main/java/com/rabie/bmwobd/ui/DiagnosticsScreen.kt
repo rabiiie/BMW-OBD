@@ -64,7 +64,7 @@ fun DiagnosticsScreen(
     onReadTests: () -> Unit,
     onClear: () -> Unit,
     onClearFilter: () -> Unit = {},
-    onClearFilterInfo: () -> Unit = {},
+    onClearFilterAll: () -> Unit = {},
     onReadService: () -> Unit = {},
     onTestActuator: (Actuator) -> Unit = {},
     onRunRoutine: (ServiceRoutine) -> Unit = {},
@@ -75,7 +75,9 @@ fun DiagnosticsScreen(
 ) {
     var confirmClear by remember { mutableStateOf(false) }
     var confirmFilter by remember { mutableStateOf(false) }
-    var confirmFilterInfo by remember { mutableStateOf(false) }
+    var confirmFilterAll by remember { mutableStateOf(false) }
+    // Lo del filtro y la contrapresion que trajo la ultima lectura, en averias o en avisos.
+    val filterPresent = state.report?.let { r -> (r.bmwFaults.orEmpty() + r.bmwInfo.orEmpty()).map { it.code }.distinct().filter { it in BmwFault.FILTER_ALL_CODES } }.orEmpty()
     var confirmActuator by remember { mutableStateOf<Actuator?>(null) }
     var confirmRoutine by remember { mutableStateOf<ServiceRoutine?>(null) }
     // Los servicios que escriben y las pruebas de piezas se abren con el PIN y se cierran al salir de la pantalla.
@@ -116,10 +118,9 @@ fun DiagnosticsScreen(
             }
         }
 
-        // Solo si la ultima lectura trajo 4CE0 o 44CF en la memoria de informacion.
-        if (state.report?.bmwInfo.orEmpty().any { it.code in BmwFault.FILTER_INFO_CODES }) {
-            OutlinedButton(onClick = { confirmFilterInfo = true }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
-                Text("Borrar solo 4CE0/44CF (avisos del filtro)", color = Bmw.MRed)
+        if (filterPresent.isNotEmpty()) {
+            OutlinedButton(onClick = { confirmFilterAll = true }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
+                Text("Borrar todo lo del filtro en la memoria de BMW", color = Bmw.MRed)
             }
         }
 
@@ -260,26 +261,27 @@ fun DiagnosticsScreen(
         )
     }
 
-    if (confirmFilterInfo) {
+    if (confirmFilterAll) {
         AlertDialog(
-            onDismissRequest = { confirmFilterInfo = false },
-            title = { Text("¿Borrar solo 4CE0/44CF?") },
+            onDismissRequest = { confirmFilterAll = false },
+            title = { Text("¿Borrar todo lo del filtro?") },
             text = {
                 Text(
-                    "Se borran los dos avisos del filtro de la memoria de información: la regeneración de protección (4CE0) " +
-                        "y el salto de resistencia no creíble (44CF). Las averías y los demás avisos se conservan. " +
-                        "Con el coche parado, mejor con el contacto puesto y el motor parado. Lee antes las averías para " +
-                        "que su detalle quede en el registro. No se sabe si la centralita acepta borrar avisos de esta " +
-                        "memoria ni si cambia algo: si la causa sigue, los vuelve a apuntar.",
+                    "Se borran de la memoria de averías y de la de información de BMW: " +
+                        filterPresent.joinToString(", ") { "%04X".format(it) } +
+                        ". Lo demás (aceite, calentadores…) se conserva. Con el coche parado, mejor con el contacto puesto " +
+                        "y el motor parado. Lee antes las averías para que su detalle quede en el registro. No se sabe si " +
+                        "la centralita acepta borrar los avisos de la memoria de información ni si cambia algo: si la causa " +
+                        "sigue, los vuelve a apuntar.",
                 )
             },
             confirmButton = {
                 TextButton(onClick = {
-                    confirmFilterInfo = false
-                    onClearFilterInfo()
-                }) { Text("Borrar 4CE0/44CF", color = Bmw.MRed) }
+                    confirmFilterAll = false
+                    onClearFilterAll()
+                }) { Text("Borrar", color = Bmw.MRed) }
             },
-            dismissButton = { TextButton(onClick = { confirmFilterInfo = false }) { Text("Cancelar") } },
+            dismissButton = { TextButton(onClick = { confirmFilterAll = false }) { Text("Cancelar") } },
         )
     }
 

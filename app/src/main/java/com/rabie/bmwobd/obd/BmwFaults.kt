@@ -88,14 +88,17 @@ data class BmwFault(val code: Int, val status: Int) {
         /** 480A y 481A, las del filtro que impiden la regeneracion normal mientras estan presentes. */
         val FILTER_CODES = listOf(FILTER_HIGH, FILTER_MAX)
 
-        /**
-         * Los dos avisos del filtro de la memoria de informacion: 4CE0, regeneracion de proteccion
-         * activada, y 44CF, salto de resistencia no creible. Se borran con el mismo 14 y el codigo;
-         * si la causa sigue, la centralita los vuelve a apuntar.
-         */
+        /** Avisos del filtro de la memoria de informacion: regeneracion de proteccion y salto de resistencia no creible. */
         const val FILTER_PROTECTION = 0x4CE0
         const val FILTER_JUMP = 0x44CF
-        val FILTER_INFO_CODES = listOf(FILTER_PROTECTION, FILTER_JUMP)
+
+        /**
+         * Todo lo del filtro y la contrapresion de escape, en la memoria de averias o en la de
+         * informacion: 480A, 481A, 4CE0, 44CF, 4D00 (contrapresion antes del turbo) y 4010
+         * (contrapresion antes del filtro). Se borran todos de una vez con 14 y cada codigo; si la
+         * causa sigue, la centralita los vuelve a apuntar.
+         */
+        val FILTER_ALL_CODES = listOf(FILTER_HIGH, FILTER_MAX, FILTER_PROTECTION, FILTER_JUMP, 0x4D00, 0x4010)
 
         /**
          * Borrar una sola averia: 14 y su codigo (trabajo FS_LOESCHEN de d70n47b0, servicio

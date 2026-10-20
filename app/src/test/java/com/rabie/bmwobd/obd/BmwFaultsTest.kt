@@ -141,7 +141,7 @@ class BmwFaultsTest {
         val session = ObdSession(SimulatedTransport(latencyMs = 0)) {}
         session.connect()
         assertEquals("1444CF", BmwFault.clearQuery(BmwFault.FILTER_JUMP))
-        assertEquals(listOf(0x4CE0, 0x44CF), BmwFault.FILTER_INFO_CODES)
+        assertEquals(listOf(0x480A, 0x481A, 0x4CE0, 0x44CF, 0x4D00, 0x4010), BmwFault.FILTER_ALL_CODES)
         assertEquals(true, session.clearBmwFault(BmwFault.FILTER_JUMP))
         val report = session.diagnostics(bmw = true)
         assertEquals(listOf("4CE0"), report.bmwInfo!!.map { it.label })
