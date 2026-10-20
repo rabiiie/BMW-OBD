@@ -632,20 +632,33 @@ class ObdController(
      * el coche parado. Si la centralita rechaza la primera no se intenta la otra.
      */
     fun clearFilterFaults() {
+        val present = _diagnostics.value.report?.bmwFaults.orEmpty().map { it.code }.filter { it in BmwFault.FILTER_CODES }
+        clearCodes(present, "480A/481A", "480A y 481A no están en la memoria de averías.", "Las demás averías se conservan.")
+    }
+
+    /**
+     * Borra solo 4CE0 y 44CF de la memoria de informacion, los que esten, y vuelve a leer. Solo con
+     * el coche parado. Si la centralita rechaza el primero no se intenta el otro.
+     */
+    fun clearFilterInfo() {
+        val present = _diagnostics.value.report?.bmwInfo.orEmpty().map { it.code }.filter { it in BmwFault.FILTER_INFO_CODES }
+        clearCodes(present, "4CE0/44CF", "4CE0 y 44CF no están en la memoria de información.", "Lo demás se conserva.")
+    }
+
+    private fun clearCodes(present: List<Int>, title: String, missing: String, kept: String) {
         if (!isLive() || _diagnostics.value.busy) return
         if ((_state.value.values[Pids.SPEED] ?: 0.0) >= 1.0) {
             _diagnostics.update { it.copy(message = "Solo con el coche parado.") }
             return
         }
-        val present = _diagnostics.value.report?.bmwFaults.orEmpty().map { it.code }.filter { it in BmwFault.FILTER_CODES }
         if (present.isEmpty()) {
-            _diagnostics.update { it.copy(message = "480A y 481A no están en la memoria de averías.") }
+            _diagnostics.update { it.copy(message = missing) }
             return
         }
         _diagnostics.update { it.copy(busy = true, message = null) }
         tasks.trySend { session ->
             logBuffer.pin()
-            appendLog("## Borrar 480A/481A: inicio")
+            appendLog("## Borrar $title: inicio")
             try {
                 val done = ArrayList<String>()
                 var message: String? = null
@@ -663,8 +676,8 @@ class ObdController(
                         }
                     }
                 }
-                val text = message ?: (done.joinToString(" y ") + " borradas. Las demás averías se conservan.")
-                appendLog("## Borrar 480A/481A: $text")
+                val text = message ?: (done.joinToString(" y ") + " borrados. $kept")
+                appendLog("## Borrar $title: $text")
                 val report = session.diagnostics(bmw = canScan(_state.value.vehicle))
                 logDetails(report)
                 _diagnostics.update {
@@ -674,7 +687,7 @@ class ObdController(
                 appendLog("!! ${e.message}")
                 _diagnostics.update { it.copy(busy = false, message = "El adaptador no ha contestado.") }
             } finally {
-                appendLog("## Borrar 480A/481A: fin")
+                appendLog("## Borrar $title: fin")
                 logBuffer.unpin()
             }
         }

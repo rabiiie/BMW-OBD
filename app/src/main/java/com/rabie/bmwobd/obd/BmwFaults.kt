@@ -89,6 +89,15 @@ data class BmwFault(val code: Int, val status: Int) {
         val FILTER_CODES = listOf(FILTER_HIGH, FILTER_MAX)
 
         /**
+         * Los dos avisos del filtro de la memoria de informacion: 4CE0, regeneracion de proteccion
+         * activada, y 44CF, salto de resistencia no creible. Se borran con el mismo 14 y el codigo;
+         * si la causa sigue, la centralita los vuelve a apuntar.
+         */
+        const val FILTER_PROTECTION = 0x4CE0
+        const val FILTER_JUMP = 0x44CF
+        val FILTER_INFO_CODES = listOf(FILTER_PROTECTION, FILTER_JUMP)
+
+        /**
          * Borrar una sola averia: 14 y su codigo (trabajo FS_LOESCHEN de d70n47b0, servicio
          * ClearDiagnosticInformation con un codigo concreto). Las demas se quedan como estan.
          * Contesta 54 si lo acepta y 7F 14 con el motivo si no.

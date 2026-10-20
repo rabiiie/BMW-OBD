@@ -209,6 +209,7 @@ private fun MainScreen(vm: ObdViewModel = viewModel()) {
                     onReadTests = vm::readTests,
                     onClear = vm::clearDtcs,
                     onClearFilter = vm::clearFilterFaults,
+                    onClearFilterInfo = vm::clearFilterInfo,
                     onReadService = vm::readService,
                     onTestActuator = vm::testActuator,
                     onRunRoutine = vm::runRoutine,

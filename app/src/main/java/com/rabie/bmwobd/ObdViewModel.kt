@@ -127,6 +127,8 @@ class ObdViewModel(app: Application) : AndroidViewModel(app) {
 
     fun clearFilterFaults() = controller.clearFilterFaults()
 
+    fun clearFilterInfo() = controller.clearFilterInfo()
+
     fun readService() = controller.readService()
 
     fun testActuator(actuator: com.rabie.bmwobd.obd.Actuator) = controller.testActuator(actuator)

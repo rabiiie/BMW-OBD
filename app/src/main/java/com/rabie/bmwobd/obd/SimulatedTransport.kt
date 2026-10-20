@@ -25,6 +25,9 @@ class SimulatedTransport(
     // La memoria propia de la centralita de BMW: una presente y otra solo guardada, como en el 118d.
     private var bmwFaults = listOf(0x498E to 0x61, 0x4A6E to 0x21)
 
+    // La memoria de informacion: lo que contesto el coche el 20 de octubre, 4CE0 y 44CF guardados.
+    private var bmwInfo = listOf(0x4CE0 to 0x21, 0x44CF to 0x21)
+
     // Al borrar averias las autocomprobaciones vuelven a empezar, como en un coche de verdad.
     private var cleared = false
 
@@ -110,6 +113,7 @@ class SimulatedTransport(
             bytes.size == 3 && bytes[0] == 0x14 -> {
                 val code = bytes[1] * 256 + bytes[2]
                 bmwFaults = if (code == 0xFFFF) emptyList() else bmwFaults.filter { it.first != code }
+                bmwInfo = bmwInfo.filter { it.first != code }
                 intArrayOf(0x54, bytes[1], bytes[2])
             }
             bytes.size == 2 && bytes[0] == 0x1A && bytes[1] == 0x80 -> intArrayOf(0x5A, 0x80) + ascii(BMW_IDENT, 20)
@@ -125,9 +129,8 @@ class SimulatedTransport(
             // El historial de averias: cuantas y, por cada una, codigo y estado.
             bytes.size == 3 && bytes[0] == 0x22 && bytes[1] == 0x21 && bytes[2] == 0x00 ->
                 intArrayOf(0x62, 0x21, 0x00, 0x03, 0x48, 0x0A, 0x11, 0x4D, 0x00, 0x21, 0x48, 0x0A, 0x11)
-            // La memoria de informacion: lo que contesto el coche el 20 de octubre, 4CE0 y 44CF guardados.
             bytes.size == 3 && bytes[0] == 0x22 && bytes[1] == 0x20 && bytes[2] == 0x00 ->
-                intArrayOf(0x62, 0x20, 0x00, 0x02, 0x4C, 0xE0, 0x21, 0x44, 0xCF, 0x21)
+                intArrayOf(0x62, 0x20, 0x00, bmwInfo.size) + bmwInfo.flatMap { (code, status) -> listOf(code shr 8, code and 0xFF, status) }
             // Los servicios: rutinas (31, 32, 33) y los ajustes del ralenti, del turbo y del caudalimetro aceptados con eco.
             bytes.isNotEmpty() && bytes[0] in 0x31..0x33 -> intArrayOf(bytes[0] + 0x40) + bytes.drop(1)
             bytes.size >= 3 && bytes[0] == 0x30 && bytes[1] in setOf(0xB3, 0x7A, 0xF6) -> intArrayOf(0x70) + bytes.drop(1)

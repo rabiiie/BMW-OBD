@@ -135,4 +135,16 @@ class BmwFaultsTest {
         assertEquals(true, session.clearBmwFault(0x4A6E))
         assertEquals(listOf("498E"), session.diagnostics(bmw = true).bmwFaults!!.map { it.label })
     }
+
+    @Test
+    fun `se pueden borrar los avisos del filtro y las averias se quedan`() = runBlocking<Unit> {
+        val session = ObdSession(SimulatedTransport(latencyMs = 0)) {}
+        session.connect()
+        assertEquals("1444CF", BmwFault.clearQuery(BmwFault.FILTER_JUMP))
+        assertEquals(listOf(0x4CE0, 0x44CF), BmwFault.FILTER_INFO_CODES)
+        assertEquals(true, session.clearBmwFault(BmwFault.FILTER_JUMP))
+        val report = session.diagnostics(bmw = true)
+        assertEquals(listOf("4CE0"), report.bmwInfo!!.map { it.label })
+        assertEquals(listOf("498E", "4A6E"), report.bmwFaults!!.map { it.label })
+    }
 }

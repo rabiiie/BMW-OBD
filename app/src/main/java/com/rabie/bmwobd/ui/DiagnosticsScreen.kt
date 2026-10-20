@@ -64,6 +64,7 @@ fun DiagnosticsScreen(
     onReadTests: () -> Unit,
     onClear: () -> Unit,
     onClearFilter: () -> Unit = {},
+    onClearFilterInfo: () -> Unit = {},
     onReadService: () -> Unit = {},
     onTestActuator: (Actuator) -> Unit = {},
     onRunRoutine: (ServiceRoutine) -> Unit = {},
@@ -74,6 +75,7 @@ fun DiagnosticsScreen(
 ) {
     var confirmClear by remember { mutableStateOf(false) }
     var confirmFilter by remember { mutableStateOf(false) }
+    var confirmFilterInfo by remember { mutableStateOf(false) }
     var confirmActuator by remember { mutableStateOf<Actuator?>(null) }
     var confirmRoutine by remember { mutableStateOf<ServiceRoutine?>(null) }
     // Los servicios que escriben y las pruebas de piezas se abren con el PIN y se cierran al salir de la pantalla.
@@ -111,6 +113,13 @@ fun DiagnosticsScreen(
         if (state.report?.bmwFaults.orEmpty().any { it.code in BmwFault.FILTER_CODES }) {
             OutlinedButton(onClick = { confirmFilter = true }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
                 Text("Borrar solo 480A/481A (filtro)", color = Bmw.MRed)
+            }
+        }
+
+        // Solo si la ultima lectura trajo 4CE0 o 44CF en la memoria de informacion.
+        if (state.report?.bmwInfo.orEmpty().any { it.code in BmwFault.FILTER_INFO_CODES }) {
+            OutlinedButton(onClick = { confirmFilterInfo = true }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
+                Text("Borrar solo 4CE0/44CF (avisos del filtro)", color = Bmw.MRed)
             }
         }
 
@@ -248,6 +257,29 @@ fun DiagnosticsScreen(
                 }) { Text("Borrar 480A/481A", color = Bmw.MRed) }
             },
             dismissButton = { TextButton(onClick = { confirmFilter = false }) { Text("Cancelar") } },
+        )
+    }
+
+    if (confirmFilterInfo) {
+        AlertDialog(
+            onDismissRequest = { confirmFilterInfo = false },
+            title = { Text("¿Borrar solo 4CE0/44CF?") },
+            text = {
+                Text(
+                    "Se borran los dos avisos del filtro de la memoria de información: la regeneración de protección (4CE0) " +
+                        "y el salto de resistencia no creíble (44CF). Las averías y los demás avisos se conservan. " +
+                        "Con el coche parado, mejor con el contacto puesto y el motor parado. Lee antes las averías para " +
+                        "que su detalle quede en el registro. No se sabe si la centralita acepta borrar avisos de esta " +
+                        "memoria ni si cambia algo: si la causa sigue, los vuelve a apuntar.",
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmFilterInfo = false
+                    onClearFilterInfo()
+                }) { Text("Borrar 4CE0/44CF", color = Bmw.MRed) }
+            },
+            dismissButton = { TextButton(onClick = { confirmFilterInfo = false }) { Text("Cancelar") } },
         )
     }
 
