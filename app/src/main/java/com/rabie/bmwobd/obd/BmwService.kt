@@ -282,6 +282,7 @@ object BmwService {
         Pids.BMW_ISTA_LOCK_SECONDS to "Tiempo de bloqueo que queda",
         Pids.BMW_ISTA_MAX_REGEN_TEMP to "Máxima antes del filtro en regeneración",
         Pids.BMW_ISTA_MAX_TEMP to "Máxima antes del filtro",
+        Pids.BMW_ISTA_PROTECTION_SECONDS to "Tiempo para pedir regeneración por protección del motor",
     )
 
     /** Los valores de [FILTER_QUERY] que van al CSV, por su columna; vacio si no contesto. */

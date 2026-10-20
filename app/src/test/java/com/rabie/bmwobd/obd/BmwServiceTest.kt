@@ -88,6 +88,8 @@ class BmwServiceTest {
         assertEquals(0.0, values.getValue(Pids.BMW_ISTA_LOCK_SECONDS), 0.0)
         assertEquals(657.9, values.getValue(Pids.BMW_ISTA_MAX_REGEN_TEMP), 0.01)
         assertEquals(640.4, values.getValue(Pids.BMW_ISTA_MAX_TEMP), 0.01)
+        // 00 01 19 40: lo que leyo ISTA el 19 de octubre a las 14:22.
+        assertEquals(72000.0, values.getValue(Pids.BMW_ISTA_PROTECTION_SECONDS), 0.0)
         assertTrue(BmwService.filterValues(BmwService.parse(BmwService.FILTER_QUERY, null)).isEmpty())
     }
 

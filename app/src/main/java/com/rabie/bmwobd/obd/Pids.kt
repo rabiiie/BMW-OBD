@@ -215,7 +215,13 @@ object Pids {
     const val BMW_ISTA_LOCK_SECONDS = 0x10007
     const val BMW_ISTA_MAX_REGEN_TEMP = 0x10008
     const val BMW_ISTA_MAX_TEMP = 0x10009
-    val BMW_ISTA_FILTER = listOf(BMW_ISTA_REGENS_DONE, BMW_ISTA_REGENS_ASKED, BMW_ISTA_REGEN_UNFINISHED, BMW_ISTA_LOCK_SECONDS, BMW_ISTA_MAX_REGEN_TEMP, BMW_ISTA_MAX_TEMP)
+
+    /** TEPR: lo que le queda a la peticion de regeneracion por proteccion del motor (la de 4CE0). */
+    const val BMW_ISTA_PROTECTION_SECONDS = 0x1000A
+    val BMW_ISTA_FILTER = listOf(
+        BMW_ISTA_REGENS_DONE, BMW_ISTA_REGENS_ASKED, BMW_ISTA_REGEN_UNFINISHED, BMW_ISTA_LOCK_SECONDS, BMW_ISTA_MAX_REGEN_TEMP, BMW_ISTA_MAX_TEMP,
+        BMW_ISTA_PROTECTION_SECONDS,
+    )
     private const val APP_PID = -2
 
     /**
@@ -410,6 +416,7 @@ object Pids {
         PidDef(BMW_ISTA_LOCK_SECONDS, "Filtro (ISTA): tiempo de bloqueo que queda", "s", 0, 0, pid = APP_PID) { null },
         PidDef(BMW_ISTA_MAX_REGEN_TEMP, "Filtro (ISTA): máxima antes del filtro en regeneración", "°C", 0, 0, pid = APP_PID) { null },
         PidDef(BMW_ISTA_MAX_TEMP, "Filtro (ISTA): máxima antes del filtro", "°C", 0, 0, pid = APP_PID) { null },
+        PidDef(BMW_ISTA_PROTECTION_SECONDS, "Filtro (ISTA): tiempo para pedir regeneración por protección del motor", "s", 0, 0, pid = APP_PID) { null },
         PidDef(0x46, "Temp. ambiente", "°C", 1, 0) { temp(it) },
     )
 
