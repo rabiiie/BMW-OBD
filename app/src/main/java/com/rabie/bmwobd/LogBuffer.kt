@@ -69,6 +69,7 @@ class LogBuffer(
         // Caben la negociacion, la busqueda de las medidas propias de la marca y la primera lectura.
         const val HEAD_LINES = 320
         const val TAIL_LINES = 680
-        const val PINNED_BLOCKS = 4
+        // Las lecturas al conectar, la de averias, un borrado y la relectura, con margen.
+        const val PINNED_BLOCKS = 8
     }
 }

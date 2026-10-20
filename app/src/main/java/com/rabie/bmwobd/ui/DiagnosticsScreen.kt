@@ -53,6 +53,8 @@ import com.rabie.bmwobd.obd.FilterSensorCheck
 import com.rabie.bmwobd.obd.Mode06
 import com.rabie.bmwobd.obd.MonitorTest
 import com.rabie.bmwobd.obd.Readiness
+import com.rabie.bmwobd.obd.RecordCheck
+import com.rabie.bmwobd.obd.CheckLine
 import com.rabie.bmwobd.obd.Pids
 
 @Composable
@@ -113,25 +115,17 @@ fun DiagnosticsScreen(
             Text("Leer pruebas internas del coche")
         }
 
-        // Solo si la ultima lectura trajo 480A o 481A.
-        if (state.report?.bmwFaults.orEmpty().any { it.code in BmwFault.FILTER_CODES }) {
-            OutlinedButton(onClick = { confirmFilter = true }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
-                Text("Borrar solo 480A/481A (filtro)", color = Bmw.MRed)
-            }
+        // Los borrados solo se dejan con el detalle de lo que se borra ya guardado en el registro.
+        val filterFaults = state.report?.bmwFaults.orEmpty().map { it.code }.filter { it in BmwFault.FILTER_CODES }
+        if (filterFaults.isNotEmpty()) {
+            ClearButton("Borrar solo 480A/481A (filtro)", RecordCheck.clearBlocker(state.report, filterFaults), state.busy) { confirmFilter = true }
         }
-
         if (filterPresent.isNotEmpty()) {
-            OutlinedButton(onClick = { confirmFilterAll = true }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
-                Text("Borrar todo lo del filtro en la memoria de BMW", color = Bmw.MRed)
-            }
+            ClearButton("Borrar todo lo del filtro en la memoria de BMW", RecordCheck.clearBlocker(state.report, filterPresent), state.busy) { confirmFilterAll = true }
         }
-
-        // Solo si la ultima lectura trajo algo en la memoria de averias o en la de informacion de BMW.
-        val bmwAny = state.report?.let { it.bmwFaults.orEmpty().isNotEmpty() || it.bmwInfo.orEmpty().isNotEmpty() } == true
-        if (bmwAny) {
-            OutlinedButton(onClick = { confirmBmwAll = true }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
-                Text("Borrar toda la memoria de BMW", color = Bmw.MRed)
-            }
+        val allCodes = state.report?.let(RecordCheck::codes).orEmpty()
+        if (allCodes.isNotEmpty()) {
+            ClearButton("Borrar toda la memoria de BMW", RecordCheck.clearBlocker(state.report, allCodes), state.busy) { confirmBmwAll = true }
         }
 
         if (state.busy) {
@@ -141,6 +135,8 @@ fun DiagnosticsScreen(
             }
         }
         state.message?.let { Text(it, color = Bmw.Accent, fontSize = 14.sp) }
+
+        RecordCheck.lines(state.report, state.service).takeIf { it.isNotEmpty() }?.let { RecordCheckCard(it) }
 
         state.car?.battery?.let { BatteryCard(it) }
         state.car?.ima?.let { ImaCard(it) }
@@ -449,6 +445,38 @@ private fun FaultShots(shots: List<FaultSnapshot>) {
             Row {
                 Text(value.name + if (value.translated) "" else " (texto de BMW)", color = Bmw.TextDim, fontSize = 12.sp, modifier = Modifier.weight(1f))
                 Text(value.text, color = Bmw.Text, fontSize = 12.sp)
+            }
+        }
+    }
+}
+
+/** Un boton de borrar: desactivado, con el motivo debajo, si el registro no tiene el detalle de lo que borraria. */
+@Composable
+private fun ClearButton(label: String, blocker: String?, busy: Boolean, onClick: () -> Unit) {
+    Column(Modifier.fillMaxWidth()) {
+        OutlinedButton(onClick = onClick, enabled = !busy && blocker == null, modifier = Modifier.fillMaxWidth()) {
+            Text(label, color = if (blocker == null) Bmw.MRed else Bmw.TextDim)
+        }
+        blocker?.let { Text(it, color = Bmw.TextDim, fontSize = 12.sp) }
+    }
+}
+
+/** Que tiene el registro de la ultima lectura y que falta. */
+@Composable
+private fun RecordCheckCard(lines: List<CheckLine>) {
+    Card {
+        Label("Comprobación del registro")
+        val complete = lines.all { it.ok }
+        Text(
+            if (complete) "Está todo: puedes pasar el registro." else "Falta algo: vuelve a leer lo que sale en rojo.",
+            color = if (complete) Bmw.Text else Bmw.MRed,
+            fontSize = 13.sp,
+        )
+        for (line in lines) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(if (line.ok) "✓" else "✗", color = if (line.ok) Bmw.Accent else Bmw.MRed, fontSize = 15.sp)
+                Text(line.label, color = Bmw.Text, fontSize = 14.sp, modifier = Modifier.weight(1f))
+                Text(line.detail, color = if (line.ok) Bmw.TextDim else Bmw.MRed, fontSize = 13.sp)
             }
         }
     }

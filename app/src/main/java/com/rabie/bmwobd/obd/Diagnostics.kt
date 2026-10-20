@@ -25,6 +25,8 @@ data class DiagnosticsReport(
     val bmwFaultKm: Map<Int, Int> = emptyMap(),
     /** Como estaba el motor la primera y la ultima vez de cada averia o aviso de BMW, por su codigo. */
     val bmwFaultShots: Map<Int, List<FaultSnapshot>> = emptyMap(),
+    /** Las averias y avisos de BMW cuyo detalle (17 y el codigo) contesto la centralita. */
+    val bmwDetailed: Set<Int> = emptySet(),
 )
 
 object Dtcs {

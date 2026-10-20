@@ -109,6 +109,11 @@ class SimulatedTransport(
             // Las dos averias de la memoria propia de la centralita: una presente y otra solo guardada.
             bytes.size == 4 && bytes[0] == 0x18 && bytes[1] == 0x02 ->
                 intArrayOf(0x58, bmwFaults.size) + bmwFaults.flatMap { (code, status) -> listOf(code shr 8, code and 0xFF, status) }
+            // El detalle de una averia o aviso que este apuntado: solo la cabecera, sin fotos.
+            bytes.size == 3 && bytes[0] == 0x17 -> {
+                val code = bytes[1] * 256 + bytes[2]
+                (bmwFaults + bmwInfo).firstOrNull { it.first == code }?.let { (_, status) -> intArrayOf(0x57, 0x01, bytes[1], bytes[2], status) }
+            }
             // Borrar una averia de esa memoria, o todas con FFFF.
             bytes.size == 3 && bytes[0] == 0x14 -> {
                 val code = bytes[1] * 256 + bytes[2]

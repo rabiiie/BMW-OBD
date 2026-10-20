@@ -19,6 +19,8 @@ import com.rabie.bmwobd.advice.Moment
 import com.rabie.bmwobd.dash.GearGuess
 import com.rabie.bmwobd.dash.ShiftHint
 import com.rabie.bmwobd.obd.BmwFault
+import com.rabie.bmwobd.obd.BmwCarInfo
+import com.rabie.bmwobd.obd.RecordCheck
 import com.rabie.bmwobd.obd.Actuator
 import com.rabie.bmwobd.obd.BmwService
 import com.rabie.bmwobd.obd.Need
@@ -197,11 +199,22 @@ class ObdController(
                 faultValues[Pids.BMW_FILTER_FAULTS]?.let { appendLog("## Filtro: " + BmwFault.filterLevelText(it)) }
                 istaValues = emptyMap()
                 if (profile.ownDiagnostics) {
-                    val car = session.carInfo()
-                    // Los datos de servicio se leen solos al conectar: quedan en el registro y en Averías.
-                    val reads = session.serviceReads()
-                    val regen = session.istaRegen()
-                    logService(reads, regen)
+                    // Se leen solos al conectar y van en un bloque fijo: pasan de las primeras lineas que
+                    // guarda el registro, y sin fijar las lecturas siguientes las echarian fuera.
+                    logBuffer.pin()
+                    appendLog("## Lecturas al conectar: inicio")
+                    val car: BmwCarInfo
+                    val reads: List<ServiceRead>
+                    val regen: IstaRegen?
+                    try {
+                        car = session.carInfo()
+                        reads = session.serviceReads()
+                        regen = session.istaRegen()
+                        logService(reads, regen)
+                    } finally {
+                        appendLog("## Lecturas al conectar: fin")
+                        logBuffer.unpin()
+                    }
                     istaValues = reads.firstOrNull { it.query.query == BmwService.FILTER_QUERY.query }?.let(BmwService::filterValues).orEmpty()
                     _diagnostics.update { it.copy(car = car, service = reads, istaRegen = regen) }
                 }
@@ -657,6 +670,11 @@ class ObdController(
             _diagnostics.update { it.copy(message = "Solo con el coche parado.") }
             return
         }
+        val before = _diagnostics.value.report
+        RecordCheck.clearBlocker(before, before?.let(RecordCheck::codes).orEmpty())?.let { reason ->
+            _diagnostics.update { it.copy(message = reason) }
+            return
+        }
         _diagnostics.update { it.copy(busy = true, message = null) }
         tasks.trySend { session ->
             logBuffer.pin()
@@ -717,6 +735,10 @@ class ObdController(
         }
         if (present.isEmpty()) {
             _diagnostics.update { it.copy(message = missing) }
+            return
+        }
+        RecordCheck.clearBlocker(_diagnostics.value.report, present)?.let { reason ->
+            _diagnostics.update { it.copy(message = reason) }
             return
         }
         _diagnostics.update { it.copy(busy = true, message = null) }

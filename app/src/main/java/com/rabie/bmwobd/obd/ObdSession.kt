@@ -564,6 +564,7 @@ class ObdSession(
             bmwHistory = bmwAsk(BmwFault.HISTORY_QUERY, BmwFault.HISTORY_ANSWER)?.let(BmwFault::parseHistory),
             bmwFaultKm = details.mapNotNull { (code, payload) -> BmwFault.detailKm(payload, code)?.let { code to it } }.toMap(),
             bmwFaultShots = details.mapValues { (code, payload) -> FaultEnvironment.snapshots(payload, code) }.filterValues { it.isNotEmpty() },
+            bmwDetailed = details.keys,
         )
     }
 
