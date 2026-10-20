@@ -349,7 +349,7 @@ object CaseCards {
 
     private fun filter(values: Map<Int, Double>): HealthCard {
         val asked = values[Pids.BMW_REGEN_REQUEST]
-        val measured = values[Pids.BMW_SOOT_MEASURED]
+        val measured = values[Pids.BMW_SOOT_USED]
         val model = values[Pids.BMW_SOOT_MODEL]
         val distance = values[FILTER_DISTANCE]
         val minutes = values[FILTER_MINUTES]
@@ -365,7 +365,8 @@ object CaseCards {
                     (beforeFilter?.let { t -> " (ahora ${n(t)})" } ?: "") + " y no ir en reserva."
             },
             if (measured != null && model != null) {
-                "Hollín: ${n(measured, 1)} g medidos por la presión y ${n(model, 1)} g calculados por el uso."
+                "Hollín: ${n(measured, 1)} g el que usa la centralita y ${n(model, 1)} g el calculado" +
+                    (values[Pids.BMW_SOOT_PRESSURE]?.let { " (medido por la presión: ${n(it, 1)} g)." } ?: ".")
             } else {
                 measured?.let { "Hollín: ${n(it, 1)} g." }
             },

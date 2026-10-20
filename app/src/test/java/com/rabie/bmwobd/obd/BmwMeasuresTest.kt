@@ -99,7 +99,7 @@ class BmwMeasuresTest {
     fun `las medidas se leen sin lectura rapida y con su formula`() = runBlocking<Unit> {
         val session = ObdSession(SimulatedTransport(latencyMs = 0)) { log += it }
         session.connect()
-        val soot = candidates().first { it.id == Pids.BMW_SOOT_MEASURED }
+        val soot = candidates().first { it.id == Pids.BMW_SOOT_USED }
         val distance = candidates().first { it.id == Pids.bmw(0x03EB) }
         log.clear()
 

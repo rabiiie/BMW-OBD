@@ -128,14 +128,14 @@ class DashboardTest {
     @Test
     fun `cada grupo da tres datos escritos y una raya en lo que falta`() {
         val values = mapOf(
-            Pids.RPM to 1949.0, Pids.MAP to 167.0, Pids.BMW_SOOT_MEASURED to 21.1, Pids.bmw(0x03EB) to 31.95,
+            Pids.RPM to 1949.0, Pids.MAP to 167.0, Pids.BMW_SOOT_USED to 21.1, Pids.bmw(0x03EB) to 31.95,
             Pids.bmw(0x041E) to 440.8, Pids.bmw(0x01F4) to 169.0, Pids.bmw(0x0C86) to 98_737.0, Pids.bmw(0x0BEB) to 85.9,
             Pids.bmw(0x07D1) to 210.9, Pids.BMW_INJECTION to 27.0, Pids.bmw(0x01B9) to 14.11, Pids.bmw(0x01B2) to 4.08,
             Pids.bmw(0x0E43) to 56.0,
         ) + Pids.BMW_CYLINDER_CORRECTIONS.zip(listOf(0.62, -0.49, 0.41, -0.63)).toMap()
 
         assertEquals(
-            listOf(DashTile("Hollín medido", "21,1", "g"), DashTile("Desde regenerar", "32", "km"), DashTile("Escape", "441", "°C")),
+            listOf(DashTile("Hollín", "21,1", "g"), DashTile("Desde regenerar", "32", "km"), DashTile("Escape", "441", "°C")),
             Dashboard.tiles(DashGroup.FILTER, values),
         )
         assertEquals(

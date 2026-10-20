@@ -72,8 +72,15 @@ object Pids {
     /** Refrigerante por el protocolo de BMW: tambien sale por OBD, y sirve para saber si contesta. */
     val BMW_CHECK = bmw(0x0547)
     val BMW_INJECTION = bmw(0x0500)
-    val BMW_SOOT_MEASURED = bmw(0x03EA)
+    /**
+     * Las masas de hollin de la DDE. La que usa para decidir (PFltLd_mSot, "Russmasse") arranca en
+     * cada trayecto con la calculada y luego va, mas o menos, con la mayor de las dos. La calculada
+     * (PFltLd_mSotSim, el modelo) es la que pasa de un trayecto al siguiente. La medida por la
+     * presion (PFltLd_mSotMeas) empieza en 0 y sube cuando hay caudal para medir.
+     */
+    val BMW_SOOT_USED = bmw(0x03EA)
     val BMW_SOOT_MODEL = bmw(0x03ED)
+    val BMW_SOOT_PRESSURE = bmw(0x0405)
 
     /**
      * La peticion de regeneracion: lo que la centralita quiere hacer con el filtro, no lo que hace.
@@ -476,13 +483,13 @@ object Pids {
         bmwDef(0x0A29, "Lambda real", "λ", 2, PidGroup.FUEL) { it * 0.001 },
         bmwDef(0x0385, "Temp. gasóleo", "°C", 0, PidGroup.FUEL) { it * 0.01 - 50.0 },
         bmwDef(BMW_TANK_ADDRESS, "Depósito", "L", 1, PidGroup.FUEL) { it * 0.001907 },
-        bmwDef(0x03EA, "Filtro: hollín medido", "g", 1, PidGroup.EXHAUST) { it * 0.015259 },
-        bmwDef(0x03ED, "Filtro: hollín calculado", "g", 1, PidGroup.EXHAUST) { it * 0.01 },
+        bmwDef(0x03EA, "Filtro: hollín (el que usa la centralita)", "g", 1, PidGroup.EXHAUST) { it * 0.015259 },
+        bmwDef(0x03ED, "Filtro: hollín calculado (modelo)", "g", 1, PidGroup.EXHAUST) { it * 0.01 },
         bmwDef(0x03EB, "Filtro: desde la última regeneración", "km", 1, PidGroup.EXHAUST, size = 4) { it / 1000.0 },
         bmwDef(0x03E8, "Filtro: gasóleo desde la última regeneración", "L", 1, PidGroup.EXHAUST) { it * 0.01 },
         bmwDef(0x0424, "Filtro: presión diferencial", "hPa", 0, PidGroup.EXHAUST, Tier.MEDIUM) { it * 0.045777 - 1000.0 },
         bmwDef(0x0404, "Filtro: regeneración pedida (0 = no)", "", 0, PidGroup.EXHAUST, size = 1) { it.toDouble() },
-        bmwDef(0x0405, "Filtro: hollín medido corregido", "g", 1, PidGroup.EXHAUST) { it * 0.01 },
+        bmwDef(0x0405, "Filtro: hollín medido (por la presión)", "g", 1, PidGroup.EXHAUST) { it * 0.01 },
         // El gas que pasa por el filtro: la presion que hace depende de el, asi que dividiendo una
         // por otro sale una resistencia comparable entre trayectos. Presion, caudal y escape antes
         // del turbo van en el turno medio: se comparan entre si y con el turbo, y en el lento se
@@ -496,7 +503,7 @@ object Pids {
         bmwDef(0x05D4, "Par: límite por lo que pide el motor", "Nm", 0, PidGroup.ENGINE) { it * 0.114443 - 2500.0 },
         bmwDef(0x1329, "Par: límite de la vigilancia", "Nm", 0, PidGroup.ENGINE) { it * 0.114443 - 2500.0 },
         bmwDef(0x06C2, "Inyección: límite de humo", "mg/emb", 1, PidGroup.FUEL) { it * 0.01 },
-        bmwDef(0x0406, "Filtro: hollín calculado de forma continua", "g", 1, PidGroup.EXHAUST) { it * 0.01 },
+        bmwDef(0x0406, "Filtro: hollín calculado de forma continua (modelo)", "g", 1, PidGroup.EXHAUST) { it * 0.01 },
         bmwDef(0x01B2, "Corriente de batería", "A", 1, PidGroup.ELECTRIC) { it * 0.08 - 200.0 },
         bmwDef(0x09C4, "Ventilador", "%", 0, PidGroup.ENGINE) { it * 0.001526 },
         bmwDef(0x0839, "Control de crucero (1 = puesto)", "", 0, PidGroup.ENGINE, size = 1) { it.toDouble() },

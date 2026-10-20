@@ -59,7 +59,7 @@ class CaseTest {
         val later = turns.ids(600).flatten()
         assertEquals((base.filter { it.tier != Tier.ONCE }.map { it.id } + own(Case.FILTER)).toSet(), (read.flatten() + later).toSet())
         // Las vigiladas ya no gastan ademas su turno lento.
-        assertEquals(600.0, (later.count { it == Pids.BMW_SOOT_MEASURED } * watch.size).toDouble(), watch.size.toDouble())
+        assertEquals(600.0, (later.count { it == Pids.BMW_SOOT_USED } * watch.size).toDouble(), watch.size.toDouble())
     }
 
     @Test
@@ -263,14 +263,14 @@ class CaseTest {
     fun `la tarjeta del filtro dice si regenera con lo que marco el coche`() {
         // Lecturas del 11 de octubre: regenerando a las 12:14 y ya terminada a las 12:26.
         val during = mapOf(
-            Pids.BMW_REGEN_REQUEST to 5.0, Pids.BMW_SOOT_MEASURED to 22.9, Pids.BMW_SOOT_MODEL to 22.8,
+            Pids.BMW_REGEN_REQUEST to 5.0, Pids.BMW_SOOT_USED to 22.9, Pids.BMW_SOOT_MODEL to 22.8,
             Pids.bmw(0x03EB) to 311.0, Pids.bmw(0x0408) to 376.4, Pids.bmw(0x041E) to 413.1, Pids.bmw(0x0434) to 446.9,
             Pids.bmw(0x0424) to 198.0, Pids.bmw(0x03F1) to 23.9, Pids.bmw(0x05AA) to 0x02010002.toDouble(),
         )
         val card = CaseCards.card(Case.FILTER, during)!!
         assertEquals("Está regenerando.", card.headline)
         assertEquals(HealthLevel.WATCH, card.level)
-        assertEquals("Hollín: 22,9 g medidos por la presión y 22,8 g calculados por el uso.", card.facts[1])
+        assertEquals("Hollín: 22,9 g el que usa la centralita y 22,8 g el calculado.", card.facts[1])
         assertEquals("Última regeneración: hace 311 km y 376 min de motor.", card.facts[2])
         assertEquals("Escape: 413 °C antes del catalizador y 447 °C antes del filtro.", card.facts[3])
         assertEquals("Al escape le cuesta 198 hPa cruzar el filtro; resistencia 23,9.", card.facts[4])

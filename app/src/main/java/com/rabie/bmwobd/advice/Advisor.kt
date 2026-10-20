@@ -765,9 +765,12 @@ class Advisor {
                 )
             },
             Rule("soot_gap", Limits.SOOT_GAP_HOLD_MS) { m ->
-                val measured = m.values[Pids.BMW_SOOT_MEASURED] ?: return@Rule null
+                // La que usa la centralita va con la mayor de la medida y la calculada: si se aparta de la
+                // calculada es por la medida. Se enseña la medida si se lee.
+                val used = m.values[Pids.BMW_SOOT_USED] ?: return@Rule null
                 val model = m.values[Pids.BMW_SOOT_MODEL] ?: return@Rule null
-                if (measured - model < Limits.SOOT_GAP_WARN) return@Rule null
+                if (used - model < Limits.SOOT_GAP_WARN) return@Rule null
+                val measured = m.values[Pids.BMW_SOOT_PRESSURE]?.takeIf { it > 0 } ?: used
                 Advice(
                     "soot_gap", Severity.WARN, "Filtro: ${n(measured)} g medidos frente a ${n(model)} calculados",
                     "Por la presión, la centralita ve el filtro mucho más cargado de lo que calcula por el uso. " +

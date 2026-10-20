@@ -51,14 +51,14 @@ U	0387	1	0.490196	0.000000	l	Kraftstoffvolumen (1 Byte)	0
 U	0388	1	1.000000	-50.000000	°C	Gasóleo: temperatura	1
 U	03E0	2	0.038148	500.000000	hPa	Absolutdruck vor Turbine	0
 U	03E9	2	0.015259	0.000000	g	Ceniza calculada	1
-U	03EA	2	0.015259	0.000000	g	Hollín medido	1
+U	03EA	2	0.015259	0.000000	g	Hollín (el que usa la centralita)	1
 U	03EB	4	1.000000	0.000000	m	Distancia desde la última regeneración	1
 U	03EF	1	1.000000	0.000000		Zona de comprobación de la presión del filtro (código)	1
 U	03F0	2	1.000000	0.000000	hPa	Contrapresión antes del filtro, corregida	1
 U	03F1	2	0.000100	0.000000	hPa/(m³/h)	Resistencia del filtro (filtrada)	1
 U	03F2	1	0.005490	-0.200000	hPa/(m³/h)	Resistencia del filtro (filtrada, 1 byte)	1
-U	0405	2	0.010000	0.000000	g	Hollín medido, corregido	1
-U	0406	2	0.010000	0.000000	g	Hollín calculado	1
+U	0405	2	0.010000	0.000000	g	Hollín medido (por la presión)	1
+U	0406	2	0.010000	0.000000	g	Hollín calculado (modelo)	1
 U	041C	2	0.076295	0.000000	mV	Sensor de presión de escape: tensión	1
 U	041F	2	0.076295	0.000000	mV	Sensor de temperatura antes del catalizador: tensión	1
 U	0420	2	0.091554	0.000000	hPa	Presión de escape antes del filtro	1

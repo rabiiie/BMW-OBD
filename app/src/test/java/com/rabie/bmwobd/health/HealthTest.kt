@@ -232,7 +232,7 @@ class HealthTest {
             cruising + (Moment.CATALYST_TEMP to if (regenerating) 580.0 else 250.0) +
                 (Pids.LAMBDA to if (regenerating) 1.3 else 2.0) +
                 (Pids.bmw(0x03EB) to 400.0 + s / 36.0) +
-                (Pids.BMW_SOOT_MEASURED to 28.0) + (Pids.BMW_SOOT_MODEL to 26.0)
+                (Pids.BMW_SOOT_USED to 28.0) + (Pids.BMW_SOOT_MODEL to 26.0)
         }
         val regen = Health.regeneration(data)
         assertNotNull(regen)

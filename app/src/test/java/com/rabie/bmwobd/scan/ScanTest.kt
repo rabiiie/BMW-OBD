@@ -379,7 +379,7 @@ class ScanTest {
     @Test
     fun `tras un desfase de la lectura normal el barrido y las medidas leen su propio valor`() = runBlocking<Unit> {
         val session = session(RealAdapter(shiftEvery = 2))
-        val soot = Pids.bmwDiesel.first { it.id == Pids.BMW_SOOT_MEASURED }
+        val soot = Pids.bmwDiesel.first { it.id == Pids.BMW_SOOT_USED }
         repeat(50) {
             session.read(Pids.RPM, singleFrame = true)
             session.read(Pids.MAP, singleFrame = true)
@@ -492,7 +492,7 @@ class WholeTripTest {
 
         // Lo que el coche simulado da siempre igual: si una lectura se cruza con otra, deja de cuadrar.
         val fixed = mapOf(
-            Pids.BMW_SOOT_MEASURED to 14.2, Pids.bmw(0x03EB) to 183.4, Pids.bmw(Pids.BMW_TANK_ADDRESS) to 31.0,
+            Pids.BMW_SOOT_USED to 14.2, Pids.bmw(0x03EB) to 183.4, Pids.bmw(Pids.BMW_TANK_ADDRESS) to 31.0,
             Pids.bmw(0x0405) to 13.9, Pids.bmw(0x0408) to 7400.0 / 60, Pids.bmw(0x14B5) to -0.3, Pids.bmw(0x1462) to 43.0,
             Pids.bmw(0x01B9) to 14.1, Pids.bmw(0x0E43) to 52.0, Pids.bmw(0x10D5) to 61.0,
         )

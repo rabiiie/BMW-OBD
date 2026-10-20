@@ -96,8 +96,9 @@ object DashPages {
         return listOf(
             cell(request, 0, "Regeneración", Pids.regenNow(values).orEmpty()),
             DashItem("Avería filtro", filterFault(values[Pids.BMW_FILTER_FAULTS]), ""),
-            cell(values[Pids.BMW_SOOT_MEASURED], 1, "Hollín medido", "g"),
-            cell(values[Pids.BMW_SOOT_MODEL], 1, "Hollín calculado", "g"),
+            cell(values[Pids.BMW_SOOT_USED], 1, "Hollín (el que usa)", "g"),
+            cell(values[Pids.BMW_SOOT_PRESSURE], 1, "Medido (presión)", "g"),
+            cell(values[Pids.BMW_SOOT_MODEL], 1, "Calculado (modelo)", "g"),
             cell(values[SINCE_REGEN], 0, "Sin regenerar", "km"),
             cell(exhaust(values), 0, "Escape", "°C"),
             cell(pressure, 0, "Presión diferencial", "hPa"),

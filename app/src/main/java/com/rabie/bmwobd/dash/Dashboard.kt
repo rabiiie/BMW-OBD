@@ -48,7 +48,7 @@ object Dashboard {
 
     private const val COOLING_EXHAUST = 250.0
 
-    private val SOOT = Pids.BMW_SOOT_MEASURED
+    private val SOOT = Pids.BMW_SOOT_USED
     private val SINCE_REGEN = Pids.bmw(0x03EB)
     private val BEFORE_CATALYST = Pids.bmw(0x041E)
     private val BOOST_ASKED = Pids.bmw(0x01F4)
@@ -90,7 +90,7 @@ object Dashboard {
      * valores aprendidos que apenas se mueven.
      */
     fun watched(group: DashGroup): List<Int> = when (group) {
-        DashGroup.FILTER -> listOf(SOOT, SINCE_REGEN, BEFORE_CATALYST)
+        DashGroup.FILTER -> listOf(SOOT, SINCE_REGEN, BEFORE_CATALYST, Pids.BMW_SOOT_PRESSURE)
         DashGroup.TURBO -> listOf(Moment.BOOST_COMMANDED, BOOST_ASKED, TURBO_SPEED, TURBO_ACTUATOR)
         DashGroup.ENGINE -> listOf(TORQUE, Pids.BMW_INJECTION)
         DashGroup.INJECTORS -> emptyList()
@@ -111,7 +111,7 @@ object Dashboard {
 
     fun tiles(group: DashGroup, values: Map<Int, Double>): List<DashTile> = when (group) {
         DashGroup.FILTER -> listOf(
-            tile("Hollín medido", values[SOOT], 1, "g"),
+            tile("Hollín", values[SOOT], 1, "g"),
             tile("Desde regenerar", values[SINCE_REGEN], 0, "km"),
             tile("Escape", values[BEFORE_CATALYST] ?: Moment.EXHAUST_TEMPS.mapNotNull { values[it] }.maxOrNull(), 0, "°C"),
         )

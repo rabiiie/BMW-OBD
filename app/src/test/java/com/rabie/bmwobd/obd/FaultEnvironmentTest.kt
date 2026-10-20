@@ -25,7 +25,7 @@ class FaultEnvironmentTest {
         assertEquals(92.0, first.value("Refrigerante").value, 0.01)
         assertEquals(52.2, first.value("Gasóleo pedido").value, 0.1)
         assertEquals("0x00100001", first.value("Modo del motor (regeneración)").text)
-        assertEquals(39.71, first.value("Hollín medido, corregido").value, 0.01)
+        assertEquals(39.71, first.value("Hollín medido (por la presión)").value, 0.01)
         assertEquals("295,2 km", first.value("Distancia desde la última regeneración").text)
         assertEquals(21.3, first.value("Ceniza calculada").value, 0.05)
 

@@ -36,7 +36,7 @@ class DashPagesTest {
         assertEquals(DashItem("Regeneración", "7", "protección"), warned[1].cells[0])
         assertEquals(DashItem("Avería filtro", "481A", ""), warned[1].cells[1])
         // Diez celdas: cinco filas completas.
-        assertEquals(10, warned[1].cells.size)
+        assertEquals(11, warned[1].cells.size)
         val preparing = DashPages.pages(mapOf(Pids.BMW_REGEN_REQUEST to 6.0, Pids.BMW_FILTER_FAULTS to 0.0), trip, emptyList(), bmw = true)[1]
         assertEquals(DashItem("Regeneración", "6", "preparando"), preparing.cells[0])
         assertEquals(DashItem("Avería filtro", "ninguna", ""), preparing.cells[1])

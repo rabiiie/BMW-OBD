@@ -397,8 +397,8 @@ object Health {
                 waitedSeconds = waitedMs / 1000,
                 km = km.takeIf { data.series[Pids.SPEED] != null },
                 maxExhaust = hottest,
-                sootBefore = (first downTo 0).firstNotNullOfOrNull { rows.at(Pids.BMW_SOOT_MEASURED, it) },
-                sootAfter = after?.let { rows.at(Pids.BMW_SOOT_MEASURED, it) },
+                sootBefore = (first downTo 0).firstNotNullOfOrNull { rows.at(Pids.BMW_SOOT_USED, it) },
+                sootAfter = after?.let { rows.at(Pids.BMW_SOOT_USED, it) },
                 outcome = outcome,
             )
         }
@@ -421,7 +421,7 @@ object Health {
                     if (episode.waitedSeconds >= 60) ", después de ${minutes(episode.waitedSeconds)} min pendiente." else ".",
                 episode.maxExhaust?.let { "Escape hasta ${n(it)} °C." },
                 episode.sootBefore?.let { before ->
-                    "Hollín medido: de ${n(before, 1)} g" + (episode.sootAfter?.let { " a ${n(it, 1)} g." } ?: ".")
+                    "Hollín (el que usa la centralita): de ${n(before, 1)} g" + (episode.sootAfter?.let { " a ${n(it, 1)} g." } ?: ".")
                 },
             )
             lines += "Regeneración ${index + 1}, en el minuto ${episode.startMs / 60_000}" to parts.joinToString(" ")
@@ -475,7 +475,7 @@ object Health {
 
     private fun filter(data: TripData): HealthCard {
         val rows = Rows(data)
-        val measuredId = Pids.BMW_SOOT_MEASURED
+        val measuredId = Pids.BMW_SOOT_USED
         val modelId = Pids.BMW_SOOT_MODEL
         val gap = Weighted()
         var measured: Double? = null
@@ -495,7 +495,7 @@ object Health {
         val sensor = data.last(Pids.bmw(FILTER_TEMP_SENSOR))
         val facts = listOfNotNull(
             if (measured != null && model != null) {
-                "Hollín al acabar: ${n(measured, 1)} g medidos por la presión y ${n(model, 1)} g calculados por el uso."
+                "Hollín al acabar: ${n(measured, 1)} g el que usa la centralita y ${n(model, 1)} g el calculado."
             } else {
                 measured?.let { "Hollín al acabar: ${n(it, 1)} g." }
             },

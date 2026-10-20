@@ -67,10 +67,10 @@ class AdvisorTest {
     @Test
     fun `hollin medido muy por encima del calculado avisa si se mantiene`() {
         val driving = mapOf(Pids.RPM to 1700.0, Pids.SPEED to 90.0, Pids.COOLANT to 91.0, Pids.LOAD to 40.0)
-        val apart = driving + (Pids.BMW_SOOT_MEASURED to 25.0) + (Pids.BMW_SOOT_MODEL to 5.6)
+        val apart = driving + (Pids.BMW_SOOT_USED to 25.0) + (Pids.BMW_SOOT_MODEL to 5.6)
         assertEquals(Severity.WARN, hold(apart, 320).find("soot_gap")?.severity)
         assertNull(hold(apart, 120).find("soot_gap"))
-        assertNull(hold(driving + (Pids.BMW_SOOT_MEASURED to 9.0) + (Pids.BMW_SOOT_MODEL to 5.6), 320).find("soot_gap"))
+        assertNull(hold(driving + (Pids.BMW_SOOT_USED to 9.0) + (Pids.BMW_SOOT_MODEL to 5.6), 320).find("soot_gap"))
     }
 
     @Test
