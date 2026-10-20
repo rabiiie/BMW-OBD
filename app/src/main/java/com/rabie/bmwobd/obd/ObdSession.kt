@@ -553,11 +553,14 @@ class ObdSession(
         }
         if (!bmw) return report
         val faults = bmwFaults()
-        // Un solo detalle por averia: de el salen el kilometraje y las condiciones de entorno.
-        val details = faults.orEmpty().mapNotNull { fault -> faultDetail(fault.code)?.let { fault.code to it } }.toMap()
+        val info = bmwInfo()
+        // Un solo detalle por codigo: de el salen el kilometraje y las condiciones de entorno. Los
+        // avisos de la memoria de informacion tambien lo tienen (IS_LESEN_DETAIL es 17 y el codigo).
+        val codes = (faults.orEmpty() + info.orEmpty()).map { it.code }.distinct()
+        val details = codes.mapNotNull { code -> faultDetail(code)?.let { code to it } }.toMap()
         return report.copy(
             bmwFaults = faults,
-            bmwInfo = bmwInfo(),
+            bmwInfo = info,
             bmwHistory = bmwAsk(BmwFault.HISTORY_QUERY, BmwFault.HISTORY_ANSWER)?.let(BmwFault::parseHistory),
             bmwFaultKm = details.mapNotNull { (code, payload) -> BmwFault.detailKm(payload, code)?.let { code to it } }.toMap(),
             bmwFaultShots = details.mapValues { (code, payload) -> FaultEnvironment.snapshots(payload, code) }.filterValues { it.isNotEmpty() },

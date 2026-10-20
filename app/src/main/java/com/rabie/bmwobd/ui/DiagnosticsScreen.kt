@@ -294,7 +294,7 @@ private fun Report(report: DiagnosticsReport, vehicleTerms: String) {
         Text("Toca un código para buscarlo en internet con los datos de este coche.", color = Bmw.TextDim, fontSize = 12.sp)
     }
     report.bmwFaults?.let { BmwFaultsCard(it, report.bmwFaultKm, report.bmwFaultShots, vehicleTerms) }
-    report.bmwInfo?.let { BmwInfoCard(it) }
+    report.bmwInfo?.let { BmwInfoCard(it, report.bmwFaultKm, report.bmwFaultShots) }
     report.bmwHistory?.let { BmwHistoryCard(it) }
 
     if (report.freezeDtc != null) {
@@ -390,7 +390,7 @@ private fun FaultShots(shots: List<FaultSnapshot>) {
 
 /** La memoria de informacion de BMW: lo que la centralita apunta sin encender ningun testigo. */
 @Composable
-private fun BmwInfoCard(info: List<BmwFault>) {
+private fun BmwInfoCard(info: List<BmwFault>, kms: Map<Int, Int>, shots: Map<Int, List<FaultSnapshot>>) {
     Card {
         Label("Memoria de información de BMW")
         if (info.isEmpty()) {
@@ -405,7 +405,9 @@ private fun BmwInfoCard(info: List<BmwFault>) {
                     Text(entry.text ?: "Sin descripción en la app", color = Bmw.Text, fontSize = 15.sp, modifier = Modifier.weight(1f))
                 }
                 entry.kind?.let { Text(it, color = Bmw.Text, fontSize = 14.sp) }
+                kms[entry.code]?.let { Text("Apuntado a los ${thousands(it)} km", color = Bmw.TextDim, fontSize = 13.sp) }
             }
+            shots[entry.code]?.let { FaultShots(it) }
         }
     }
 }

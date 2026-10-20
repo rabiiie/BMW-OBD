@@ -69,6 +69,21 @@ class BmwFaultsTest {
     }
 
     @Test
+    fun `los avisos de la memoria de informacion tambien piden su detalle`() = runBlocking<Unit> {
+        val log = mutableListOf<String>()
+        val session = ObdSession(SimulatedTransport(latencyMs = 0)) { log += it }
+        session.connect()
+        log.clear()
+
+        val report = session.diagnostics(bmw = true)
+        assertEquals(listOf("4CE0", "44CF"), report.bmwInfo!!.map { it.label })
+        assertEquals("Se ha activado la regeneración de protección del motor (filtro muy cargado)", report.bmwInfo!![0].kind)
+        assertEquals("Salto de contrapresión de escape no creíble", report.bmwInfo!![1].kind)
+        // Un detalle por codigo: las dos averias y los dos avisos.
+        for (code in listOf("498E", "4A6E", "4CE0", "44CF")) assertEquals(1, log.count { it == ">> 17$code" })
+    }
+
+    @Test
     fun `el detalle de cada averia da el kilometraje en que se apunto`() {
         // Respuestas del coche el 14 de octubre, tal como las dio el adaptador.
         fun detail(text: String, code: Int) = BmwFault.detailKm(ObdParser.payloads(text, BmwFault.DETAIL_ANSWER).last(), code)

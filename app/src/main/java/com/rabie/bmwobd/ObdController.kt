@@ -591,8 +591,29 @@ class ObdController(
         }
     }
 
+    /** El detalle de cada averia y aviso de BMW ya traducido, foto a foto, para que quede en el registro. */
+    private fun logDetails(report: com.rabie.bmwobd.obd.DiagnosticsReport) {
+        for ((code, shots) in report.bmwFaultShots) {
+            shots.forEachIndexed { index, shot ->
+                val title = when {
+                    shots.size == 1 -> "al apuntarse"
+                    index == 0 -> "la primera vez"
+                    else -> "la última vez"
+                }
+                appendLog(
+                    "## Detalle %04X, %s%s: ".format(code, title, shot.km?.let { ", $it km" } ?: "") +
+                        shot.values.joinToString("; ") { "${it.name} = ${it.text}" },
+                )
+            }
+        }
+    }
+
     private fun logService(reads: List<ServiceRead>, regen: IstaRegen?) {
-        for (read in reads) appendLog("## Servicio: ${read.query.name} (${read.query.query}): ${read.status}")
+        for (read in reads) {
+            appendLog("## Servicio: ${read.query.name} (${read.query.query}): ${read.status}")
+            val fields = read.fieldTexts
+            if (fields.isNotEmpty()) appendLog("## Servicio: ${read.query.name}, traducido: " + fields.joinToString("; ") { (k, v) -> "$k = $v" })
+        }
         appendLog(
             "## Servicio: regeneración según ISTA: " + (
                 regen?.let { r ->
@@ -645,6 +666,7 @@ class ObdController(
                 val text = message ?: (done.joinToString(" y ") + " borradas. Las demás averías se conservan.")
                 appendLog("## Borrar 480A/481A: $text")
                 val report = session.diagnostics(bmw = canScan(_state.value.vehicle))
+                logDetails(report)
                 _diagnostics.update {
                     it.copy(busy = false, report = report, readAtMillis = System.currentTimeMillis(), message = text)
                 }
@@ -672,6 +694,7 @@ class ObdController(
                     else -> "El coche no ha aceptado el borrado. Prueba con el contacto puesto y el motor parado."
                 }
                 val report = session.diagnostics(bmw = canScan(_state.value.vehicle))
+                logDetails(report)
                 _diagnostics.update {
                     it.copy(busy = false, report = report, readAtMillis = System.currentTimeMillis(), message = message)
                 }
