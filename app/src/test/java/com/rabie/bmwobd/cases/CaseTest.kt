@@ -283,6 +283,16 @@ class CaseTest {
         val pausedCard = CaseCards.card(Case.FILTER, paused)!!
         assertEquals("Regeneración en marcha, ahora en pausa.", pausedCard.headline)
         assertTrue(pausedCard.advice!!.startsWith("Ya llegó a su temperatura"))
+        assertEquals("Interrupción: 2, pausa al llegar a su temperatura.", pausedCard.facts[1])
+        // 20 de octubre a las 16:05: el 4 y el 6 no se sabe por que son, y TEPR en 8.130 s.
+        val other = CaseCards.card(Case.FILTER, paused + (Pids.BMW_REGEN_INTERRUPTION to 6.0) + (Pids.BMW_ISTA_PROTECTION_SECONDS to 8130.0))!!
+        assertEquals("Interrupción: 6, pausa por otra causa (BMW no dice cuál).", other.facts[1])
+        assertEquals("Petición por protección del motor (TEPR): quedan 8.130 s; baja con la regeneración normal en marcha.", other.facts[2])
+        val heating = CaseCards.card(Case.FILTER, during + (Pids.BMW_REGEN_INTERRUPTION to 0.0))!!
+        assertEquals("Interrupción: 0, regenerando sin cortes.", heating.facts[1])
+        // Con la proteccion pedida no sale la interrupcion: solo cuenta con la regeneracion normal.
+        val protection = paused + (Pids.BMW_REGEN_REQUEST to 7.0)
+        assertTrue(CaseCards.card(Case.FILTER, protection)!!.facts.none { it.startsWith("Interrupción") })
 
         val after = during + (Pids.BMW_REGEN_REQUEST to 0.0) + (Pids.bmw(0x05AA) to 0x00100001.toDouble())
         assertEquals("No está regenerando.", CaseCards.card(Case.FILTER, after)!!.headline)

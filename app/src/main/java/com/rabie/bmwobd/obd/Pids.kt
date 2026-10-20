@@ -258,6 +258,19 @@ object Pids {
     private const val TEMPERATURE_REACHED = 2
     private const val OTHER_PAUSE = 4
 
+    /**
+     * La interrupcion (03EC) en una frase, para la regeneracion en marcha. BMW no da el significado
+     * de cada bit: el 2 es lo visto el 18 y el 20 de octubre, con el escape a unos 470-510 grados.
+     */
+    fun interruptionText(code: Double): String {
+        val bits = code.toInt()
+        return "Interrupción: $bits, " + when {
+            bits == 0 -> "regenerando sin cortes."
+            bits and TEMPERATURE_REACHED != 0 && bits and OTHER_PAUSE == 0 -> "pausa al llegar a su temperatura."
+            else -> "pausa por otra causa (BMW no dice cuál)."
+        }
+    }
+
     /** Lo mismo en una o dos palabras, para la celda de la tarjeta del filtro. */
     fun regenRequestShort(code: Double): String = when (code.toInt()) {
         0 -> "no pide"

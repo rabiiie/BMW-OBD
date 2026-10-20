@@ -358,6 +358,10 @@ object CaseCards {
         val beforeFilter = values[BEFORE_FILTER] ?: catalyst
         val facts = listOfNotNull(
             asked?.let { "Petición de regeneración: ${n(it)}, ${Pids.regenRequestText(it)}." },
+            values[Pids.BMW_REGEN_INTERRUPTION]?.takeIf { asked?.toInt() == Pids.BMW_REGEN_RUNNING.toInt() }?.let(Pids::interruptionText),
+            values[Pids.BMW_ISTA_PROTECTION_SECONDS]?.let {
+                "Petición por protección del motor (TEPR): quedan ${thousands(it)} s; baja con la regeneración normal en marcha."
+            },
             values[Pids.BMW_FILTER_FAULTS]?.let { BmwFault.filterLevelText(it) + "." },
             values[Pids.BMW_FILTER_FAULTS]?.takeIf { it >= 1 }?.let {
                 "Regeneración de servicio de BMW: exige 480A y 481A no presentes, motor a más de 75 °C" +
