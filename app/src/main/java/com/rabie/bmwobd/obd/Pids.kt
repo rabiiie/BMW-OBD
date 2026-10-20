@@ -583,6 +583,10 @@ object Pids {
         bmwDef(0x14D3, "Inyección: corrección general de cantidad", "mg", 2, PidGroup.FUEL) { it * 0.01 - 327.67 },
         bmwDef(0x04B1, "Inyección principal: duración", "µs", 0, PidGroup.FUEL) { it * 0.038148 },
         bmwDef(0x04B0, "Preinyección: volumen", "mm³", 2, PidGroup.FUEL) { it * 0.003052 - 100.0 },
+        // Lo que calienta el escape para regenerar: fuera de regeneracion valen 0. El 11 de octubre,
+        // regenerando con el modo normal, dieron 226-312 µs la primera y 629-652 µs la segunda.
+        bmwDef(0x04B5, "Post-inyección 1: tiempo abierta", "µs", 0, PidGroup.FUEL) { it * 0.4 },
+        bmwDef(0x04B6, "Post-inyección 2: tiempo abierta", "µs", 0, PidGroup.FUEL) { it * 0.4 },
         bmwDef(0x1964, "Calibración de cantidad mínima: estado", "", 0, PidGroup.FUEL, size = 1) { it.toDouble() },
     ) + (0..2).map { point ->
         bmwDef(0x145E + point, "Calibración de inyectores: ciclos (${BMW_CALIBRATION_BAR[point]} bar)", "", 0, PidGroup.FUEL) { it.toDouble() }

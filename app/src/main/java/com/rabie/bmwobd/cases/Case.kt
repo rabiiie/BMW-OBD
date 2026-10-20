@@ -17,9 +17,10 @@ enum class Case(val title: String, val watch: List<Int>, val also: List<Int>) {
     FILTER(
         "Filtro de partículas",
         // 03EC, la interrupcion de la regeneracion, va con las vigiladas: dice por que se pausa (2 con
-        // la temperatura alcanzada, 4 y 6 al pisar fuerte o soltar, 0 calentando). Con once vigiladas
-        // y una por vuelta, cada una se repite cada ~7 s.
-        watch = listOf(0x0404, 0x05AA, 0x03EC, 0x03EA, 0x03ED, 0x03F1, 0x0424, 0x0C83, 0x0420, 0x041E, 0x0434).map(Pids::bmw),
+        // la temperatura alcanzada, 4 y 6 al pisar fuerte o soltar, 0 calentando). Las post-inyecciones
+        // (04B5, 04B6) dicen cuanto intenta calentar. Con trece vigiladas y una por vuelta, cada una se
+        // repite cada ~8 s.
+        watch = listOf(0x0404, 0x05AA, 0x03EC, 0x03EA, 0x03ED, 0x03F1, 0x0424, 0x0C83, 0x0420, 0x041E, 0x0434, 0x04B5, 0x04B6).map(Pids::bmw),
         also = listOf(0x0405, 0x0408, 0x03EE, 0x03DE, 0x03E0, 0x0426, 0x0432, 0x043B, 0x0C81).map(Pids::bmw),
     ),
     INJECTORS(

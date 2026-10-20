@@ -476,6 +476,9 @@ object SimulatedDde {
         measure(0x0042) { s -> word(s.voltage / 0.001) },
         measure(0x04B1) { s -> word((300 + s.load * 6) / 0.038148) },
         measure(0x04B0) { _ -> word((1.4 + 100) / 0.003052) },
+        // Las post-inyecciones: sin regenerar, 0, como en el coche.
+        measure(0x04B5) { _ -> word(0.0) },
+        measure(0x04B6) { _ -> word(0.0) },
         measure(0x1964) { _ -> byte(2.0) },
         measure(0x145E) { _ -> word(1_900.0) },
         measure(0x145F) { _ -> word(1_902.0) },

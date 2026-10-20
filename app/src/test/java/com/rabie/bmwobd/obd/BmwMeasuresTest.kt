@@ -60,6 +60,15 @@ class BmwMeasuresTest {
     }
 
     @Test
+    fun `las post-inyecciones salen con lo que contesto el coche regenerando`() {
+        // Barrido del 11 de octubre a las 12:14, con la peticion en 5 y el modo 0x02010002:
+        // 2C1004B5 contesto 030D y 2C1004B6 contesto 0625.
+        assertEquals(312.4, Pids.byId.getValue(Pids.bmw(0x04B5)).decodeOrNull(intArrayOf(0x03, 0x0D))!!, 0.01)
+        assertEquals(629.2, Pids.byId.getValue(Pids.bmw(0x04B6)).decodeOrNull(intArrayOf(0x06, 0x25))!!, 0.01)
+        assertTrue(Pids.bmw(0x04B5) in com.rabie.bmwobd.cases.Case.FILTER.watch)
+    }
+
+    @Test
     fun `el desfase de la distribucion sale con lo que contesto el coche`() {
         // Barrido del 11 de octubre: 2C1015E5 contesto 7FD3 en las siete lecturas.
         val def = Pids.byId.getValue(Pids.bmw(Pids.BMW_TIMING_OFFSET_ADDRESS))
