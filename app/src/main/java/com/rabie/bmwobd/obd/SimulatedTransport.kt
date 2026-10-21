@@ -156,6 +156,9 @@ class SimulatedTransport(
             READINESS_AVAILABLE,
             if (cleared) READINESS_AVAILABLE else READINESS_PENDING,
         )
+        // Borrar las averias pone a cero los contadores desde el borrado; el cuentakilometros sigue.
+        cleared && pid in PurchaseCheck.COUNTERS && pid != Pids.ODOMETER ->
+            IntArray(if (pid == PurchaseCheck.WARMUPS_SINCE_CLEAR) 1 else 2)
         else -> encode(pid, engine(), seconds())
     }
 

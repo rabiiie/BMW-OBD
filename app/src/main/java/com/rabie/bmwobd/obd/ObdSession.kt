@@ -22,6 +22,9 @@ class ObdSession(
     private var timeouts = 0
     private var quick = false
 
+    // Los PIDs que el coche dijo tener al conectar.
+    private var supported: Set<Int> = emptySet()
+
     // La centralita solo contesta a las consultas de BMW si el adaptador espera un tiempo fijo.
     private var fixedWait = false
 
@@ -35,6 +38,7 @@ class ObdSession(
         transport.open()
         val version = elm.initialize()
         val supported = scanSupported()
+        this.supported = supported
         if (supported.isEmpty()) {
             throw IOException("El coche no responde. ¿Contacto puesto o motor en marcha?")
         }
@@ -549,6 +553,8 @@ class ObdSession(
                 vin = text("0902", "4902"),
                 calibration = text("0904", "4904"),
                 readiness = status?.let(Readiness::parse),
+                counters = counters(),
+                filterPressure = PurchaseCheck.FILTER_PRESSURE_PID in supported,
             )
         }
         if (!bmw) return report
@@ -895,6 +901,17 @@ class ObdSession(
         val data = steadyPayloads("020200", "420200").firstOrNull() ?: return null
         if (data.size < 2 || (data[0] == 0 && data[1] == 0)) return null
         return Dtcs.code(data[0], data[1])
+    }
+
+    /** Los contadores de [PurchaseCheck.COUNTERS] que el coche tiene, leidos una vez. */
+    private suspend fun counters(): Map<Int, Double> {
+        val values = LinkedHashMap<Int, Double>()
+        for (id in PurchaseCheck.COUNTERS.filter { it in supported }) {
+            val request = "01%02X".format(id)
+            val data = steadyPayloads(request, "4" + request.substring(1)).firstOrNull() ?: continue
+            Pids.byId[id]?.decodeOrNull(data)?.let { values[id] = it }
+        }
+        return values
     }
 
     private suspend fun freezeFrame(): Map<Int, Double> {

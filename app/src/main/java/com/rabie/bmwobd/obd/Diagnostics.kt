@@ -15,6 +15,10 @@ data class DiagnosticsReport(
     val vin: String? = null,
     val calibration: String? = null,
     val readiness: Readiness? = null,
+    /** Los contadores desde el ultimo borrado y el cuentakilometros, por su PID; solo los que el coche da. */
+    val counters: Map<Int, Double> = emptyMap(),
+    /** Si el coche publica la presion del filtro de particulas (PID 7A). */
+    val filterPressure: Boolean = false,
     /** Las averias de la memoria propia de BMW; null si no se han pedido o el coche no las da. */
     val bmwFaults: List<BmwFault>? = null,
     /** La memoria de informacion de BMW: avisos sin testigo. */

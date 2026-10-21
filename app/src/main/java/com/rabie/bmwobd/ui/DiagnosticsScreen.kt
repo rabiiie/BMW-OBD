@@ -56,6 +56,7 @@ import com.rabie.bmwobd.obd.Readiness
 import com.rabie.bmwobd.obd.RecordCheck
 import com.rabie.bmwobd.obd.CheckLine
 import com.rabie.bmwobd.obd.Pids
+import com.rabie.bmwobd.obd.PurchaseCheck
 
 @Composable
 fun DiagnosticsScreen(
@@ -348,6 +349,7 @@ private fun Report(report: DiagnosticsReport, vehicleTerms: String) {
     }
 
     report.readiness?.let { ReadinessCard(it, report) }
+    PurchaseCard(report)
 
     CodeList("Guardadas", report.stored, Bmw.MRed, vehicleTerms)
     CodeList("Pendientes (aún sin confirmar)", report.pending, Bmw.Accent, vehicleTerms)
@@ -773,6 +775,23 @@ private fun ReadinessCard(readiness: Readiness, report: DiagnosticsReport) {
         Text(
             "Tras borrar averías o desconectar la batería vuelven a empezar y se completan con el uso normal, " +
                 "a veces en varios días. La ITV lee por el conector el testigo, las averías y este estado.",
+            color = Bmw.TextDim,
+            fontSize = 12.sp,
+        )
+    }
+}
+
+/** Lo que mirar al comprar un coche, de cualquier marca: borrados recientes, bastidor, kilometros y filtro. */
+@Composable
+private fun PurchaseCard(report: DiagnosticsReport) {
+    Card {
+        Label("Revisión de compra")
+        for (line in PurchaseCheck.lines(report)) {
+            Text(line.text, color = if (line.warn) Bmw.Accent else Bmw.Text, fontSize = 14.sp, modifier = Modifier.padding(vertical = 2.dp))
+        }
+        Text(
+            "Sale del OBD estándar y vale para cualquier coche. Que aquí no se vea nada raro no prueba que no se haya " +
+                "tocado: una reprogramación de la centralita no deja rastro en estos datos.",
             color = Bmw.TextDim,
             fontSize = 12.sp,
         )
