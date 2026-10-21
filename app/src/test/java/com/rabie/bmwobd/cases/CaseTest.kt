@@ -288,6 +288,11 @@ class CaseTest {
         val other = CaseCards.card(Case.FILTER, paused + (Pids.BMW_REGEN_INTERRUPTION to 6.0) + (Pids.BMW_ISTA_PROTECTION_SECONDS to 8130.0))!!
         assertEquals("Interrupción: 6, pausa por otra causa (BMW no dice cuál).", other.facts[1])
         assertEquals("Petición por protección del motor (TEPR): quedan 8.130 s; baja con la regeneración normal en marcha.", other.facts[2])
+        // El bloqueo (03EE) ha estado en 0 en todos los trayectos desde el 13 de octubre.
+        val unlocked = CaseCards.card(Case.FILTER, paused + (Pids.BMW_ISTA_PROTECTION_SECONDS to 8130.0) + (Pids.bmw(0x03EE) to 0.0))!!
+        assertEquals("Regeneración bloqueada: no.", unlocked.facts[3])
+        val locked = CaseCards.card(Case.FILTER, paused + (Pids.bmw(0x03EE) to 1.0))!!
+        assertTrue(locked.facts.contains("Regeneración bloqueada: valor 1; ISTA lo da por bloqueada."))
         val heating = CaseCards.card(Case.FILTER, during + (Pids.BMW_REGEN_INTERRUPTION to 0.0))!!
         assertEquals("Interrupción: 0, regenerando sin cortes.", heating.facts[1])
         // Con la proteccion pedida no sale la interrupcion: solo cuenta con la regeneracion normal.

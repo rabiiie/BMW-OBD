@@ -74,6 +74,9 @@ object CaseCards {
     private val FILTER_FUEL = Pids.bmw(0x03E8)
     private val FILTER_PRESSURE = Pids.bmw(0x0424)
     private val FILTER_RESISTANCE = Pids.bmw(0x03F1)
+    // PFltRgn_stLck, "Status - Regenerationssperre": la que lee STATUS_REGENERATION_CSF de ISTA
+    // para decir si la regeneracion esta bloqueada. BMW solo da el significado del 0.
+    private val REGEN_LOCK = Pids.bmw(0x03EE)
     private val BEFORE_CATALYST = Pids.bmw(0x041E)
     private val BEFORE_FILTER = Pids.bmw(0x0434)
     private val GENERAL_CORRECTION = Pids.bmw(0x14D3)
@@ -361,6 +364,9 @@ object CaseCards {
             values[Pids.BMW_REGEN_INTERRUPTION]?.takeIf { asked?.toInt() == Pids.BMW_REGEN_RUNNING.toInt() }?.let(Pids::interruptionText),
             values[Pids.BMW_ISTA_PROTECTION_SECONDS]?.let {
                 "Petición por protección del motor (TEPR): quedan ${thousands(it)} s; baja con la regeneración normal en marcha."
+            },
+            values[REGEN_LOCK]?.let {
+                if (it == 0.0) "Regeneración bloqueada: no." else "Regeneración bloqueada: valor ${n(it)}; ISTA lo da por bloqueada."
             },
             values[Pids.BMW_FILTER_FAULTS]?.let { BmwFault.filterLevelText(it) + "." },
             values[Pids.BMW_FILTER_FAULTS]?.takeIf { it >= 1 }?.let {
