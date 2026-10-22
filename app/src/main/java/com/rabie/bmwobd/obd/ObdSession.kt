@@ -785,10 +785,18 @@ class ObdSession(
             return if (refused != null) false else ok?.takeIf { it }
         }
 
+        suspend fun read(read: ServiceQuery, label: String) {
+            if (read.query.startsWith(BMW_QUERY)) flushLate()
+            val result = BmwService.parse(read, serviceAsk(read.query))
+            val meaning = result.fieldTexts.joinToString(", ") { (name, value) -> "$name $value" }.ifEmpty { result.status }
+            steps += ServiceStep(label, read.query, result.raw.ifEmpty { null }, meaning)
+        }
+
         var accepted: Boolean? = null
         var taken = false
         var released: Boolean? = null
         try {
+            for (before in routine.before) read(before, "${before.name}, antes")
             for ((index, query) in routine.start.withIndex()) {
                 val ok = send(if (routine.start.size == 1) "Orden" else "Orden ${index + 1}", query)
                 if (index == 0) accepted = ok
@@ -797,12 +805,7 @@ class ObdSession(
             }
             if (taken) {
                 delay(routine.holdMs)
-                for (read in routine.reads) {
-                    if (read.query.startsWith(BMW_QUERY)) flushLate()
-                    val result = BmwService.parse(read, serviceAsk(read.query))
-                    val meaning = result.fieldTexts.joinToString(", ") { (name, value) -> "$name $value" }.ifEmpty { result.status }
-                    steps += ServiceStep(read.name, read.query, result.raw.ifEmpty { null }, meaning)
-                }
+                for (after in routine.reads) read(after, after.name)
             }
         } finally {
             if (taken && routine.finish.isNotEmpty()) {

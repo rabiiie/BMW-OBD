@@ -397,6 +397,12 @@ object BmwService {
             "Solo tras cambiar el caudalímetro y la sonda (LERNWERTE_RUECKSETZEN MMALSUR).",
             start = listOf("30F60802"),
         ),
+        ServiceRoutine(
+            "Borrar el historial de averías", Need.ENGINE_OFF,
+            "Vacía el historial de averías (HISTORY_BUFFER_LOESCHEN, 31 03). Antes y después se lee el historial y queda en el registro. " +
+                "No toca las averías actuales ni los datos del filtro. BMW no dice si la centralita usa el historial para algo.",
+            start = listOf("3103"), before = listOf(HISTORY), reads = listOf(HISTORY),
+        ),
     )
 
     /** La consulta de la posicion: la misma lectura de medidas de BMW que usa la app. */
@@ -409,8 +415,9 @@ object BmwService {
 enum class Need { ENGINE_OFF, IDLE }
 
 /**
- * Un servicio que escribe: [start] en orden, [holdMs] de espera, [reads] para ver el resultado y
- * [finish], que se manda siempre que algo de [start] se haya aceptado, aunque la tarea se corte.
+ * Un servicio que escribe: [before] para guardar como estaba, [start] en orden, [holdMs] de espera,
+ * [reads] para ver el resultado y [finish], que se manda siempre que algo de [start] se haya
+ * aceptado, aunque la tarea se corte.
  */
 class ServiceRoutine(
     val name: String,
@@ -418,9 +425,13 @@ class ServiceRoutine(
     val description: String,
     val start: List<String>,
     val holdMs: Long = 0,
+    val before: List<ServiceQuery> = emptyList(),
     val reads: List<ServiceQuery> = emptyList(),
     val finish: List<String> = emptyList(),
 )
+
+/** El historial de averias en crudo (HISTORY_BUFFER_LESEN), para ver lo que borra el servicio. */
+private val HISTORY = ServiceQuery("Historial de averías", BmwFault.HISTORY_QUERY, BmwFault.HISTORY_ANSWER)
 
 /** El estado de la unidad de calentadores tras registrar un cambio (STATUS_GLUEHKERZENTAUSCH). */
 private val GLOW_STATUS = ServiceQuery(
