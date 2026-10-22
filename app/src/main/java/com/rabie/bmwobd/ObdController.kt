@@ -641,8 +641,8 @@ class ObdController(
     fun clearDtcs() = diagnose(clearFirst = true)
 
     /**
-     * Borra solo 480A y 481A de la memoria propia de BMW, las que esten, y vuelve a leer. Solo con
-     * el coche parado.
+     * Borra solo 480A y 481A de la memoria propia de BMW, las que esten, y vuelve a leer. Se puede
+     * en marcha.
      */
     fun clearFilterFaults() {
         val present = _diagnostics.value.report?.bmwFaults.orEmpty().map { it.code }.filter { it in BmwFault.FILTER_CODES }
@@ -651,7 +651,7 @@ class ObdController(
 
     /**
      * Borra de una vez todo lo del filtro y la contrapresion que este en la memoria de averias o en
-     * la de informacion de BMW (BmwFault.FILTER_ALL_CODES), y vuelve a leer. Solo con el coche parado.
+     * la de informacion de BMW (BmwFault.FILTER_ALL_CODES), y vuelve a leer. Se puede en marcha.
      */
     fun clearFilterAll() {
         val report = _diagnostics.value.report
@@ -725,10 +725,6 @@ class ObdController(
 
     private fun clearCodes(present: List<Int>, title: String, missing: String, kept: String) {
         if (!isLive() || _diagnostics.value.busy) return
-        if ((_state.value.values[Pids.SPEED] ?: 0.0) >= 1.0) {
-            _diagnostics.update { it.copy(message = "Solo con el coche parado.") }
-            return
-        }
         if (present.isEmpty()) {
             _diagnostics.update { it.copy(message = missing) }
             return
