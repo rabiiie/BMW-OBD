@@ -662,14 +662,10 @@ class ObdController(
     /**
      * Borra toda la memoria propia de BMW con 14 FFFF (FS_LOESCHEN, "alle Fehler") y vuelve a leer.
      * BMW no dice si eso vacia tambien la memoria de informacion: si despues quedan avisos, se borran
-     * uno a uno con 14 y su codigo. Solo con el coche parado. Las averias presentes vuelven a salir.
+     * uno a uno con 14 y su codigo. Se puede en marcha. Las averias presentes vuelven a salir.
      */
     fun clearBmwAll() {
         if (!isLive() || _diagnostics.value.busy) return
-        if ((_state.value.values[Pids.SPEED] ?: 0.0) >= 1.0) {
-            _diagnostics.update { it.copy(message = "Solo con el coche parado.") }
-            return
-        }
         val before = _diagnostics.value.report
         RecordCheck.clearBlocker(before, before?.let(RecordCheck::codes).orEmpty())?.let { reason ->
             _diagnostics.update { it.copy(message = reason) }
