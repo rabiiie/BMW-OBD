@@ -13,6 +13,9 @@ data class SessionInfo(
     val diesel: Boolean,
 )
 
+/** Lo que contesto la orden del arranque y parada: si la acepto, el motivo si no, y el estado leido despues (1 = desactivado). */
+data class MsaResult(val accepted: Boolean?, val refusal: Int?, val state: Int?)
+
 /** Una conexion con el coche: abre el canal, configura el adaptador, descubre los PIDs y los lee. */
 class ObdSession(
     private val transport: ObdTransport,
@@ -671,6 +674,25 @@ class ObdSession(
         }
     }
 
+    /**
+     * El arranque y parada automaticos (MSA): [disable] manda STEUERN_MSA_DEAK (2E 5F 8E 07), que dura
+     * hasta quitar el contacto, y si no STEUERN_ENDE_MSA_DEAK (2E 5F 8E 00). Despues lee
+     * STATUS_MSA_DEAK (22 5F 8E). Devuelve si acepto (null sin respuesta), el motivo si lo rechazo y
+     * el estado leido (1 = desactivado).
+     */
+    suspend fun msa(disable: Boolean): MsaResult = withSteadyWait {
+        val command = if (disable) MSA_OFF else MSA_NORMAL
+        val response = serviceAsk(command)
+        val refused = response?.let { BmwService.refusal(it, "2E") }
+        val accepted = when {
+            response == null -> null
+            refused != null -> false
+            else -> ObdParser.payloads(response, MSA_ANSWER).isNotEmpty()
+        }
+        val state = serviceAsk(MSA_STATUS)?.let { ObdParser.payloads(it, MSA_STATUS_ANSWER).lastOrNull()?.firstOrNull() }
+        MsaResult(accepted, refused, state)
+    }
+
     /** El historial de manipulacion de la centralita del N47 ([ManipulationReport]); null si no contesta. */
     suspend fun manipulation(): ManipulationReport? = withSteadyWait {
         val odometer = readFirst(Pids.bmw(Pids.BMW_ODOMETER_ADDRESS))?.let { Pids.byId[Pids.bmw(Pids.BMW_ODOMETER_ADDRESS)]?.decodeOrNull(it) }
@@ -1026,6 +1048,11 @@ class ObdSession(
         const val LAST_MONITOR_BLOCK = 0xE0
         const val QUICK_SUFFIX = "1"
         const val VIN_LENGTH = 17
+        const val MSA_OFF = "2E5F8E07"
+        const val MSA_NORMAL = "2E5F8E00"
+        const val MSA_ANSWER = "6E5F8E"
+        const val MSA_STATUS = "225F8E"
+        const val MSA_STATUS_ANSWER = "625F8E"
         const val CVN_BYTES = 4
         const val FUEL_TYPE = 0x51
         const val FUEL_GASOLINE = 1

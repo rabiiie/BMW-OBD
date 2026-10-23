@@ -22,6 +22,7 @@ import com.rabie.bmwobd.obd.BmwFault
 import com.rabie.bmwobd.obd.BmwCarInfo
 import com.rabie.bmwobd.obd.Actuator
 import com.rabie.bmwobd.obd.BmwAif
+import com.rabie.bmwobd.obd.BmwIma
 import com.rabie.bmwobd.obd.BmwService
 import com.rabie.bmwobd.obd.IstaRegen
 import com.rabie.bmwobd.obd.ServiceRead
@@ -62,6 +63,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -227,6 +231,7 @@ class ObdController(
                     }
                     istaValues = reads.firstOrNull { it.query.query == BmwService.FILTER_QUERY.query }?.let(BmwService::filterValues).orEmpty()
                     _diagnostics.update { it.copy(car = car, service = reads, istaRegen = regen) }
+                    if (settings.state.value.disableMsa) applyMsa(session, disable = true)
                 }
                 val defs = (standard + own).filterNot { it.id in blind }
                 // Las medidas de los casos tienen su columna desde el principio, aunque no se pidan.
@@ -524,6 +529,37 @@ class ObdController(
                 logBuffer.unpin()
             }
         }
+    }
+
+    /** Manda la orden del arranque y parada ([ObdSession.msa]) y deja en el registro como fue. */
+    private suspend fun applyMsa(session: ObdSession, disable: Boolean) {
+        val result = session.msa(disable)
+        val asked = if (disable) "desactivar" else "devolver a lo normal"
+        val text = when (result.accepted) {
+            true -> "aceptado ($asked)"
+            false -> "rechazado ($asked): " + (result.refusal?.let { BmwIma.refusalText(it) } ?: "sin motivo")
+            null -> "sin respuesta ($asked)"
+        }
+        val state = when (result.state) {
+            1 -> "; la centralita dice que está desactivado"
+            0 -> "; la centralita dice que está activo"
+            null -> ""
+            else -> "; estado ${result.state}"
+        }
+        appendLog("## Arranque y parada: $text$state")
+    }
+
+    /** Si se cambia el ajuste con el N47 conectado, se manda ya; si no, al conectar. */
+    private fun watchMsaSetting() {
+        scope.launch {
+            settings.state.map { it.disableMsa }.distinctUntilChanged().drop(1).collect { disable ->
+                if (isLive() && canScan(_state.value.vehicle)) tasks.trySend { session -> applyMsa(session, disable) }
+            }
+        }
+    }
+
+    init {
+        watchMsaSetting()
     }
 
     /**

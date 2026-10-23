@@ -89,6 +89,13 @@ fun SettingsScreen(
             checked = bubbleEnabled,
         ) { onToggleBubble() }
 
+        Toggle(
+            title = "Desactivar el arranque y parada al conectar",
+            detail = "Solo BMW N47. Al conectar, la app le pide a la centralita que no pare el motor en los semáforos " +
+                "hasta quitar el contacto (la orden de BMW 2E 5F 8E 07). Al apagarlo, lo devuelve a lo normal.",
+            checked = settings.disableMsa,
+        ) { value -> onChange { it.copy(disableMsa = value) } }
+
         Label("Avanzado", Modifier.padding(top = 6.dp))
         Toggle(
             title = "Consola en modo experto",

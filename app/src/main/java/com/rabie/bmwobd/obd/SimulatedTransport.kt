@@ -24,6 +24,7 @@ class SimulatedTransport(
 
     // La memoria propia de la centralita de BMW: una presente y otra solo guardada, como en el 118d.
     private var bmwFaults = listOf(0x498E to 0x61, 0x4A6E to 0x21)
+    private var msaOff = false
 
     // La memoria de informacion: lo que contesto el coche el 20 de octubre, 4CE0 y 44CF guardados.
     private var bmwInfo = listOf(0x4CE0 to 0x21, 0x44CF to 0x21)
@@ -132,6 +133,12 @@ class SimulatedTransport(
             bytes.size == 3 && bytes[0] == 0x30 && bytes[1] in STELLER && bytes[2] == 0x01 -> intArrayOf(0x70, bytes[1], 0x01, 0x00, 0x00)
             bytes.size in 4..5 && bytes[0] == 0x30 && bytes[1] in STELLER && bytes[2] == 0x07 -> intArrayOf(0x70) + bytes.drop(1)
             bytes.size == 3 && bytes[0] == 0x30 && bytes[1] in STELLER && bytes[2] == 0x00 -> intArrayOf(0x70, bytes[1], 0x00)
+            // El arranque y parada: 2E 5F 8E 07 lo desactiva, 00 lo devuelve; 22 5F 8E dice como esta.
+            bytes.size == 4 && bytes[0] == 0x2E && bytes[1] == 0x5F && bytes[2] == 0x8E -> {
+                msaOff = bytes[3] == 0x07
+                intArrayOf(0x6E, 0x5F, 0x8E)
+            }
+            bytes.size == 3 && bytes[0] == 0x22 && bytes[1] == 0x5F && bytes[2] == 0x8E -> intArrayOf(0x62, 0x5F, 0x8E, if (msaOff) 1 else 0)
             // El historial de averias: cuantas y, por cada una, codigo y estado.
             bytes.size == 3 && bytes[0] == 0x22 && bytes[1] == 0x21 && bytes[2] == 0x00 ->
                 intArrayOf(0x62, 0x21, 0x00, 0x03, 0x48, 0x0A, 0x11, 0x4D, 0x00, 0x21, 0x48, 0x0A, 0x11)

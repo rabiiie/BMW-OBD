@@ -23,6 +23,8 @@ data class AppSettings(
     val case: Case = Case.NORMAL,
     /** Lo que cuesta el litro, para la cuenta en euros; null mientras no se ponga. */
     val fuelPrice: Double? = null,
+    /** Mandar al conectar con el N47 que desactive el arranque y parada automaticos hasta quitar el contacto. */
+    val disableMsa: Boolean = false,
 )
 
 /** Los ajustes de la app, guardados en el movil. */
@@ -42,6 +44,7 @@ class SettingsStore(private val prefs: SharedPreferences) {
             .putString(KEY_LAST_ADAPTER, next.lastAdapter)
             .putString(KEY_CASE, next.case.name)
             .putString(KEY_FUEL_PRICE, next.fuelPrice?.toString())
+            .putBoolean(KEY_DISABLE_MSA, next.disableMsa)
             .apply()
         _state.value = next
     }
@@ -57,6 +60,7 @@ class SettingsStore(private val prefs: SharedPreferences) {
             lastAdapter = prefs.getString(KEY_LAST_ADAPTER, null),
             case = Case.entries.firstOrNull { it.name == prefs.getString(KEY_CASE, null) } ?: defaults.case,
             fuelPrice = prefs.getString(KEY_FUEL_PRICE, null)?.toDoubleOrNull()?.takeIf { it > 0 },
+            disableMsa = prefs.getBoolean(KEY_DISABLE_MSA, defaults.disableMsa),
         )
     }
 
@@ -69,5 +73,6 @@ class SettingsStore(private val prefs: SharedPreferences) {
         const val KEY_LAST_ADAPTER = "last_adapter"
         const val KEY_CASE = "case"
         const val KEY_FUEL_PRICE = "fuel_price"
+        const val KEY_DISABLE_MSA = "disable_msa"
     }
 }
