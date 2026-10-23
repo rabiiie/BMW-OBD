@@ -282,12 +282,21 @@ private fun Report(report: DiagnosticsReport, vehicleTerms: String) {
         }
     }
 
-    if (report.vin != null || report.calibration != null) {
+    if (report.vin != null || report.calibration != null || report.cvn != null) {
         Card {
             Label("Coche")
             report.vin?.let { Text("Bastidor  $it", color = Bmw.Text, fontFamily = FontFamily.Monospace, fontSize = 14.sp) }
             report.calibration?.let {
                 Text("Software  $it", color = Bmw.Text, fontFamily = FontFamily.Monospace, fontSize = 14.sp)
+            }
+            report.cvn?.let { cvn ->
+                Text("CVN  ${cvn.joinToString(" ")}", color = Bmw.Text, fontFamily = FontFamily.Monospace, fontSize = 14.sp)
+                Text(
+                    "Suma de comprobación del programa del motor. Si alguien cambia el programa, cambia. No hay una lista " +
+                        "pública de las de serie: sirve para apuntarla y ver si un día es otra.",
+                    color = Bmw.TextDim,
+                    fontSize = 12.sp,
+                )
             }
         }
     }

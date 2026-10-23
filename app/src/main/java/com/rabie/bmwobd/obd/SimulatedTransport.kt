@@ -106,6 +106,7 @@ class SimulatedTransport(
             bytes.size == 2 && bytes[0] == 0x06 -> monitor(bytes[1])?.let { intArrayOf(0x46) + it }
             bytes.size == 2 && bytes[0] == 0x09 && bytes[1] == 0x02 -> intArrayOf(0x49, 0x02, 0x01) + ascii(VIN, 17)
             bytes.size == 2 && bytes[0] == 0x09 && bytes[1] == 0x04 -> intArrayOf(0x49, 0x04, 0x01) + ascii(CALIBRATION, 16)
+            bytes.size == 2 && bytes[0] == 0x09 && bytes[1] == 0x06 -> intArrayOf(0x49, 0x06, 0x01, 0x1A, 0x2B, 0x3C, 0x4D)
             // Las dos averias de la memoria propia de la centralita: una presente y otra solo guardada.
             bytes.size == 4 && bytes[0] == 0x18 && bytes[1] == 0x02 ->
                 intArrayOf(0x58, bmwFaults.size) + bmwFaults.flatMap { (code, status) -> listOf(code shr 8, code and 0xFF, status) }

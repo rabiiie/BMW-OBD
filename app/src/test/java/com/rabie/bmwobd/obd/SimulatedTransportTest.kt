@@ -76,6 +76,7 @@ class SimulatedTransportTest {
         assertTrue(before.freeze.getValue(Pids.SPEED) > 50)
         assertEquals("WBASIMULADO000000", before.vin)
         assertEquals("SIM-N47D20C-01", before.calibration)
+        assertEquals(listOf("1A2B3C4D"), before.cvn)
 
         assertTrue(session.clearDtcs())
         val after = session.diagnostics()

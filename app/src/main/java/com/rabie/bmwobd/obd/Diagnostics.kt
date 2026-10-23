@@ -14,6 +14,11 @@ data class DiagnosticsReport(
     val freeze: Map<Int, Double> = emptyMap(),
     val vin: String? = null,
     val calibration: String? = null,
+    /**
+     * Las CVN (modo 09 PID 06): una suma de comprobacion por cada programa de [calibration], en
+     * hexadecimal. Si el programa cambia, cambia la suya. Null si el coche no la da.
+     */
+    val cvn: List<String>? = null,
     val readiness: Readiness? = null,
     /** Los contadores desde el ultimo borrado y el cuentakilometros, por su PID; solo los que el coche da. */
     val counters: Map<Int, Double> = emptyMap(),

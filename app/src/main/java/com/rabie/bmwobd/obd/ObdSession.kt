@@ -552,6 +552,7 @@ class ObdSession(
                 freeze = if (freezeDtc == null) emptyMap() else freezeFrame(),
                 vin = text("0902", "4902"),
                 calibration = text("0904", "4904"),
+                cvn = cvns(),
                 readiness = status?.let(Readiness::parse),
                 counters = counters(),
                 filterPressure = PurchaseCheck.FILTER_PRESSURE_PID in supported,
@@ -975,6 +976,14 @@ class ObdSession(
     }
 
     /** Texto de una respuesta del modo 09: tras el prefijo va un contador y luego caracteres. */
+    /** 49 06, cuantas y cuatro bytes por cada una; null si no contesta. */
+    private suspend fun cvns(): List<String>? {
+        val data = steadyPayloads("0906", "4906").firstOrNull() ?: return null
+        return data.drop(1).chunked(CVN_BYTES).filter { it.size == CVN_BYTES }
+            .map { cvn -> cvn.joinToString("") { "%02X".format(it) } }
+            .ifEmpty { null }
+    }
+
     private suspend fun text(request: String, prefix: String): String? {
         val data = steadyPayloads(request, prefix).firstOrNull() ?: return null
         val text = data.drop(1).filter { it in 0x20..0x7E }.joinToString("") { it.toChar().toString() }.trim()
@@ -1017,6 +1026,7 @@ class ObdSession(
         const val LAST_MONITOR_BLOCK = 0xE0
         const val QUICK_SUFFIX = "1"
         const val VIN_LENGTH = 17
+        const val CVN_BYTES = 4
         const val FUEL_TYPE = 0x51
         const val FUEL_GASOLINE = 1
         const val FUEL_DIESEL = 4
