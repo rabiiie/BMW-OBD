@@ -60,6 +60,7 @@ object Dashboard {
     private val ALTERNATOR_TEMP = Pids.bmw(0x0E43)
     private val AIR_PER_CYLINDER = Pids.bmw(0x0709)
     private val EGR_RATE = Pids.bmw(0x07AD)
+    private val EGR_ASKED = Pids.bmw(0x0793)
     private val AFTER_INTERCOOLER = Pids.bmw(0x076F)
     private val TANK = Pids.bmw(Pids.BMW_TANK_ADDRESS)
     private val FUEL_TEMP = Pids.bmw(0x0385)
@@ -81,7 +82,7 @@ object Dashboard {
 
     /** Las medidas del panel que solo existen en los casos: se leen siempre, por el turno lento. */
     val background: List<Int> =
-        listOf(BEFORE_CATALYST, TURBO_SPEED, TORQUE, BATTERY_VOLTS, ALTERNATOR_TEMP, AIR_PER_CYLINDER, EGR_RATE, GEAR) +
+        listOf(BEFORE_CATALYST, TURBO_SPEED, TORQUE, BATTERY_VOLTS, ALTERNATOR_TEMP, AIR_PER_CYLINDER, EGR_RATE, EGR_ASKED, GEAR) +
             listOf(CRUISE_STATE, CRUISE_SPEED) + Pids.BMW_CYLINDER_CORRECTIONS
 
     /**
