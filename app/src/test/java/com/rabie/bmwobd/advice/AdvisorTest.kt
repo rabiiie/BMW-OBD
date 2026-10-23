@@ -91,6 +91,21 @@ class AdvisorTest {
     }
 
     @Test
+    fun `regenerando con la mariposa cerrada no avisa de falta de turbo`() {
+        val short = mapOf(
+            Pids.RPM to 2500.0, Pids.SPEED to 100.0, Pids.COOLANT to 90.0, Pids.LOAD to 95.0,
+            Moment.BOOST_COMMANDED to 240.0, Moment.BOOST_ACTUAL to 110.0,
+        )
+        val regen = Pids.BMW_ENGINE_MODE to Pids.MODE_REGENERATING.toDouble()
+        assertNull(hold(short + regen + (Pids.THROTTLE to 75.0), 10).find("boost_low"))
+        // Despues de regenerar (0x110002) la centralita la sigue cerrando un rato.
+        assertNull(hold(short + (Pids.BMW_ENGINE_MODE to 0x00110002.toDouble()) + (Pids.THROTTLE to 59.0), 10).find("boost_low"))
+        // Regenerando con la mariposa abierta, o en modo normal con ella cerrada, si avisa.
+        assertEquals(Severity.ALERT, hold(short + regen + (Pids.THROTTLE to 4.7), 10).find("boost_low")?.severity)
+        assertEquals(Severity.ALERT, hold(short + (Pids.BMW_ENGINE_MODE to Pids.MODE_NORMAL.toDouble()) + (Pids.THROTTLE to 75.0), 10).find("boost_low")?.severity)
+    }
+
+    @Test
     fun `una regeneracion que se corta lo dice y una que termina tambien`() {
         val cruising = mapOf(Pids.RPM to 1900.0, Pids.SPEED to 100.0, Pids.COOLANT to 90.0, Pids.LOAD to 40.0)
         val sinceRegen = Pids.bmw(Pids.BMW_SINCE_REGEN_ADDRESS)

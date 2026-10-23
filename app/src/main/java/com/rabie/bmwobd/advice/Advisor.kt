@@ -102,6 +102,12 @@ object Limits {
     // Mientras el turbo coge vueltas falta presion unos segundos; eso no es un aviso.
     const val BOOST_LOW_HOLD_MS = 5_000L
 
+    // Regenerando, la centralita puede cerrar la mariposa de admision para calentar el escape y
+    // entonces el turbo no llega a lo pedido: el 22 de octubre, con ella al 70-78 %, faltaron hasta
+    // 1,5 bar durante 35 s. Fuera de eso va al 4,7 %; el 12 de octubre regenero con ella abierta y
+    // no falto presion. A partir de este % se da por cerrada.
+    const val REGEN_THROTTLE_CLOSED = 20.0
+
     // Turbo sin regular: pide al menos 60 kPa sobre la presion de la calle y no pasa de 15.
     const val BOOST_UNCONTROLLED_ASKED_KPA = 60.0
     const val BOOST_UNCONTROLLED_GOT_KPA = 15.0
@@ -560,6 +566,10 @@ class Advisor {
             },
             Rule("boost_low", Limits.BOOST_LOW_HOLD_MS) { m ->
                 if (!m.pull) return@Rule null
+                // Byte bajo del modo 2 o mas es regeneracion en marcha, como la cuenta ISTA (IstaRegen).
+                val mode = m.values[Pids.BMW_ENGINE_MODE]?.toLong()
+                val throttle = m.values[Pids.THROTTLE]
+                if (mode != null && (mode and 0xFF) >= 2 && throttle != null && throttle >= Limits.REGEN_THROTTLE_CLOSED) return@Rule null
                 // Sin el dato del OBD estandar, la presion pedida propia de BMW contra la del MAP.
                 val standard = m.values[Moment.BOOST_COMMANDED] != null
                 val actual = if (standard) m.values[Moment.BOOST_ACTUAL] else m.values[Pids.MAP]

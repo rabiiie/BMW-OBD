@@ -50,6 +50,7 @@ object Pids {
     const val MAP = 0x0B
     const val RPM = 0x0C
     const val SPEED = 0x0D
+    const val THROTTLE = 0x11
     const val BAROMETRIC = 0x33
     const val OIL = 0x5C
     const val FUEL_RATE = 0x5E
