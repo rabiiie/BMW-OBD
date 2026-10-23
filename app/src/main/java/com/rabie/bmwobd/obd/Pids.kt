@@ -228,10 +228,13 @@ object Pids {
     /**
      * Lo que significa la peticion de regeneracion (0404). No esta en la documentacion: es lo visto
      * en este coche. El 7 aparecio con 480A y 481A presentes y el motor en regeneracion de proteccion.
+     * El 4 aparecio el 22 de octubre al final de una regeneracion: con menos de 3 g, siguio a mas de
+     * 600 grados hasta dejarlo en 0,75 g y se mantuvo mientras el escape se enfriaba, antes del 0.
      */
     fun regenRequestText(code: Double): String = when (code.toInt()) {
         0 -> "no pide regenerar"
         1 -> "pendiente: la hará en cuanto pueda"
+        4 -> "terminando: quema lo que queda y cierra (visto el 22 de octubre)"
         5 -> "regeneración en marcha: calienta a ratos y para al llegar a su temperatura"
         6 -> "preparando la regeneración (creo; visto justo antes del 5)"
         7 -> "protección: filtro muy cargado, sin regeneración normal"
@@ -276,6 +279,7 @@ object Pids {
     fun regenRequestShort(code: Double): String = when (code.toInt()) {
         0 -> "no pide"
         1 -> "pendiente"
+        4 -> "terminando"
         5 -> "en marcha"
         6 -> "preparando"
         7 -> "protección"
