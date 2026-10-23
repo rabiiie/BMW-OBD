@@ -115,6 +115,8 @@ data class DiagnosticsState(
     val fanTest: com.rabie.bmwobd.obd.FanTest? = null,
     /** La clave de la prueba que esta en marcha, para que su tarjeta lo diga. */
     val runningTest: String? = null,
+    /** El historial de manipulacion de la centralita del N47, leido con las averias. */
+    val manipulation: com.rabie.bmwobd.obd.ManipulationReport? = null,
 )
 
 /** [finished] cuenta los sondeos terminados, para que la pantalla sepa cuando acaba uno. */
@@ -775,8 +777,15 @@ class ObdController(
                 }
                 val report = session.diagnostics(bmw = canScan(_state.value.vehicle))
                 logDetails(report)
+                val manipulation = if (canScan(_state.value.vehicle)) session.manipulation() else null
+                manipulation?.let { found ->
+                    for (entry in found.entries) {
+                        appendLog("## Manipulación: anotación ${entry.slot}: ${entry.km.toLong()} km, probabilidad ${entry.probability?.let { "%.1f %%".format(it) } ?: "sin dato"}")
+                    }
+                    for (line in found.lines()) appendLog("## Manipulación: ${line.text}")
+                }
                 _diagnostics.update {
-                    it.copy(busy = false, report = report, readAtMillis = System.currentTimeMillis(), message = message)
+                    it.copy(busy = false, report = report, readAtMillis = System.currentTimeMillis(), message = message, manipulation = manipulation)
                 }
             } catch (e: IOException) {
                 appendLog("!! ${e.message}")

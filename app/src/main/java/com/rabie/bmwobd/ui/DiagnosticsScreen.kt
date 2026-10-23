@@ -37,6 +37,7 @@ import com.rabie.bmwobd.obd.BmwFault
 import com.rabie.bmwobd.obd.BmwIma
 import com.rabie.bmwobd.obd.DiagnosticsReport
 import com.rabie.bmwobd.obd.IstaRegen
+import com.rabie.bmwobd.obd.ManipulationReport
 import com.rabie.bmwobd.obd.ServiceRead
 import com.rabie.bmwobd.obd.FaultSnapshot
 import com.rabie.bmwobd.obd.Dtcs
@@ -137,6 +138,7 @@ fun DiagnosticsScreen(
         } else {
             Report(report, vehicleTerms)
         }
+        state.manipulation?.let { ManipulationCard(it) }
         state.tests?.takeIf { it.isNotEmpty() }?.let { Tests(it) }
 
         if (bmwService) {
@@ -612,6 +614,23 @@ private fun PurchaseCard(report: DiagnosticsReport) {
         Text(
             "Sale del OBD estándar y vale para cualquier coche. Que aquí no se vea nada raro no prueba que no se haya " +
                 "tocado: una reprogramación de la centralita no deja rastro en estos datos.",
+            color = Bmw.TextDim,
+            fontSize = 12.sp,
+        )
+    }
+}
+
+/** Lo que guarda la centralita del N47 para detectar manipulaciones, con el aviso de lo que no se sabe. */
+@Composable
+private fun ManipulationCard(manipulation: ManipulationReport) {
+    Card {
+        Label("Manipulación (centralita del motor)")
+        for (line in manipulation.lines()) {
+            Text(line.text, color = if (line.warn) Bmw.Accent else Bmw.Text, fontSize = 14.sp, modifier = Modifier.padding(vertical = 2.dp))
+        }
+        Text(
+            "Lo calcula la propia centralita y lo guarda con los km de cada anotación. BMW no explica cómo lo calcula ni " +
+                "desde qué valor lo da por manipulación: un valor distinto de 0 es para mirar, no una prueba.",
             color = Bmw.TextDim,
             fontSize = 12.sp,
         )

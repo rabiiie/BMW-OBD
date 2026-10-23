@@ -670,6 +670,12 @@ class ObdSession(
         }
     }
 
+    /** El historial de manipulacion de la centralita del N47 ([ManipulationReport]); null si no contesta. */
+    suspend fun manipulation(): ManipulationReport? = withSteadyWait {
+        val odometer = readFirst(Pids.bmw(Pids.BMW_ODOMETER_ADDRESS))?.let { Pids.byId[Pids.bmw(Pids.BMW_ODOMETER_ADDRESS)]?.decodeOrNull(it) }
+        ManipulationReport.read(odometer) { address -> readFirst(Pids.bmw(address)) }
+    }
+
     /**
      * El campo AIF de la ultima programacion ([BmwAif.QUERY]), sin dejar rastro en el registro porque
      * lleva el bastidor. Los bytes tras el 63, o null si no contesta.
