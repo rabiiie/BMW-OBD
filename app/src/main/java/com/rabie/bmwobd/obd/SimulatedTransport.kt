@@ -129,7 +129,7 @@ class SimulatedTransport(
             bytes.size == 3 && bytes[0] == 0x30 && bytes[1] == 0xBB -> intArrayOf(0x7F, 0x30, 0x12)
             // Las piezas de la tabla STELLER: contestan con el eco y el valor, como creemos que lo hace la centralita.
             bytes.size == 3 && bytes[0] == 0x30 && bytes[1] in STELLER && bytes[2] == 0x01 -> intArrayOf(0x70, bytes[1], 0x01, 0x00, 0x00)
-            bytes.size == 5 && bytes[0] == 0x30 && bytes[1] in STELLER && bytes[2] == 0x07 -> intArrayOf(0x70, bytes[1], 0x07, bytes[3], bytes[4])
+            bytes.size in 4..5 && bytes[0] == 0x30 && bytes[1] in STELLER && bytes[2] == 0x07 -> intArrayOf(0x70) + bytes.drop(1)
             bytes.size == 3 && bytes[0] == 0x30 && bytes[1] in STELLER && bytes[2] == 0x00 -> intArrayOf(0x70, bytes[1], 0x00)
             // El historial de averias: cuantas y, por cada una, codigo y estado.
             bytes.size == 3 && bytes[0] == 0x22 && bytes[1] == 0x21 && bytes[2] == 0x00 ->

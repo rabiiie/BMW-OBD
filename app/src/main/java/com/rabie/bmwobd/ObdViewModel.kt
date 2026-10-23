@@ -136,4 +136,9 @@ class ObdViewModel(app: Application) : AndroidViewModel(app) {
     fun testActuator(actuator: com.rabie.bmwobd.obd.Actuator) = controller.testActuator(actuator)
 
     fun runRoutine(routine: com.rabie.bmwobd.obd.ServiceRoutine) = controller.runRoutine(routine)
+
+    /** La ultima vez de cada prueba, por su clave. */
+    val testResults: StateFlow<Map<String, com.rabie.bmwobd.tests.TestRecord>> = controller.testResults.records
+
+    fun setTestHeard(key: String, heard: Boolean) = controller.testResults.setHeard(key, heard)
 }

@@ -705,41 +705,65 @@ class ObdSession(
         fun answered(response: String) = ObdParser.payloads(response, BmwService.answer(actuator.lid)).isNotEmpty()
 
         // Donde esta la pieza de verdad, si tiene sensor: queda como un paso mas, sin aceptar ni rechazar.
-        suspend fun position(label: String) {
-            val id = actuator.feedback ?: return
+        suspend fun position(label: String): Double? {
+            val id = actuator.feedback ?: return null
             flushLate()
             val query = BmwService.feedbackQuery(id)
             val response = serviceAsk(query)
             val data = response?.let { ObdParser.payloads(it, BmwService.FEEDBACK_ANSWER).lastOrNull() }
-            val meaning = if (data != null && data.size >= 2) {
-                (if (actuator.feedbackIsOutput) "la centralita manda %.1f %%" else "posición %.1f %%")
-                    .format(java.util.Locale.US, (data[0] * 256 + data[1]) * BmwService.FEEDBACK_FACTOR)
-            } else {
-                "sin dato"
-            }
+            val value = if (data != null && data.size >= 2) (data[0] * 256 + data[1]) * BmwService.FEEDBACK_FACTOR else null
+            val meaning = value?.let {
+                (if (actuator.feedbackIsOutput) "la centralita manda %.1f %%" else "posición %.1f %%").format(java.util.Locale.US, it)
+            } ?: "sin dato"
             steps += ServiceStep(label, query, response?.trim(), meaning)
+            return value
+        }
+
+        // Lo que dice la pieza al leerla (STEUERN_WERT_LESEN): queda como un paso mas, con su valor.
+        suspend fun state(label: String, query: String): Double? {
+            val response = serviceAsk(query)
+            step(label, query, response, ::answered)
+            val value = BmwService.stateValue(actuator, response) ?: return null
+            val text = if (actuator.onOff) "%.0f".format(java.util.Locale.US, value) else "%.1f %s".format(java.util.Locale.US, value, actuator.unit)
+            steps[steps.lastIndex] = ServiceStep(label, query, response?.trim(), "la pieza dice $text")
+            return value
+        }
+
+        // Una lectura de control se movio si paso al menos un tercio del camino hacia lo pedido.
+        fun moved(before: Double?, now: Double?, asked: Double): Boolean? {
+            if (now == null) return null
+            val from = before ?: 0.0
+            if (asked == from) return kotlin.math.abs(now - asked) < 1e-6
+            return (now - from) / (asked - from) >= MOVED_SHARE
         }
 
         val readQuery = BmwService.read(actuator.lid)
         val read = serviceAsk(readQuery)
         step("Estado", readQuery, read, ::answered)
         if (read == null || BmwService.refusal(read, "30") != null) return@withSteadyWait FanTest(actuator.name, steps, null, null)
-        position("Posición antes")
+        val stateBefore = BmwService.stateValue(actuator, read)
+        val positionBefore = position("Posición antes")
 
         val releaseQuery = BmwService.release(actuator.lid)
         var accepted: Boolean? = null
         // Si acepto alguna orden, la pieza esta en manos de la prueba y hay que devolverla.
         var taken = false
         var released: Boolean? = null
+        val checks = ArrayList<Boolean>()
         try {
-            for ((index, percent) in actuator.percents.withIndex()) {
-                val command = BmwService.command(actuator.lid, percent)
-                val ok = step("Al %.0f %%".format(percent), command, serviceAsk(command), ::answered)
+            for ((index, value) in actuator.values.withIndex()) {
+                val command = BmwService.command(actuator, value)
+                val text = actuator.valueText(value)
+                val ok = step("Al poner $text", command, serviceAsk(command), ::answered)
                 if (index == 0) accepted = ok
                 if (ok != true) break
                 taken = true
                 delay(actuator.holdMs)
-                position("Posición al %.0f %%".format(percent))
+                val stateNow = state("Estado con $text", readQuery)
+                val positionNow = position("Posición con $text")
+                // Cuenta si cualquiera de las dos lecturas se movio; si ninguna da dato, no hay control.
+                val seen = listOfNotNull(moved(stateBefore, stateNow, value), moved(positionBefore, positionNow, value))
+                if (seen.isNotEmpty()) checks += seen.any { it }
             }
         } finally {
             if (taken) {
@@ -755,7 +779,7 @@ class ObdSession(
             step("Estado después", readQuery, serviceAsk(readQuery), ::answered)
             position("Posición después")
         }
-        FanTest(actuator.name, steps, accepted, released)
+        FanTest(actuator.name, steps, accepted, released, confirmed = if (checks.isEmpty()) null else checks.all { it })
     }
 
     /**
@@ -975,6 +999,8 @@ class ObdSession(
         const val FUEL_GASOLINE = 1
         const val FUEL_DIESEL = 4
         const val SHORT_FUEL_TRIM = 0x06
+        // En una prueba de pieza, la lectura de control tiene que recorrer al menos esta parte del camino hacia lo pedido.
+        const val MOVED_SHARE = 1.0 / 3.0
         const val BMW_QUERY = "2C10"
         const val BMW_ANSWER = "6C10"
         const val BMW_IDENT = "1A80"

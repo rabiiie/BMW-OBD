@@ -146,11 +146,39 @@ class BmwServiceTest {
         val session = ObdSession(SimulatedTransport(latencyMs = 0)) {}
         session.connect()
         val egr = BmwService.ACTUATORS.first()
-        val test = session.actuatorTest(Actuator(egr.name, egr.lid, egr.percents, holdMs = 1, feedback = egr.feedback))
+        val test = session.actuatorTest(Actuator(egr.name, egr.lid, egr.values, holdMs = 1, feedback = egr.feedback))
         val sent = test.steps.map { it.query }
-        assertEquals(listOf("30C201", "2C100BB4", "30C2070666", "2C100BB4", "30C2071999", "2C100BB4", "30C200", "30C201", "2C100BB4"), sent)
+        assertEquals(
+            listOf(
+                "30C201", "2C100BB4",
+                "30C2070666", "30C201", "2C100BB4",
+                "30C2071999", "30C201", "2C100BB4",
+                "30C200", "30C201", "2C100BB4",
+            ),
+            sent,
+        )
         assertEquals(true, test.accepted)
         assertEquals(true, test.released)
+        // El coche simulado no mueve nada: aceptada, pero sin que se mueva ninguna lectura.
+        assertEquals(false, test.confirmed)
+        assertEquals(TestOutcome.DOUBTFUL, TestOutcome.of(test))
+    }
+
+    @Test
+    fun `una pieza de encender y apagar manda un byte y se da por buena si lo dice`() = runBlocking<Unit> {
+        val glow = BmwService.ACTUATORS.first { it.lid == 0xC4 }
+        assertEquals("30C40701", BmwService.command(glow, 1.0))
+        assertEquals(1.0, BmwService.stateValue(glow, "70C40101")!!, 1e-9)
+        // La bomba de combustible va en l/h de 0,01 en 0,01: 50 l/h son 5.000.
+        val pump = BmwService.ACTUATORS.first { it.lid == 0xCA }
+        assertEquals("30CA071388", BmwService.command(pump, 50.0))
+        // Toda la tabla STELLER salvo la mariposa repetida (DRO, la misma CD que LDK).
+        assertEquals(26, (listOf(BmwService.FAN) + BmwService.ACTUATORS).map { it.lid }.distinct().size)
+        // Una prueba aceptada, devuelta y con la lectura movida es correcta; rechazada, rechazada.
+        assertEquals(TestOutcome.OK, TestOutcome.of(FanTest("x", emptyList(), accepted = true, released = true, confirmed = true)))
+        assertEquals(TestOutcome.OK, TestOutcome.of(FanTest("x", emptyList(), accepted = true, released = true, confirmed = null)))
+        assertEquals(TestOutcome.REFUSED, TestOutcome.of(FanTest("x", emptyList(), accepted = false, released = null)))
+        assertEquals(TestOutcome.SILENT, TestOutcome.of(FanTest("x", emptyList(), accepted = null, released = null)))
     }
 
     @Test
@@ -182,7 +210,7 @@ class BmwServiceTest {
         // Y lo que manda con la EGR al 20 y al 80 %.
         assertEquals("30C2070666", BmwService.command(0xC2, 20.0))
         assertEquals("30C2071999", BmwService.command(0xC2, 80.0))
-        assertEquals(listOf(0xC2, 0xCE, 0xCD, 0xC6), BmwService.ACTUATORS.map { it.lid })
+        assertEquals(listOf(0xC2, 0xDC, 0xCE, 0xCD, 0xC6), BmwService.ACTUATORS.take(5).map { it.lid })
         assertEquals("30C701", BmwService.FAN_READ)
         assertEquals("30C700", BmwService.FAN_RELEASE)
         assertEquals(30.0, BmwService.fanPercent(listOf(0x09, 0x99))!!, 0.02)

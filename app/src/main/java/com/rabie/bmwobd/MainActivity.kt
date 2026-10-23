@@ -59,6 +59,7 @@ import com.rabie.bmwobd.ui.LandscapePanel
 import com.rabie.bmwobd.ui.LiveScreen
 import com.rabie.bmwobd.ui.LogScreen
 import com.rabie.bmwobd.ui.SplashScreen
+import com.rabie.bmwobd.ui.TestsScreen
 import com.rabie.bmwobd.ui.TripsScreen
 
 class MainActivity : ComponentActivity() {
@@ -83,7 +84,7 @@ private const val AUTO_CONNECT_EVERY_MS = 8_000L
 private const val AUTO_CONNECT_ATTEMPTS = 30
 
 private enum class Tab(val title: String) {
-    PANEL("Panel"), TRIPS("Trayectos"), FAULTS("Averías"), LOG("Registro"), SETTINGS("Ajustes")
+    PANEL("Panel"), TRIPS("Trayectos"), FAULTS("Averías"), TESTS("Pruebas"), LOG("Registro"), SETTINGS("Ajustes")
 }
 
 @Composable
@@ -212,9 +213,22 @@ private fun MainScreen(vm: ObdViewModel = viewModel()) {
                     onClearFilterAll = vm::clearFilterAll,
                     onClearBmwAll = vm::clearBmwAll,
                     onReadService = vm::readService,
+                    bmwService = vm.canScan(state.vehicle),
+                    modifier = content,
+                )
+            }
+
+            Tab.TESTS -> {
+                val diagnostics by vm.diagnostics.collectAsStateWithLifecycle()
+                val records by vm.testResults.collectAsStateWithLifecycle()
+                TestsScreen(
+                    state = diagnostics,
+                    connected = state.phase == Phase.LIVE,
+                    bmw = vm.canScan(state.vehicle),
+                    records = records,
                     onTestActuator = vm::testActuator,
                     onRunRoutine = vm::runRoutine,
-                    bmwService = vm.canScan(state.vehicle),
+                    onHeard = vm::setTestHeard,
                     modifier = content,
                 )
             }
@@ -266,7 +280,7 @@ private fun Tabs(selected: Tab, onSelect: (Tab) -> Unit) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                // Mas pequeño que el rotulo normal: son cinco pestañas y tienen que caber en una linea.
+                // Mas pequeño que el rotulo normal: son seis pestañas y tienen que caber en una linea.
                 Text(
                     tab.title.uppercase(),
                     color = if (active) Bmw.Text else Bmw.TextDim,

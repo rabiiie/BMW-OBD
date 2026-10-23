@@ -32,16 +32,11 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rabie.bmwobd.DiagnosticsState
-import com.rabie.bmwobd.obd.Actuator
 import com.rabie.bmwobd.obd.BmwBattery
 import com.rabie.bmwobd.obd.BmwFault
 import com.rabie.bmwobd.obd.BmwIma
-import com.rabie.bmwobd.obd.BmwService
 import com.rabie.bmwobd.obd.DiagnosticsReport
-import com.rabie.bmwobd.obd.FanTest
 import com.rabie.bmwobd.obd.IstaRegen
-import com.rabie.bmwobd.obd.Need
-import com.rabie.bmwobd.obd.ServiceRoutine
 import com.rabie.bmwobd.obd.ServiceRead
 import com.rabie.bmwobd.obd.FaultSnapshot
 import com.rabie.bmwobd.obd.Dtcs
@@ -66,8 +61,6 @@ fun DiagnosticsScreen(
     onClearFilterAll: () -> Unit = {},
     onClearBmwAll: () -> Unit = {},
     onReadService: () -> Unit = {},
-    onTestActuator: (Actuator) -> Unit = {},
-    onRunRoutine: (ServiceRoutine) -> Unit = {},
     bmwService: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
@@ -77,8 +70,6 @@ fun DiagnosticsScreen(
     var confirmBmwAll by remember { mutableStateOf(false) }
     // Lo del filtro y la contrapresion que trajo la ultima lectura, en averias o en avisos.
     val filterPresent = state.report?.let { r -> (r.bmwFaults.orEmpty() + r.bmwInfo.orEmpty()).map { it.code }.distinct().filter { it in BmwFault.FILTER_ALL_CODES } }.orEmpty()
-    var confirmActuator by remember { mutableStateOf<Actuator?>(null) }
-    var confirmRoutine by remember { mutableStateOf<ServiceRoutine?>(null) }
 
     Column(
         modifier = modifier
@@ -153,64 +144,10 @@ fun DiagnosticsScreen(
             OutlinedButton(onClick = onReadService, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
                 Text("Leer datos de servicio (solo lectura)")
             }
-            ActuatorButton(BmwService.FAN, BmwService.FAN_TEST_READY, state.busy) { confirmActuator = it }
-            Label("Pruebas de piezas", color = Bmw.Text)
-            for (actuator in BmwService.ACTUATORS) {
-                ActuatorButton(actuator, BmwService.ACTUATORS_READY, state.busy) { confirmActuator = it }
-            }
-            Label("Servicios que escriben en la centralita", color = Bmw.MRed)
-            for (routine in BmwService.ROUTINES) {
-                OutlinedButton(onClick = { confirmRoutine = routine }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
-                    Text(routine.name + if (routine.need == Need.IDLE) " (al ralentí)" else " (motor apagado)", color = Bmw.MRed)
-                }
-            }
-            state.fanTest?.let { FanTestCard(it) }
+            Text("Las pruebas de piezas y los servicios están en la pestaña Pruebas.", color = Bmw.TextDim, fontSize = 13.sp)
             state.istaRegen?.let { IstaRegenCard(it) }
             state.service?.let { ServiceCard(it) }
         }
-    }
-
-    confirmRoutine?.let { routine ->
-        AlertDialog(
-            onDismissRequest = { confirmRoutine = null },
-            title = { Text("¿${routine.name}?") },
-            text = {
-                Text(
-                    routine.description + " Telegramas: " + (routine.start + routine.finish).joinToString(", ") +
-                        ", los mismos que manda ISTA. Escribe en la centralita.",
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    confirmRoutine = null
-                    onRunRoutine(routine)
-                }) { Text("Hacerlo", color = Bmw.MRed) }
-            },
-            dismissButton = { TextButton(onClick = { confirmRoutine = null }) { Text("Cancelar") } },
-        )
-    }
-
-    confirmActuator?.let { actuator ->
-        AlertDialog(
-            onDismissRequest = { confirmActuator = null },
-            title = { Text("¿Probar: ${actuator.name}?") },
-            text = {
-                Text(
-                    "Con el contacto puesto y el motor apagado. La app pide a la centralita " +
-                        actuator.percents.joinToString(" y luego ") { "%.0f %%".format(it) } +
-                        " durante ${actuator.holdMs / 1000} s cada uno, con la misma orden que manda ISTA, y le devuelve el control. " +
-                        (if (actuator.feedback != null) "Lee su sensor de posición en cada paso. " else "No tiene sensor de posición: fíjate si se oye. ") +
-                        "Mantente lejos de lo que se mueve. Si algo se quedara moviéndose, quita el contacto.",
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    confirmActuator = null
-                    onTestActuator(actuator)
-                }) { Text("Probar", color = Bmw.Accent) }
-            },
-            dismissButton = { TextButton(onClick = { confirmActuator = null }) { Text("Cancelar") } },
-        )
     }
 
     if (confirmFilter) {
@@ -596,26 +533,6 @@ private fun IstaRegenCard(regen: IstaRegen) {
             color = Bmw.TextDim,
             fontSize = 12.sp,
         )
-    }
-}
-
-/** El boton de la prueba de una pieza; apagado mientras su prueba no este lista. */
-@Composable
-private fun ActuatorButton(actuator: Actuator, ready: Boolean, busy: Boolean, onClick: (Actuator) -> Unit) {
-    OutlinedButton(onClick = { onClick(actuator) }, enabled = ready && !busy, modifier = Modifier.fillMaxWidth()) {
-        Text("Probar: ${actuator.name} (motor apagado)", color = if (ready) Bmw.Accent else Bmw.TextDim)
-    }
-}
-
-/** Cada paso de la prueba de una pieza: lo que se mando, lo que contesto y que significa. */
-@Composable
-private fun FanTestCard(test: FanTest) {
-    Card {
-        Label("Prueba: ${test.name}")
-        for (step in test.steps) {
-            Text("${step.label}: ${step.meaning}", color = Bmw.Text, fontSize = 14.sp, modifier = Modifier.padding(top = 4.dp))
-            Text("${step.query} → ${step.response ?: "-"}", color = Bmw.TextDim, fontFamily = FontFamily.Monospace, fontSize = 12.sp)
-        }
     }
 }
 

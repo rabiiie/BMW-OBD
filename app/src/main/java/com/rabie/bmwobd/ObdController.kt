@@ -40,6 +40,8 @@ import com.rabie.bmwobd.scan.ScanRunner
 import com.rabie.bmwobd.scan.ScanSaved
 import com.rabie.bmwobd.scan.ScanStore
 import com.rabie.bmwobd.trips.FuelCounter
+import com.rabie.bmwobd.tests.TestRecord
+import com.rabie.bmwobd.tests.TestResultStore
 import com.rabie.bmwobd.trips.TripFuel
 import com.rabie.bmwobd.trips.TripRecorder
 import com.rabie.bmwobd.trips.TripStore
@@ -108,8 +110,10 @@ data class DiagnosticsState(
     val service: List<com.rabie.bmwobd.obd.ServiceRead>? = null,
     /** El estado de la regeneracion con la regla de ISTA, leido junto a las de servicio. */
     val istaRegen: com.rabie.bmwobd.obd.IstaRegen? = null,
-    /** La ultima prueba del ventilador. */
+    /** La ultima prueba de una pieza o servicio. */
     val fanTest: com.rabie.bmwobd.obd.FanTest? = null,
+    /** La clave de la prueba que esta en marcha, para que su tarjeta lo diga. */
+    val runningTest: String? = null,
 )
 
 /** [finished] cuenta los sondeos terminados, para que la pantalla sepa cuando acaba uno. */
@@ -125,6 +129,7 @@ class ObdController(
     private val vehicles: VehicleStore,
     private val settings: SettingsStore,
     private val scans: ScanStore,
+    val testResults: TestResultStore,
 ) {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -520,7 +525,8 @@ class ObdController(
         val ready = if (actuator === BmwService.FAN) BmwService.FAN_TEST_READY else BmwService.ACTUATORS_READY
         if (!ready || !isLive() || _diagnostics.value.busy || !canScan(_state.value.vehicle)) return
         val name = actuator.name
-        _diagnostics.update { it.copy(busy = true, message = null) }
+        val key = TestResultStore.actuatorKey(actuator.lid)
+        _diagnostics.update { it.copy(busy = true, message = null, runningTest = key) }
         tasks.trySend { session ->
             logBuffer.pin()
             appendLog("## Prueba $name: inicio")
@@ -528,16 +534,19 @@ class ObdController(
                 val test = session.actuatorTest(actuator)
                 for (step in test.steps) appendLog("## $name: ${step.label}: ${step.query} -> ${step.response ?: "-"} (${step.meaning})")
                 val text = when {
+                    test.accepted == true && test.released == true && test.confirmed == false ->
+                        "$name: la centralita ha aceptado la prueba y ha recuperado el control, pero ninguna lectura de control se ha movido."
                     test.accepted == true && test.released == true -> "$name: la centralita ha aceptado la prueba y ha recuperado el control."
                     test.accepted == true -> "$name: la centralita ha aceptado la prueba, pero no ha confirmado que recupera el control. Quita el contacto para que lo recupere."
-                    test.accepted == false -> "$name: la centralita no ha aceptado la prueba. El motivo está abajo."
-                    else -> "$name: no se ha llegado a mover; mira abajo qué ha contestado."
+                    test.accepted == false -> "$name: la centralita no ha aceptado la prueba. El motivo está en los pasos."
+                    else -> "$name: no se ha llegado a mover; mira en los pasos qué ha contestado."
                 }
                 appendLog("## Prueba $name: $text")
-                _diagnostics.update { it.copy(busy = false, fanTest = test, message = text) }
+                testResults.save(key, TestRecord.of(test, text, System.currentTimeMillis()))
+                _diagnostics.update { it.copy(busy = false, fanTest = test, message = text, runningTest = null) }
             } catch (e: IOException) {
                 appendLog("!! ${e.message}")
-                _diagnostics.update { it.copy(busy = false, message = "El adaptador no ha contestado. Si algo sigue moviéndose, quita el contacto.") }
+                _diagnostics.update { it.copy(busy = false, message = "El adaptador no ha contestado. Si algo sigue moviéndose, quita el contacto.", runningTest = null) }
             } finally {
                 appendLog("## Prueba $name: fin")
                 logBuffer.unpin()
@@ -553,7 +562,8 @@ class ObdController(
     fun runRoutine(routine: ServiceRoutine) {
         if (!isLive() || _diagnostics.value.busy || !canScan(_state.value.vehicle)) return
         val name = routine.name
-        _diagnostics.update { it.copy(busy = true, message = null) }
+        val key = TestResultStore.routineKey(routine.name)
+        _diagnostics.update { it.copy(busy = true, message = null, runningTest = key) }
         tasks.trySend { session ->
             logBuffer.pin()
             appendLog("## Servicio $name: inicio")
@@ -563,14 +573,15 @@ class ObdController(
                 val text = when {
                     result.accepted == true && result.released == true -> "$name: hecho."
                     result.accepted == true -> "$name: aceptado, pero la vuelta a lo normal no se ha confirmado. Quita el contacto para que la centralita vuelva a lo suyo."
-                    result.accepted == false -> "$name: la centralita no lo ha aceptado. El motivo está abajo."
+                    result.accepted == false -> "$name: la centralita no lo ha aceptado. El motivo está en los pasos."
                     else -> "$name: la centralita no ha contestado."
                 }
                 appendLog("## Servicio $name: $text")
-                _diagnostics.update { it.copy(busy = false, fanTest = result, message = text) }
+                testResults.save(key, TestRecord.of(result, text, System.currentTimeMillis()))
+                _diagnostics.update { it.copy(busy = false, fanTest = result, message = text, runningTest = null) }
             } catch (e: IOException) {
                 appendLog("!! ${e.message}")
-                _diagnostics.update { it.copy(busy = false, message = "El adaptador no ha contestado. Quita el contacto para que la centralita vuelva a lo suyo.") }
+                _diagnostics.update { it.copy(busy = false, message = "El adaptador no ha contestado. Quita el contacto para que la centralita vuelva a lo suyo.", runningTest = null) }
             } finally {
                 appendLog("## Servicio $name: fin")
                 logBuffer.unpin()

@@ -311,26 +311,131 @@ object BmwService {
     /** El ventilador va primero: si en el coche hace lo esperado, se encienden las demas. */
     const val FAN_TEST_READY = true
 
-    /** EGR, mariposas y turbo: disponibles, pero en la pantalla van detras del PIN de servicio, como los servicios. */
+    /** El resto de piezas de la tabla. */
     const val ACTUATORS_READY = true
 
     const val FAN_LID = 0xC7
     const val FAN_PERCENT = 30.0
-    private const val PERCENT_PER_BIT = 0.01220703125
+    const val PERCENT_PER_BIT = 0.01220703125
+    private const val ROUNDING_MARGIN = 1e-6
+    private const val ON = 1.0
+    private val PERCENTS = listOf(20.0, 80.0)
 
     // El ventilador no tiene sensor: se lee lo que manda la centralita (09C4), para saber si lo ha
     // encendido aunque no se oiga.
-    val FAN = Actuator("Ventilador", FAN_LID, listOf(FAN_PERCENT), holdMs = 5_000L, feedback = 0x09C4, feedbackIsOutput = true)
+    val FAN = Actuator(
+        "Ventilador", FAN_LID, listOf(FAN_PERCENT), holdMs = 5_000L, feedback = 0x09C4, feedbackIsOutput = true,
+        description = "Enciende el ventilador del motor al 30 %. Se oye delante.",
+    )
 
     /**
-     * La EGR, las mariposas y el turbo, del 20 al 80 % y vuelta, con su sensor de posicion (las
-     * medidas "Stellgliedposition" de BMW). El turbo no tiene sensor entre las medidas: se lee lo que manda la centralita (0BEB).
+     * El resto de la tabla STELLER, en su orden. Las de % van del 20 al 80 % y vuelta; las de
+     * encender y apagar (un byte, AUS/EIN) se encienden unos segundos. La EGR, las mariposas y el
+     * turbo llevan ademas su medida de posicion ("Stellgliedposition"); el turbo no tiene sensor
+     * entre las medidas y se lee lo que manda la centralita (0BEB). Las de un byte mandan el valor
+     * en un byte: lo dice la columna BYTES de la tabla, no una traza del .prg.
      */
     val ACTUATORS = listOf(
-        Actuator("EGR", 0xC2, listOf(20.0, 80.0), feedback = 0x0BB4),
-        Actuator("Mariposas de turbulencia", 0xCE, listOf(20.0, 80.0), feedback = 0x0808),
-        Actuator("Mariposa de admisión", 0xCD, listOf(20.0, 80.0), feedback = 0x0B1F),
-        Actuator("Actuador del turbo", 0xC6, listOf(20.0, 80.0), feedback = 0x0BEB, feedbackIsOutput = true),
+        Actuator(
+            "EGR", 0xC2, PERCENTS, feedback = 0x0BB4,
+            description = "Abre la válvula EGR al 20 y al 80 %. Se oye su motor.",
+        ),
+        Actuator(
+            "Bypass del enfriador de la EGR", 0xDC, PERCENTS, feedback = null,
+            description = "Mueve la trampilla que hace pasar el gas de la EGR por el enfriador o por fuera.",
+        ),
+        Actuator(
+            "Mariposas de turbulencia", 0xCE, PERCENTS, feedback = 0x0808,
+            description = "Mueve las mariposas de los conductos de admisión. Se oye su motor.",
+        ),
+        Actuator(
+            "Mariposa de admisión", 0xCD, PERCENTS, feedback = 0x0B1F,
+            description = "Cierra y abre la mariposa de la entrada de aire, la que cierra al regenerar.",
+        ),
+        Actuator(
+            "Actuador del turbo", 0xC6, PERCENTS, feedback = 0x0BEB, feedbackIsOutput = true,
+            description = "Mueve las paletas del turbo. Se oye la varilla del actuador.",
+        ),
+        Actuator(
+            "Actuador del turbo de baja", 0xD6, PERCENTS, feedback = null,
+            description = "Solo en motores de dos turbos; creo que el 118d no lo lleva y la centralita lo rechazará.",
+        ),
+        Actuator(
+            "Válvula de presión del raíl", 0xD0, listOf(20.0, 60.0), feedback = null,
+            description = "Regula la presión del gasóleo en el raíl. Gasóleo a presión: hazla con el motor apagado.",
+        ),
+        Actuator(
+            "Válvula de cantidad de la bomba", 0xCF, PERCENTS, feedback = null,
+            description = "Regula cuánto gasóleo entra en la bomba de alta presión. Con el motor apagado.",
+        ),
+        Actuator(
+            "Bomba de combustible", 0xCA, listOf(50.0, 150.0), feedback = null, factor = 0.01, unit = "l/h",
+            description = "La bomba del depósito, a 50 y a 150 l/h. Se oye detrás.",
+        ),
+        Actuator(
+            "Bomba de preelevación", 0xC3, listOf(ON), feedback = null, bytes = 1,
+            description = "Bomba de gasóleo adicional. Creo que el 118d no la lleva.",
+        ),
+        Actuator(
+            "Relé de los calentadores", 0xC4, listOf(ON), holdMs = 5_000L, feedback = null, bytes = 1,
+            description = "Enciende los calentadores 5 s. Con una pinza amperimétrica se ve si cada uno consume (avería del cilindro 1).",
+        ),
+        Actuator(
+            "Calefactor del filtro de gasóleo", 0xDB, listOf(ON), holdMs = 5_000L, feedback = null, bytes = 1,
+            description = "Calienta el filtro de gasóleo, para que no se espese en invierno.",
+        ),
+        Actuator(
+            "Compresor del aire acondicionado", 0xC5, listOf(ON), feedback = null, bytes = 1,
+            description = "Engrana el embrague del compresor. Se oye un clac.",
+        ),
+        Actuator(
+            "Testigo de avería del motor", 0xDA, listOf(ON), feedback = null, bytes = 1,
+            description = "Enciende el testigo amarillo del motor en el cuadro.",
+        ),
+        Actuator(
+            "Testigo de presión de aceite", 0x06, listOf(ON), feedback = null, bytes = 1,
+            description = "Enciende el testigo rojo del aceite en el cuadro.",
+        ),
+        Actuator(
+            "Testigo del sistema", 0x05, listOf(ON), feedback = null, bytes = 1,
+            description = "Enciende el testigo de avería del sistema en el cuadro.",
+        ),
+        Actuator(
+            "Arranque y parada automáticos", 0x07, listOf(ON), feedback = null, bytes = 1,
+            description = "El aviso del arranque y parada automáticos (MSA).",
+        ),
+        Actuator(
+            "Motor de arranque", 0x09, listOf(ON), holdMs = 1_500L, feedback = null, bytes = 1,
+            description = "Hace girar el motor de arranque 1,5 s. Peligroso con una marcha metida: punto muerto y freno de mano.",
+        ),
+        Actuator(
+            "Soporte activo del motor", 0xC8, PERCENTS, feedback = null,
+            description = "Creo que el 118d no lo lleva y la centralita lo rechazará.",
+        ),
+        Actuator(
+            "Trampilla del silencioso trasero", 0xD8, listOf(ON), feedback = null, bytes = 1,
+            description = "Creo que el 118d no la lleva.",
+        ),
+        Actuator(
+            "Trampilla de salida de aire", 0x08, listOf(ON), feedback = null, bytes = 1,
+            description = "Creo que el 118d no la lleva.",
+        ),
+        Actuator(
+            "Trampilla de entrada de aire", 0xD5, PERCENTS, feedback = null, factor = 0.01,
+            description = "Creo que el 118d no la lleva.",
+        ),
+        Actuator(
+            "Bypass del compresor del turbo", 0xD7, listOf(ON), feedback = null, bytes = 1,
+            description = "Creo que el 118d no lo lleva.",
+        ),
+        Actuator(
+            "Ventilador de la caja electrónica", 0xD4, listOf(ON), feedback = null, bytes = 1,
+            description = "Creo que el 118d no lo lleva.",
+        ),
+        Actuator(
+            "Calefactor adicional", 0xCB, PERCENTS, feedback = null, factor = 0.01,
+            description = "Calefacción eléctrica del agua. Creo que el 118d no la lleva.",
+        ),
     )
 
     val FAN_READ = read(FAN_LID)
@@ -342,6 +447,20 @@ object BmwService {
 
     /** 30 <id> 07 y el valor en dos bytes, cortado como ISTA: 30 % son 0999. */
     fun command(lid: Int, percent: Double): String = "30%02X07%04X".format(lid, (percent / PERCENT_PER_BIT).toInt())
+
+    /** 30 <id> 07 y el valor de esa pieza, con sus bytes y su escala. */
+    fun command(actuator: Actuator, value: Double): String {
+        // Cortado como ISTA; el margen evita que 50 / 0,01 se quede en 4.999 por la coma flotante.
+        val raw = (value / actuator.factor + ROUNDING_MARGIN).toInt()
+        return if (actuator.bytes == 1) "30%02X07%02X".format(actuator.lid, raw) else "30%02X07%04X".format(actuator.lid, raw)
+    }
+
+    /** Lo que dice la pieza al leerla (70 <id> 01 y el valor), en su unidad; null si no lo trae. */
+    fun stateValue(actuator: Actuator, response: String?): Double? {
+        val data = response?.let { ObdParser.payloads(it, "70%02X01".format(actuator.lid)).lastOrNull() } ?: return null
+        if (data.size < actuator.bytes) return null
+        return data.take(actuator.bytes).fold(0L) { acc, byte -> acc * 256 + byte } * actuator.factor
+    }
 
     fun fanCommand(percent: Double): String = command(FAN_LID, percent)
 
@@ -440,18 +559,29 @@ private val GLOW_STATUS = ServiceQuery(
 )
 
 /**
- * Una pieza de la tabla STELLER: su id, los % a los que se pone, cuanto tiempo cada uno y la medida
- * que dice donde esta de verdad (null si no hay).
+ * Una pieza de la tabla STELLER: su id, los valores a los que se pone (en [unit]), cuanto tiempo
+ * cada uno y la medida que dice donde esta de verdad (null si no hay). [bytes] y [factor] son los
+ * de la tabla: el valor se manda como valor / factor en esos bytes.
  */
 class Actuator(
     val name: String,
     val lid: Int,
-    val percents: List<Double>,
+    val values: List<Double>,
     val holdMs: Long = 3_000L,
     val feedback: Int?,
     /** True si [feedback] es lo que manda la centralita y no un sensor de posicion. */
     val feedbackIsOutput: Boolean = false,
-)
+    val bytes: Int = 2,
+    // Las de un byte son AUS (0) y EIN (1), sin escala.
+    val factor: Double = if (bytes == 1) 1.0 else BmwService.PERCENT_PER_BIT,
+    val unit: String = "%",
+    val description: String = "",
+) {
+    /** Las de un byte son de encender y apagar. */
+    val onOff: Boolean get() = bytes == 1
+
+    fun valueText(value: Double): String = if (onOff) "encendido" else "%.0f %s".format(value, unit)
+}
 
 /** Un paso de la prueba del ventilador: que se mando, que contesto y que significa. */
 class ServiceStep(val label: String, val query: String, val response: String?, val meaning: String)
@@ -460,4 +590,36 @@ class ServiceStep(val label: String, val query: String, val response: String?, v
  * La prueba de una pieza. [accepted]: true si la centralita acepto moverla, false si lo rechazo y
  * null si no contesto. [released]: si acepto devolverle el control.
  */
-class FanTest(val name: String, val steps: List<ServiceStep>, val accepted: Boolean?, val released: Boolean?)
+class FanTest(
+    val name: String,
+    val steps: List<ServiceStep>,
+    val accepted: Boolean?,
+    val released: Boolean?,
+    /**
+     * Si una lectura de control (lo que dice la pieza o su medida de posicion) se movio hacia lo
+     * pedido: true si, false si se leyo y no se movio, null si no hay lectura que mirar.
+     */
+    val confirmed: Boolean? = null,
+)
+
+/** Como acabo una prueba, para la tarjeta. */
+enum class TestOutcome(val title: String) {
+    OK("Correcta"),
+    REFUSED("Rechazada"),
+    DOUBTFUL("Dudosa"),
+    SILENT("Sin respuesta"),
+    ;
+
+    companion object {
+        /**
+         * Correcta: aceptada, devuelto el control y, si hay lectura de control, se movio. Dudosa:
+         * aceptada pero sin confirmar la vuelta o sin que se moviera la lectura.
+         */
+        fun of(test: FanTest): TestOutcome = when {
+            test.accepted == null -> SILENT
+            test.accepted == false -> REFUSED
+            test.released == true && test.confirmed != false -> OK
+            else -> DOUBTFUL
+        }
+    }
+}
