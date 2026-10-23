@@ -670,6 +670,22 @@ class ObdSession(
         }
     }
 
+    /**
+     * El campo AIF de la ultima programacion ([BmwAif.QUERY]), sin dejar rastro en el registro porque
+     * lleva el bastidor. Los bytes tras el 63, o null si no contesta.
+     */
+    suspend fun aif(): IntArray? = withSteadyWait {
+        flushLate()
+        val response = try {
+            elm.send(BmwAif.QUERY, READ_TIMEOUT_MS, quiet = true)
+        } catch (e: SocketTimeoutException) {
+            null
+        } finally {
+            bmwLate = true
+        }
+        response?.let { ObdParser.payloads(it, BmwAif.ANSWER).lastOrNull() }
+    }
+
     /** Los datos del filtro de ISTA para el CSV (BmwService.filterValues); vacio si no contesta. */
     suspend fun istaFilter(): Map<Int, Double> = withSteadyWait {
         BmwService.filterValues(BmwService.parse(BmwService.FILTER_QUERY, serviceAsk(BmwService.FILTER_QUERY.query)))

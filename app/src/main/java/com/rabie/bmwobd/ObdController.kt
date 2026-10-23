@@ -21,6 +21,7 @@ import com.rabie.bmwobd.dash.ShiftHint
 import com.rabie.bmwobd.obd.BmwFault
 import com.rabie.bmwobd.obd.BmwCarInfo
 import com.rabie.bmwobd.obd.Actuator
+import com.rabie.bmwobd.obd.BmwAif
 import com.rabie.bmwobd.obd.BmwService
 import com.rabie.bmwobd.obd.IstaRegen
 import com.rabie.bmwobd.obd.ServiceRead
@@ -149,6 +150,9 @@ class ObdController(
 
     // El barrido en curso. Solo se toca desde la lectura.
     private var scan: ScanRunner? = null
+
+    // El bastidor leido al conectar: solo para taparlo y compararlo en el AIF, nunca para el registro.
+    private var carVin: String? = null
     private var scanPerTurn = SCAN_PER_TURN
 
     private val _diagnostics = MutableStateFlow(DiagnosticsState())
@@ -189,6 +193,7 @@ class ObdController(
             var recorder: TripRecorder? = null
             try {
                 val info = session.connect()
+                carVin = info.vin
                 val vehicle = withProfile(session, vehicles.resolve(info.vin, info.diesel))
                 val profile = EngineProfile.of(vehicle)
                 val standard = Pids.all.filter { it.pid == Pids.ADAPTER_PID || it.pid in info.supportedPids }
@@ -505,6 +510,9 @@ class ObdController(
                 val reads = session.serviceReads()
                 val regen = session.istaRegen()
                 logService(reads, regen)
+                val aif = BmwAif.masked(session.aif(), carVin)
+                appendLog("## Servicio: Programación de la centralita (AIF, ${BmwAif.QUERY}): " + (aif?.hex ?: "sin respuesta"))
+                aif?.let { appendLog("## Servicio: bastidor en el AIF: " + it.vinText) }
                 _diagnostics.update { it.copy(busy = false, service = reads, istaRegen = regen) }
             } catch (e: IOException) {
                 appendLog("!! ${e.message}")
