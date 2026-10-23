@@ -165,6 +165,19 @@ class BmwServiceTest {
     }
 
     @Test
+    fun `las medidas de taller se piden por su direccion y salen con la formula de la tabla`() {
+        val rail = BmwService.QUERIES.first { it.name == "Raíl: corriente real de la válvula de presión" }
+        assertEquals("2C100265", rail.query)
+        // 0x4000 x 0,061036 = 1.000,01 mA.
+        assertEquals(listOf("Valor" to "1000,01 mA"), BmwService.parse(rail, "6C 10 40 00").fieldTexts)
+        val turbine = BmwService.QUERIES.first { it.name.startsWith("Escape antes de la turbina: diferencia con el turbo") }
+        // 0x8340 = 33.600; x 0,030518 - 1000 = 25,4 hPa.
+        assertEquals("25,4 hPa", BmwService.parse(turbine, "6C 10 83 40").fieldTexts.single().second)
+        val reset = BmwService.QUERIES.first { it.name == "Último reinicio de la centralita: km" }
+        assertEquals("Valor" to "380168 km", BmwService.parse(reset, "6C 10 B9 A1").fieldTexts.single())
+    }
+
+    @Test
     fun `una pieza de encender y apagar manda un byte y se da por buena si lo dice`() = runBlocking<Unit> {
         val glow = BmwService.ACTUATORS.first { it.lid == 0xC4 }
         assertEquals("30C40701", BmwService.command(glow, 1.0))

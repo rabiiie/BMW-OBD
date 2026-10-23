@@ -270,6 +270,63 @@ object BmwService {
             fields = (1..4).map { ServiceField("Factor $it", 2 * (it - 1), 2, 1.0 / 8192, signed = true) },
             note = "Factores de eficiencia del enfriador que vigila la centralita.",
         ),
+        *WORKSHOP.toTypedArray(),
+    )
+
+    /** Una medida de taller: un solo valor de la tabla MESSWERTETAB, con su formula. */
+    private fun workshop(name: String, address: Int, bytes: Int, factor: Double, offset: Double = 0.0, unit: String = "", note: String = "") =
+        ServiceQuery(name, feedbackQuery(address), FEEDBACK_ANSWER, fields = listOf(ServiceField("Valor", 0, bytes, factor, offset, unit)), note = note)
+
+    private const val UNKNOWN_CODES = "Código interno: BMW no da su tabla en este fichero. Sirve para comparar entre lecturas; 0 suele ser que no hay nada."
+
+    /**
+     * Medidas de la tabla del N47 para el taller, una por consulta, con el nombre y la formula de
+     * MESSWERTETAB de d70n47b0. Las de codigo (bits de desconexion, estados) se dan en numero. Con
+     * get(): QUERIES, que va antes en el objeto, la usa al inicializarse.
+     */
+    private val WORKSHOP: List<ServiceQuery> get() = listOf(
+        workshop(
+            "Caudalímetro: corrección por envejecimiento al ralentí", 0x070C, 2, 0.000122,
+            note = "La centralita corrige la deriva del caudalímetro con los años. 1 es sin corregir.",
+        ),
+        workshop("Caudalímetro: corrección por envejecimiento en carga", 0x070D, 2, 0.000122),
+        workshop(
+            "EGR: superficie de paso pedida", 0x0794, 2, 0.004, unit = "cm²",
+            note = "Con la estimada de abajo: si la EGR deja pasar mucho menos de lo pedido, puede tener carbonilla. Con el motor en marcha.",
+        ),
+        workshop("EGR: superficie de paso estimada", 0x079B, 2, 0.004, unit = "cm²"),
+        workshop("EGR: desviación de la regulación", 0x07A6, 2, 0.012207, unit = "%"),
+        workshop("Aire: por qué se desconecta su regulación (código)", 0x07A0, 4, 1.0, note = UNKNOWN_CODES),
+        workshop("Turbo: por qué se desconecta su regulación (código)", 0x0201, 4, 1.0, note = UNKNOWN_CODES),
+        workshop("Turbo: zona de trabajo de la regulación (código)", 0x01FF, 1, 1.0, note = UNKNOWN_CODES),
+        workshop(
+            "Raíl: corriente pedida a la válvula de presión", 0x025C, 2, 1.0, unit = "mA",
+            note = "Con la real de abajo. Una válvula o una bomba gastadas piden más corriente para la misma presión.",
+        ),
+        workshop("Raíl: corriente real de la válvula de presión", 0x0265, 2, 0.061036, unit = "mA"),
+        workshop("Raíl: corriente real de la válvula de cantidad", 0x01CB, 2, 0.1, unit = "mA"),
+        workshop("Inyectores: deriva de cantidad calculada", 0x0504, 2, 0.000305, -10.0, "mg"),
+        workshop("Inyectores: límite máximo de la deriva", 0x0505, 2, 0.000305, -10.0, "mg"),
+        workshop("Inyectores: límite mínimo de la deriva", 0x0506, 2, 0.000305, -10.0, "mg"),
+        workshop(
+            "Escape antes de la turbina: diferencia con el turbo, ahora", 0x0411, 2, 0.030518, -1000.0, "hPa",
+            note = "Cuánto más presión hay antes de la turbina que en la admisión. Un turbo, un colector o un filtro que frenan el gas la suben.",
+        ),
+        workshop("Escape antes de la turbina: diferencia aprendida, nueva", 0x0410, 2, 0.030518, -1000.0, "hPa"),
+        workshop("Escape antes de la turbina: diferencia aprendida, anterior", 0x0412, 2, 0.030518, -1000.0, "hPa"),
+        workshop("Motor: estado (código)", 0x0514, 1, 1.0, note = UNKNOWN_CODES),
+        workshop("Motor: causas de corte reversibles (código)", 0x0516, 4, 1.0, note = UNKNOWN_CODES),
+        workshop("Motor: causas de corte irreversibles (código)", 0x0517, 4, 1.0, note = UNKNOWN_CODES),
+        workshop("EGR: vigilancia de la válvula (código)", 0x0BBC, 2, 1.0, note = UNKNOWN_CODES),
+        workshop("Mariposa de admisión: vigilancia (código)", 0x0B2C, 1, 1.0, note = UNKNOWN_CODES),
+        workshop("Aceite: nivel medio para el taller", 0x044D, 1, 0.292969, unit = "mm"),
+        workshop("Calentadores: diagnóstico de su mando (código)", 0x1607, 1, 1.0, note = UNKNOWN_CODES),
+        workshop("Calentadores: tipo (código)", 0x1608, 1, 1.0, note = UNKNOWN_CODES),
+        workshop("Calentadores: km del mando montado", 0x160D, 2, 1.0),
+        workshop("Último reinicio de la centralita: motivo (código)", 0x16A8, 2, 1.0, note = UNKNOWN_CODES),
+        workshop("Último reinicio de la centralita: km", 0x16AA, 2, 8.0, unit = "km"),
+        workshop("Último reinicio de la centralita: temperatura del motor", 0x16AF, 1, 1.0, -50.0, "°C"),
+        workshop("Último reinicio de la centralita: batería", 0x16B0, 1, 100.0, unit = "mV"),
     )
 
     /** La lectura de los datos del filtro de ISTA, la que se repite durante el trayecto. */
