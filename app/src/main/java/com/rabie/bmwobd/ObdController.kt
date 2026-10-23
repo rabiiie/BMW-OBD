@@ -20,10 +20,8 @@ import com.rabie.bmwobd.dash.GearGuess
 import com.rabie.bmwobd.dash.ShiftHint
 import com.rabie.bmwobd.obd.BmwFault
 import com.rabie.bmwobd.obd.BmwCarInfo
-import com.rabie.bmwobd.obd.RecordCheck
 import com.rabie.bmwobd.obd.Actuator
 import com.rabie.bmwobd.obd.BmwService
-import com.rabie.bmwobd.obd.Need
 import com.rabie.bmwobd.obd.IstaRegen
 import com.rabie.bmwobd.obd.ServiceRead
 import com.rabie.bmwobd.obd.ServiceRoutine
@@ -358,8 +356,7 @@ class ObdController(
                 return@trySend
             }
             val saved = scans.load(vehicle.key)
-            val stopped = (_state.value.values[Pids.SPEED] ?: 0.0) < 1.0
-            if (!saved.reached && stopped) {
+            if (!saved.reached) {
                 // Se da por hecha antes de empezar: si deja el adaptador mal, al reconectar no se repite.
                 scans.save(vehicle.key, saved.copy(reached = true))
                 logBuffer.pin()
@@ -450,10 +447,6 @@ class ObdController(
     fun probeModules() {
         val probe = ModuleProbe.of(_state.value.vehicle)
         if (!isLive() || probe == null || _modulesRunning.value) return
-        if ((_state.value.values[Pids.SPEED] ?: 0.0) >= 1.0) {
-            appendLog("!! Las otras centralitas solo se preguntan con el coche parado.")
-            return
-        }
         _modulesRunning.value = true
         tasks.trySend { session ->
             logBuffer.pin()
@@ -519,18 +512,13 @@ class ObdController(
     }
 
     /**
-     * Prueba de una pieza de la tabla STELLER: solo con el motor apagado (0 rpm leidas) y el coche
-     * parado. La mueve unos segundos y le devuelve el control a la centralita. El ventilador va con
-     * [BmwService.FAN_TEST_READY]; la EGR, las mariposas y el turbo con [BmwService.ACTUATORS_READY].
+     * Prueba de una pieza de la tabla STELLER, en cualquier estado del motor. La mueve unos segundos
+     * y le devuelve el control a la centralita. El ventilador va con [BmwService.FAN_TEST_READY]; la
+     * EGR, las mariposas y el turbo con [BmwService.ACTUATORS_READY].
      */
     fun testActuator(actuator: Actuator) {
         val ready = if (actuator === BmwService.FAN) BmwService.FAN_TEST_READY else BmwService.ACTUATORS_READY
         if (!ready || !isLive() || _diagnostics.value.busy || !canScan(_state.value.vehicle)) return
-        val values = _state.value.values
-        if ((values[Pids.RPM] ?: 1.0) >= 1.0 || (values[Pids.SPEED] ?: 1.0) >= 1.0) {
-            _diagnostics.update { it.copy(message = "Solo con el motor apagado y el contacto puesto: la app tiene que leer 0 rpm y 0 km/h.") }
-            return
-        }
         val name = actuator.name
         _diagnostics.update { it.copy(busy = true, message = null) }
         tasks.trySend { session ->
@@ -558,26 +546,12 @@ class ObdController(
     }
 
     /**
-     * Un servicio que escribe en la centralita. Con [Need.ENGINE_OFF] solo con 0 rpm y 0 km/h; con
-     * [Need.IDLE] solo al ralenti (500 a 1.100 rpm), parado y con el refrigerante a 70 °C o mas.
+     * Un servicio que escribe en la centralita, en cualquier estado del motor. [ServiceRoutine.need]
+     * dice como lo hace ISTA; si no se cumple, la centralita puede rechazarlo y el motivo queda en el
+     * registro.
      */
     fun runRoutine(routine: ServiceRoutine) {
         if (!isLive() || _diagnostics.value.busy || !canScan(_state.value.vehicle)) return
-        val values = _state.value.values
-        val rpm = values[Pids.RPM]
-        val stopped = (values[Pids.SPEED] ?: 1.0) < 1.0
-        val problem = when (routine.need) {
-            Need.ENGINE_OFF -> if (rpm == null || rpm >= 1.0 || !stopped) "Solo con el motor apagado y el contacto puesto: la app tiene que leer 0 rpm y 0 km/h." else null
-            Need.IDLE -> if (rpm == null || rpm < 500 || rpm > 1100 || !stopped || (values[Pids.COOLANT] ?: 0.0) < 70.0) {
-                "Solo al ralentí, parado y con el motor caliente: entre 500 y 1.100 rpm, 0 km/h y el refrigerante a 70 °C o más."
-            } else {
-                null
-            }
-        }
-        if (problem != null) {
-            _diagnostics.update { it.copy(message = problem) }
-            return
-        }
         val name = routine.name
         _diagnostics.update { it.copy(busy = true, message = null) }
         tasks.trySend { session ->
@@ -666,11 +640,6 @@ class ObdController(
      */
     fun clearBmwAll() {
         if (!isLive() || _diagnostics.value.busy) return
-        val before = _diagnostics.value.report
-        RecordCheck.clearBlocker(before, before?.let(RecordCheck::codes).orEmpty())?.let { reason ->
-            _diagnostics.update { it.copy(message = reason) }
-            return
-        }
         _diagnostics.update { it.copy(busy = true, message = null) }
         tasks.trySend { session ->
             logBuffer.pin()
@@ -727,10 +696,6 @@ class ObdController(
         if (!isLive() || _diagnostics.value.busy) return
         if (present.isEmpty()) {
             _diagnostics.update { it.copy(message = missing) }
-            return
-        }
-        RecordCheck.clearBlocker(_diagnostics.value.report, present)?.let { reason ->
-            _diagnostics.update { it.copy(message = reason) }
             return
         }
         _diagnostics.update { it.copy(busy = true, message = null) }

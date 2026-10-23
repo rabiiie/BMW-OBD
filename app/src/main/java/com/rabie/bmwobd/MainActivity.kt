@@ -214,8 +214,6 @@ private fun MainScreen(vm: ObdViewModel = viewModel()) {
                     onReadService = vm::readService,
                     onTestActuator = vm::testActuator,
                     onRunRoutine = vm::runRoutine,
-                    servicePin = settings.servicePin,
-                    onSetServicePin = { pin -> vm.updateSettings { it.copy(servicePin = pin) } },
                     bmwService = vm.canScan(state.vehicle),
                     modifier = content,
                 )

@@ -23,8 +23,6 @@ data class AppSettings(
     val case: Case = Case.NORMAL,
     /** Lo que cuesta el litro, para la cuenta en euros; null mientras no se ponga. */
     val fuelPrice: Double? = null,
-    /** El PIN que abre los servicios que escriben en la centralita; null mientras no se cree. */
-    val servicePin: String? = null,
 )
 
 /** Los ajustes de la app, guardados en el movil. */
@@ -44,7 +42,6 @@ class SettingsStore(private val prefs: SharedPreferences) {
             .putString(KEY_LAST_ADAPTER, next.lastAdapter)
             .putString(KEY_CASE, next.case.name)
             .putString(KEY_FUEL_PRICE, next.fuelPrice?.toString())
-            .putString(KEY_SERVICE_PIN, next.servicePin)
             .apply()
         _state.value = next
     }
@@ -60,7 +57,6 @@ class SettingsStore(private val prefs: SharedPreferences) {
             lastAdapter = prefs.getString(KEY_LAST_ADAPTER, null),
             case = Case.entries.firstOrNull { it.name == prefs.getString(KEY_CASE, null) } ?: defaults.case,
             fuelPrice = prefs.getString(KEY_FUEL_PRICE, null)?.toDoubleOrNull()?.takeIf { it > 0 },
-            servicePin = prefs.getString(KEY_SERVICE_PIN, null),
         )
     }
 
@@ -73,6 +69,5 @@ class SettingsStore(private val prefs: SharedPreferences) {
         const val KEY_LAST_ADAPTER = "last_adapter"
         const val KEY_CASE = "case"
         const val KEY_FUEL_PRICE = "fuel_price"
-        const val KEY_SERVICE_PIN = "service_pin"
     }
 }

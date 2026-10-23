@@ -47,18 +47,6 @@ object RecordCheck {
     /** Los codigos de la lectura cuyo detalle no llego. */
     fun missingDetails(report: DiagnosticsReport): List<Int> = codes(report).filter { it !in report.bmwDetailed }
 
-    /**
-     * Null si se pueden borrar [toClear]: hay una lectura de esta conexion con las memorias leidas y
-     * el detalle de cada uno guardado. Si no, el motivo para enseñarlo.
-     */
-    fun clearBlocker(report: DiagnosticsReport?, toClear: List<Int>): String? {
-        if (report == null) return "Lee antes las averías para que su detalle quede en el registro."
-        if (report.bmwFaults == null || report.bmwInfo == null) return "La última lectura no trae las memorias de BMW: vuelve a leer las averías."
-        val missing = toClear.filter { it !in report.bmwDetailed }
-        if (missing.isNotEmpty()) return "Falta el detalle de " + missing.joinToString(", ") { "%04X".format(it) } + ": vuelve a leer las averías."
-        return null
-    }
-
     private fun memory(label: String, list: List<BmwFault>?, unit: String) =
         CheckLine(label, list != null, if (list == null) "no ha contestado" else "${list.size} $unit")
 }
