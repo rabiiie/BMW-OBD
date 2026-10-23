@@ -19,8 +19,8 @@ data class ManipulationReport(
     val oxygenDeviation: Double?,
     /** El cuentakilometros de la propia centralita, para comparar con el historial. */
     val odometer: Double?,
-) {
-    data class Entry(val slot: Int, val km: Double, val probability: Double?)
+) : java.io.Serializable {
+    data class Entry(val slot: Int, val km: Double, val probability: Double?) : java.io.Serializable
 
     /** Las anotaciones que dicen un km mayor que el cuentakilometros actual. */
     val aheadOfOdometer: List<Entry>

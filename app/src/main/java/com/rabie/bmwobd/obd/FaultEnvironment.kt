@@ -11,7 +11,7 @@ import java.util.Locale
  * octubre: 379.160 km a 2.260 rpm con 52 mg y el modo normal, y 379.328 km con el modo de
  * proteccion, 464 km desde la regeneracion y 21,3 g de ceniza, lo mismo que se leia ese dia.
  */
-data class EnvValue(val name: String, val value: Double, val unit: String, val translated: Boolean) {
+data class EnvValue(val name: String, val value: Double, val unit: String, val translated: Boolean) : java.io.Serializable {
 
     /** El valor con su unidad; el modo del motor en hexadecimal y la distancia en km. */
     val text: String
@@ -39,7 +39,7 @@ data class EnvValue(val name: String, val value: Double, val unit: String, val t
 }
 
 /** Una foto de las condiciones: el kilometraje y los valores en el orden de la centralita. */
-data class FaultSnapshot(val km: Int?, val values: List<EnvValue>)
+data class FaultSnapshot(val km: Int?, val values: List<EnvValue>) : java.io.Serializable
 
 object FaultEnvironment {
 

@@ -5,7 +5,7 @@ package com.rabie.bmwobd.obd
  * que solo enseña las relacionadas con emisiones. [active] dice si esta presente ahora mismo o
  * solo guardada de antes.
  */
-data class BmwFault(val code: Int, val status: Int) {
+data class BmwFault(val code: Int, val status: Int) : java.io.Serializable {
 
     val label: String get() = "%04X".format(code)
 

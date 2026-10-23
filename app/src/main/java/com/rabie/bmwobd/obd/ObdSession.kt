@@ -574,7 +574,8 @@ class ObdSession(
             bmwHistory = bmwAsk(BmwFault.HISTORY_QUERY, BmwFault.HISTORY_ANSWER)?.let(BmwFault::parseHistory),
             bmwFaultKm = details.mapNotNull { (code, payload) -> BmwFault.detailKm(payload, code)?.let { code to it } }.toMap(),
             bmwFaultShots = details.mapValues { (code, payload) -> FaultEnvironment.snapshots(payload, code) }.filterValues { it.isNotEmpty() },
-            bmwDetailed = details.keys,
+            // Una copia y no la vista de las claves: la lectura se guarda en el movil y la vista no se puede guardar.
+            bmwDetailed = details.keys.toSet(),
         )
     }
 

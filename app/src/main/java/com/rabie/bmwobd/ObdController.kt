@@ -25,6 +25,8 @@ import com.rabie.bmwobd.obd.BmwAif
 import com.rabie.bmwobd.obd.BmwIma
 import com.rabie.bmwobd.obd.BmwService
 import com.rabie.bmwobd.obd.IstaRegen
+import com.rabie.bmwobd.obd.LastReadStore
+import com.rabie.bmwobd.obd.SavedRead
 import com.rabie.bmwobd.obd.ServiceRead
 import com.rabie.bmwobd.obd.ServiceRoutine
 import com.rabie.bmwobd.obd.Commands
@@ -121,6 +123,8 @@ data class DiagnosticsState(
     val runningTest: String? = null,
     /** El historial de manipulacion de la centralita del N47, leido con las averias. */
     val manipulation: com.rabie.bmwobd.obd.ManipulationReport? = null,
+    /** El coche de la lectura de averias que se enseña, si es la guardada en el movil. */
+    val readVehicle: String? = null,
 )
 
 /** [finished] cuenta los sondeos terminados, para que la pantalla sepa cuando acaba uno. */
@@ -558,8 +562,17 @@ class ObdController(
         }
     }
 
+    // La ultima lectura de averias guardada en el movil: se enseña al abrir hasta la siguiente.
+    private val lastRead = LastReadStore(java.io.File(context.filesDir, LAST_READ_FILE))
+
     init {
         watchMsaSetting()
+        scope.launch {
+            val saved = withContext(Dispatchers.IO) { lastRead.load() } ?: return@launch
+            _diagnostics.update {
+                if (it.report != null) it else it.copy(report = saved.report, manipulation = saved.manipulation, readAtMillis = saved.atMillis, readVehicle = saved.vehicle)
+            }
+        }
     }
 
     /**
@@ -820,9 +833,12 @@ class ObdController(
                     }
                     for (line in found.lines()) appendLog("## Manipulación: ${line.text}")
                 }
+                val at = System.currentTimeMillis()
+                val vehicleName = _state.value.vehicle.name
                 _diagnostics.update {
-                    it.copy(busy = false, report = report, readAtMillis = System.currentTimeMillis(), message = message, manipulation = manipulation)
+                    it.copy(busy = false, report = report, readAtMillis = at, message = message, manipulation = manipulation, readVehicle = vehicleName)
                 }
+                withContext(Dispatchers.IO) { lastRead.save(SavedRead(report, manipulation, at, vehicleName)) }
             } catch (e: IOException) {
                 appendLog("!! ${e.message}")
                 _diagnostics.update { it.copy(busy = false, message = "El adaptador no ha contestado.") }
@@ -1098,6 +1114,7 @@ class ObdController(
     companion object {
         /** Donde queda lo ultimo que contestaron las otras centralitas. */
         const val MODULES_FILE = "logs/otras_centralitas.txt"
+        const val LAST_READ_FILE = "ultima_lectura_averias.bin"
         const val MODULES_END = "## Centralitas: fin"
 
         /** Los saltos sueltos de las medidas de BMW de la ultima conexion, con su trama. */

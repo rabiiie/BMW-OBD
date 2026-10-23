@@ -36,7 +36,7 @@ data class DiagnosticsReport(
     val bmwFaultShots: Map<Int, List<FaultSnapshot>> = emptyMap(),
     /** Las averias y avisos de BMW cuyo detalle (17 y el codigo) contesto la centralita. */
     val bmwDetailed: Set<Int> = emptySet(),
-)
+) : java.io.Serializable
 
 object Dtcs {
 

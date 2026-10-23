@@ -1,13 +1,13 @@
 package com.rabie.bmwobd.obd
 
 /** Una autocomprobacion del coche: si este coche la tiene y si ya la ha terminado. */
-data class Monitor(val name: String, val available: Boolean, val complete: Boolean)
+data class Monitor(val name: String, val available: Boolean, val complete: Boolean) : java.io.Serializable
 
 /**
  * Estado de las autocomprobaciones. Tras borrar averias o desconectar la bateria vuelven todas a
  * "sin completar" y se van terminando con el uso normal del coche.
  */
-data class Readiness(val diesel: Boolean, val monitors: List<Monitor>) {
+data class Readiness(val diesel: Boolean, val monitors: List<Monitor>) : java.io.Serializable {
     val available: List<Monitor> get() = monitors.filter { it.available }
     val pending: List<Monitor> get() = available.filter { !it.complete }
 

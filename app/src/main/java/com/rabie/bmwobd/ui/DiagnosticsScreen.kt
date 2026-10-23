@@ -83,6 +83,12 @@ fun DiagnosticsScreen(
 
         if (!connected) {
             Text("Conéctate al coche en la pestaña Panel para leer las averías.", color = Bmw.TextDim)
+            // Sin conexion se enseña la ultima lectura guardada en el movil, sin botones.
+            state.report?.let { saved ->
+                LastReadLine(state)
+                Report(saved, vehicleTerms)
+                state.manipulation?.let { ManipulationCard(it) }
+            }
             return@Column
         }
 
@@ -136,6 +142,7 @@ fun DiagnosticsScreen(
                 fontSize = 14.sp,
             )
         } else {
+            LastReadLine(state)
             Report(report, vehicleTerms)
         }
         state.manipulation?.let { ManipulationCard(it) }
@@ -627,6 +634,18 @@ private fun PurchaseCard(report: DiagnosticsReport) {
             fontSize = 12.sp,
         )
     }
+}
+
+/** Cuando se hizo la lectura que se enseña y de que coche: la guardada en el movil vale hasta la siguiente. */
+@Composable
+private fun LastReadLine(state: DiagnosticsState) {
+    if (state.readAtMillis <= 0) return
+    val date = java.text.SimpleDateFormat("d MMM yyyy, HH:mm", java.util.Locale("es", "ES")).format(java.util.Date(state.readAtMillis))
+    Text(
+        "Última lectura: $date" + (state.readVehicle?.let { " · $it" } ?: "") + ". Se sustituye al volver a leer.",
+        color = Bmw.TextDim,
+        fontSize = 13.sp,
+    )
 }
 
 /** Lo que guarda la centralita del N47 para detectar manipulaciones, con el aviso de lo que no se sabe. */
