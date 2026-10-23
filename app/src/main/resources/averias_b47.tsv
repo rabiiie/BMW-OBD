@@ -1,0 +1,1978 @@
+021200	Energiesparmode aktiv: Fahrzeug ist auf Fertigungs-, Transport- oder Flashmodus eingestellt
+02FF12	Diagnosemaster Test, I14229_ROETst_Appl: Applikations-Dummy-Fehlerspeichereintrag mit Diagnosejob erzeugt
+240000	Drehmomentüberwachung DCC: Drehmomentanforderung nicht plausibel
+240100	Drehmomentüberwachung DCC: unerlaubte Drehmomentanforderung bei betätigter Bremse
+240400	Abgasrückführ-Regelung, Regelabweichung: Luftmasse zu niedrig/positive Regelabweichung
+240500	Abgasrückführ-Regelung, Regelabweichung: Luftmasse zu hoch/negative Regelabweichung
+240600	Generator: keine Kommunikation über BSD-Schnittstelle
+240700	Generator: Kommunikation über BSD-Schnittstelle gestört (falsches Register)
+240800	Bremsunterdrucksensor, Plausibilität: Unterdruckabbau während Bremsvorgang zu gering
+240900	DDE-Steuergerät intern (CoVMErrL2): Kontinuierliche Momentenüberwachung, Vortriebssollmoment zu hoch
+240A00	DDE-Steuergerät intern (CY320): CY320 SPI-Kommunikation fehlerhaft
+240F00	Motorabstellzeit: Motorabstellzeitermittlung fehlerhaft
+241200	Einspritzmengenüberwachung (FMO): Mengenfehlerkorrektur über zulässigem Bereich (Lambda- und Luftmassenwert nicht plausibel zu Einspritzmenge)
+241300	Einspritzmengenüberwachung (FMO): Mengenfehlerkorrektur unter zulässigem Bereich (Lambda- und Luftmassenwert nicht plausibel zu Einspritzmenge)
+241400	Elektrolüfter, Diagnoserückmeldung 1: Lüfter leicht schwergängig (Solldrehzahl nicht erreicht)
+241500	Elektrolüfter, Diagnoserückmeldung 2: Lüfter stark schwergängig (Solldrehzahl nicht erreicht)
+241600	Elektrolüfter, Diagnoserückmeldung 3: Lüfterfehler mit Funktionseinschränkung (Lüfter dreht sich nicht)
+241700	Elektrolüfter, Diagnoserückmeldung 4: Lüfter defekt (kein Lüfterbetrieb möglich)
+241800	Elektrolüfter, Ansteuerung: Kurzschluss nach Masse
+241A00	Glühsteuergerät, Diagnoserückmeldung: Motorkonfiguration oder Glühstifttyp passt nicht zum Glühsteuergerät
+241B00	Glühsteuergerät, Diagnoserückmeldung: interner EEPROM Fehler
+241C00	Glühsteuergerät, Diagnoserückmeldung: Fehler Kommunikation (von DDE zum LIN-Teilnehmer)
+241D00	Botschaft (ERR_ST_GSG_LIN, 0x17, LIN): Botschaft von Glühsteuergerät GSG ausgefallen
+241E00	Botschaft (ST_GSG_LIN, 0x18, LIN): Botschaft von Glühsteuergerät GSG ausgefallen
+241F00	Glühsteuergerät: Glühsteuergerät Endstufe Zylinder 1 defekt
+242000	Glühstift Zylinder 1, Ansteuerung: Unterbrechung
+242100	Glühstift Zylinder 1, Ansteuerung: Kurzschluss
+242200	Glühstift Zylinder 1, Ansteuerung: Glühstiftwiderstand ausserhalb Spezifikation
+242300	Glühsteuergerät: Glühsteuergerät Endstufe Zylinder 2 defekt
+242400	Glühstift Zylinder 2, Ansteuerung: Unterbrechung
+242500	Glühstift Zylinder 2, Ansteuerung: Kurzschluss
+242600	Glühstift Zylinder 2, Ansteuerung: Glühstiftwiderstand ausserhalb Spezifikation
+242700	Glühsteuergerät: Glühsteuergerät Endstufe Zylinder 3 defekt
+242800	Glühstift Zylinder 3, Ansteuerung: Unterbrechung
+242900	Glühstift Zylinder 3, Ansteuerung: Kurzschluss
+242A00	Glühstift Zylinder 3, Ansteuerung: Glühstiftwiderstand ausserhalb Spezifikation
+242B00	Glühsteuergerät: Glühsteuergerät Endstufe Zylinder 4 defekt
+242C00	Glühstift Zylinder 4, Ansteuerung: Unterbrechung
+242D00	Glühstift Zylinder 4, Ansteuerung: Kurzschluss
+242E00	Glühstift Zylinder 4, Ansteuerung: Glühstiftwiderstand ausserhalb Spezifikation
+242F00	Glühsteuergerät: Glühsteuergerät Endstufe Zylinder 5 defekt
+243000	Glühstift Zylinder 5, Ansteuerung: Unterbrechung
+243100	Glühstift Zylinder 5, Ansteuerung: Kurzschluss
+243200	Glühstift Zylinder 5, Ansteuerung: Glühstiftwiderstand ausserhalb Spezifikation
+243300	Glühsteuergerät: Glühsteuergerät Endstufe Zylinder 6 defekt
+243400	Glühstift Zylinder 6, Ansteuerung: Unterbrechung
+243500	Glühstift Zylinder 6, Ansteuerung: Kurzschluss
+243600	Glühstift Zylinder 6, Ansteuerung: Glühstiftwiderstand ausserhalb Spezifikation
+243700	Glühsteuergerät, Diagnoserückmeldung: Masseversatz zwischen Glühsteuergerät und Glühstifte
+243800	Glühsteuergerät, Diagnoserückmeldung: interner Hardware Fehler
+243900	Glühsteuergerät, Diagnoserückmeldung: keine Kommunikation
+243A00	Glühsteuergerät, Diagnoserückmeldung: Spannung Kl. 30 am Glühsteuergerät fehlt
+243B00	Glühsteuergerät, Diagnoserückmeldung: interne Temperatur zu hoch
+243C00	Glühsteuergerät, Diagnoserückmeldung: Spannungsdifferenz Glühsteuergerät Kl. 30 zu DDE Versorgungsspannung zu hoch
+243D00	Leerlaufdrehzahl, Plausibilität: Ist-Leerlaufdrehzahl zu hoch
+243E00	Leerlaufdrehzahl, Plausibilität: Ist-Leerlaufdrehzahl zu niedrig
+243F00	Intelligenter Batteriesensor: keine Kommunikation über BSD-Schnittstelle
+244500	DDE-Steuergerät intern (MonUMaxSupply1): DDE interne Spannung zu hoch
+244600	DDE-Steuergerät intern (MonUMinSupply1): DDE interne Spannung zu niedrig
+244700	Ölzustandssensor: Kommunikation über BSD-Schnittstelle gestört (falsches Register)
+244800	Info - Partikelfiltersystem: Begrenzte Restlaufstrecke des Partikelfilter verfuegbar
+244900	Partikelfiltersystem: Maximale Laufstrecke des Partikelfilters überschritten
+244A00	Ladedruckregelung Niederdruckstufe, Regelabweichung: Ladedruck zu niedrig/positive Regelabweichung
+244B00	Ladedruckregelung Niederdruckstufe, Regelabweichung: Ladedruck zu hoch/negative Regelabweichung
+244C00	Ladedruckregelung, Regelabweichung: Ladedruck zu niedrig/positive Regelabweichung
+244D00	Ladedruckregelung, Regelabweichung: Ladedruck zu hoch/negative Regelabweichung
+245000	Partikelfiltersystem: Aschevolumen im Partikelfilter über Maximum
+245300	Abgasdifferenzdrucksensor Dieselpartikelfilter, Plausibilität: Schlauchleitung abgefallen oder undicht
+245400	Partikelfiltersystem: minimaler Differenzdruck unterschritten
+245500	Partikelfiltersystem: minimaler Differenzdruck nach Regeneration unterschritten
+245600	Partikelfiltersystem: Beladungsregeneration wurde aktiviert
+245700	Partikelfiltersystem: Partikelfilter stark beladen (Abgasgegendruck hoch)
+245800	Partikelfiltersystem: Partikelfilter stark beladen (Abgasgegendruck über Maximum)
+245B00	Partikelfiltersystem: maximale Regenerationsdauer überschritten
+245C00	Partikelfiltersystem: Strömungswiderstand zu hoch (Filter verstopft)
+245D00	Partikelfiltersystem: Strömungswiderstand zu niedrig (Filter defekt oder nicht verbaut)
+245E00	Partikelfiltersystem, Plausibilität: Differenz zwischen simulierter und korrelierter Rußmasse zu hoch
+245F00	Partikelfiltersystem, Plausibilität: Differenz zwischen simulierter und korrelierter Rußmasse zu niedrig
+246000	Partikelfiltersystem: Berechnete Rußmasse im Partikelfilter über Maximum
+246100	Abgasgegendruck nach Turbine, Plausibilität: Abgasgegendruck nicht plausibel
+246200	Abgastemperatur vor Kat, Plausibilität: zulässige Temperatur überschritten
+246300	Abgastemperatur vor Kat während Regeneration, Plausibilität: zulässige Temperatur überschritten
+246400	Abgastemperatur vor Kat, Plausibilität: Temperatur unplausibel hoch
+246500	Abgastemperatur vor Partikelfilter, Plausibilität: zulässige Temperatur überschritten
+246600	Abgastemperatur vor Partikelfilter während Regeneration, Plausibilität: zulässige Temperatur überschritten
+246700	Abgastemperatur vor Partikelfilter, Plausibilität: Temperatur unplausibel hoch
+246800	Partikelfiltersystem: Filter ist noch regenerierbar
+246900	Partikelfiltersystem: Filter ist nicht mehr regenerierbar
+246A00	Partikelfiltersystem: zu häufige Regenerationen
+246B00	Ladedrucksensor, Signal: Plausibilität mit Umgebungsdrucksensor im Leerlauf
+246D00	DDE-Steuergerät intern (R2S2_MscComm1): R2S2 Baustein 1 MSC-Kommunikation fehlerhaft
+246E00	DDE-Steuergerät intern (R2S2_MscComm2): R2S2 Baustein 2 MSC-Kommunikation fehlerhaft
+246F00	Raildruck-Plausibilität CPC (gekoppelte Druck/Mengen-Regelung): Stellgröße von Druckregelventil nicht plausibel
+247000	Raildruck-Plausibilität CPC (gekoppelte Druck/Mengen-Regelung): Minimaldruck unterschritten
+247100	Raildruck-Plausibilität CPC (gekoppelte Druck/Mengen-Regelung): Maximaldruck überschritten
+247500	Raildruck-Plausibilität mengengeregelt: Raildruck zu niedrig/positive Regelabweichung
+247600	Raildruck-Plausibilität mengengeregelt: Raildruck zu niedrig/positive Regelabweichung und Stellgröße zu hoch
+247700	Raildruck-Plausibilität mengengeregelt: Raildruck zu hoch bei Maximalansteuerung Mengenregelventil (RA negativ)
+247900	Raildruck-Plausibilität mengengeregelt: Minimaldruck unterschritten
+247A00	Raildruck-Plausibilität mengengeregelt: Maximaldruck überschritten
+248500	Raildruck-Plausibilität druckgeregelt: Raildruck zu niedrig/positive Regelabweichung
+248600	Raildruck-Plausibilität druckgeregelt: Raildruck zu niedrig/positive Regelabweichung und Ansteuerung Druckregelventil zu hoch
+248700	Raildruck-Plausibilität druckgeregelt: Raildruck zu hoch/negative Regelabweichung bei Minimalansteuerung Druckregelventil
+248900	Raildruck-Plausibilität druckgeregelt: Minimaldruck unterschritten
+248A00	Raildruck-Plausibilität druckgeregelt: Maximaldruck überschritten
+249300	Raildrucküberwachung bei Motorstart: Raildruck bei Motorstart zu niedrig
+249400	Speisespannung 1: Kurzschluss nach Plus oder Masse
+249500	Speisespannung 2: Kurzschluss nach Plus oder Masse
+249600	Speisespannung 3: Kurzschluss nach Plus oder Masse
+249700	Drosselklappensteller: mechanisch defekt (Regelabweichung nahe geschlossener Position)
+249800	Drosselklappensteller: elektrisch oder mechanisch defekt (Lagesensorfehler, Regelabweichung, Motorüberstrom)
+249900	Drosselklappensteller: Ansteuersignal unplausibel, Versorgungsspannung ungültig, Übertemperatur
+249A00	Drosselklappensteller: elektrisch defekt (EEPROM)
+249B00	Ladedrucksteller: Ladedrucksteller elektrisch oder mechanisch defekt oder Übertemperatur
+249C00	Ladedrucksteller: Positionssensor im Ladedrucksteller defekt
+249D00	Ladedrucksteller, Ansteuerung: Ansteuersignal Ladedrucksteller unplausibel
+249E00	Ladedrucksteller: Übertemperaturerkennung im Ladedrucksteller
+249F00	Ladedrucksteller, Ansteuerung: Kurzschluss nach Masse
+24A000	Ladedrucksteller, Positionssensor oder Statusleitung: Unterbrechung oder Kurzschluss nach Plus
+24A100	Ladedrucksteller, Positionssensor oder Statusleitung: Unterbrechung oder Kurzschluss nach Masse oder Signal fehlerhaft
+24A300	Reduktionsmittel-Heizung, Plausibilität: Heizungsfreigabe fehlgeschlagen
+24A400	Reduktionsmittel-Aktivtank Temperatur, Plausibilität: Reduktionsmitteltemperatur zu hoch
+24A500	Drallklappensteller: mechanisch defekt (Regelabweichung nahe geschlossener Position)
+24A600	Drallklappensteller: elektrisch oder mechanisch defekt (Lagesensorfehler, Regelabweichung, Motorüberstrom)
+24A700	Drallklappensteller: Ansteuersignal unplausibel, Versorgungsspannung ungültig, Übertemperatur
+24A800	Drallklappensteller: elektrisch defekt (EEPROM)
+24A900	Elektrischer Zuheizer: Übertemperaturerkennung im Zuheizer
+24AA00	Elektrischer Zuheizer 2 (nv): Fehler Zuheizer 2
+24AB00	Elektrischer Zuheizer 3 (nv): Fehler Zuheizer 3
+24AC00	Elektrischer Zuheizer 4 (nv): Fehler Zuheizer 4
+24AD00	Elektrischer Zuheizer, Ansteuerung: Kurzschluss nach Masse
+24BB00	Nullmengenadaption Injektor Zylinder 1: zulässige gefilterte Ansteuerdauerkorrektur zu hoch
+24BC00	Nullmengenadaption Injektor Zylinder 5: zulässige gefilterte Ansteuerdauerkorrektur zu hoch
+24BD00	Nullmengenadaption Injektor Zylinder 3: zulässige gefilterte Ansteuerdauerkorrektur zu hoch
+24BE00	Nullmengenadaption Injektor Zylinder 6: zulässige gefilterte Ansteuerdauerkorrektur zu hoch
+24BF00	Nullmengenadaption Injektor Zylinder 2: zulässige gefilterte Ansteuerdauerkorrektur zu hoch
+24C000	Nullmengenadaption Injektor Zylinder 4: zulässige gefilterte Ansteuerdauerkorrektur zu hoch
+24C100	Nullmengenadaption Injektor Zylinder 1: zulässige gefilterte Ansteuerdauerkorrektur zu niedrig
+24C200	Nullmengenadaption Injektor Zylinder 5: zulässige gefilterte Ansteuerdauerkorrektur zu niedrig
+24C300	Nullmengenadaption Injektor Zylinder 3: zulässige gefilterte Ansteuerdauerkorrektur zu niedrig
+24C400	Nullmengenadaption Injektor Zylinder 6: zulässige gefilterte Ansteuerdauerkorrektur zu niedrig
+24C500	Nullmengenadaption Injektor Zylinder 2: zulässige gefilterte Ansteuerdauerkorrektur zu niedrig
+24C600	Nullmengenadaption Injektor Zylinder 4: zulässige gefilterte Ansteuerdauerkorrektur zu niedrig
+24C700	Anzahl gewünschter Einspritzungen begrenzt: durch Ladungsbilanz des Booster-Kondensators
+24C800	Anzahl gewünschter Einspritzungen begrenzt: durch Mengenbilanz der Hochdruckpumpe
+24C900	Anzahl gewünschter Einspritzungen begrenzt: durch Steuergeräte Software
+24CA00	Anzahl gewünschter Einspritzungen begrenzt: durch Laufzeit
+24CB00	Lambdasonde: unplausible Sauerstoffkonzentration (Signal durch Heizung beeinflusst)
+24CE00	Luftmassenmesser, Plausibilität: Verhältnis gemessene zu berechneter Luftmasse zu groß
+24CF00	Luftmassenmesser, Plausibilität: Verhältnis gemessene zu berechneter Luftmasse zu klein
+24D400	Klimaleistungsausgang, Ansteuerung: Unterbrechung
+24D500	Klimaleistungsausgang, Ansteuerung: Endstufe Übertemperatur
+24D600	Klimaleistungsausgang, Ansteuerung: Kurzschluss nach Plus
+24D700	Klimaleistungsausgang, Ansteuerung: Kurzschluss nach Masse
+24DA00	Verdichter-Bypassklappe, Ansteuerung: Unterbrechung
+24DB00	Verdichter-Bypassklappe, Ansteuerung: Endstufe Übertemperatur
+24DC00	Verdichter-Bypassklappe, Ansteuerung: Kurzschluss nach Plus
+24DD00	Verdichter-Bypassklappe, Ansteuerung: Kurzschluss nach Masse
+24E200	Kühlmittelthermostat, Plausibilität: Gemessene Temperatur zu niedrig im Vergleich zu modellierter Temperatur
+24E400	E-Boxlüfter, Ansteuerung: Unterbrechung
+24E500	E-Boxlüfter, Ansteuerung: Endstufe Übertemperatur
+24E600	E-Boxlüfter, Ansteuerung: Kurzschluss nach Plus
+24E700	E-Boxlüfter, Ansteuerung: Kurzschluss nach Masse
+24E800	AGR-Kühler Bypassklappe, Ansteuerung: Unterbrechung
+24E900	AGR-Kühler Bypassklappe, Ansteuerung: Endstufe Übertemperatur
+24EA00	AGR-Kühler Bypassklappe, Ansteuerung: Kurzschluss nach Plus
+24EB00	AGR-Kühler Bypassklappe, Ansteuerung: Kurzschluss nach Masse
+24EC00	Motorlager, Ansteuerung: Unterbrechung
+24ED00	Motorlager, Ansteuerung: Endstufe Übertemperatur
+24EE00	Motorlager, Ansteuerung: Kurzschluss nach Plus
+24EF00	Motorlager, Ansteuerung: Kurzschluss nach Masse
+24F000	Freigabeleitung zum CAS, Ansteuerung: Unterbrechung
+24F100	Freigabeleitung zum CAS, Ansteuerung: Endstufe Übertemperatur
+24F200	Freigabeleitung zum CAS, Ansteuerung: Kurzschluss nach Plus
+24F300	Freigabeleitung zum CAS, Ansteuerung: Kurzschluss nach Masse
+24F400	Elektrolüfter, Ansteuerung: Unterbrechung
+24F500	Elektrolüfter, Ansteuerung: Endstufe Übertemperatur
+24F600	Elektrolüfter, Ansteuerung: Kurzschluss nach Plus
+24F700	Kraftstofffilterheizung, Ansteuerung: Unterbrechung
+24F800	Kraftstofffilterheizung, Ansteuerung: Endstufe Übertemperatur
+24F900	Kraftstofffilterheizung, Ansteuerung: Kurzschluss nach Plus
+24FA00	Kraftstofffilterheizung, Ansteuerung: Kurzschluss nach Masse
+24FB00	Lambdasonde, Ansteuerung Heizung: Kurzschluss nach Plus
+24FC00	Lambdasonde, Ansteuerung Heizung: Kurzschluss nach Masse
+24FD00	Lambdasonde, Ansteuerung Heizung: Endstufe Übertemperatur
+24FE00	Lambdasonde, Ansteuerung Heizung: Unterbrechung
+24FF00	Lambdasonde, Heizung: Temperatur zu hoch
+250000	Lambdasonde, Heizung: Temperatur zu niedrig
+250100	Mengenregelventil, Ansteuerung: Unterbrechung
+250200	Mengenregelventil, Ansteuerung: Kurzschluss nach Plus
+250300	Mengenregelventil Stromregelung: ADC signal range check high error of metering unit AD-channel
+250400	Mengenregelventil Stromregelung: ADC signal range check low error of metering unit AD-channel
+250500	Raildruckregelventil, Ansteuerung: Unterbrechung
+250600	Raildruckregelventil, Ansteuerung: Kurzschluss nach Plus
+250700	Stromregelung für Raildruckregelventil (SRCmax): nicht verwendet
+250800	Stromregelung für Raildruckregelventil (SRCmin): nicht verwendet
+250900	Raildrucksensor, Signal: Unterbrechung oder Kurzschluss nach Plus
+250A00	Raildrucksensor, Signal: Kurzschluss nach Masse
+250F00	Startfreigabeleitung zum CAS, Ansteuerung: Unterbrechung
+251000	Startfreigabeleitung zum CAS, Ansteuerung: Endstufe Übertemperatur
+251100	Startfreigabeleitung zum CAS, Ansteuerung: Kurzschluss nach Plus
+251200	Startfreigabeleitung zum CAS, Ansteuerung: Kurzschluss nach Masse
+251300	Drosselklappensteller, Ansteuerung: Unterbrechung
+251400	Drosselklappensteller, Ansteuerung: maximaler Strom überschritten
+251500	Drosselklappensteller, Ansteuerung: Endstufe Übertemperatur
+251600	Drosselklappensteller Ausgang 1 (DC+), Ansteuerung: Kurzschluss nach Plus
+251700	Drosselklappensteller Ausgang 2 (DC+), Ansteuerung: Kurzschluss nach Plus
+251800	Drosselklappensteller Ausgang 1 (DC-), Ansteuerung: Kurzschluss nach Masse
+251900	Drosselklappensteller Ausgang 2 (DC-), Ansteuerung: Kurzschluss nach Masse
+251A00	Drosselklappensteller, Ansteuerung: Kurzschluss über Last
+251B00	Drosselklappensteller, Ansteuerung: temperaturabhängiger maximaler Strom überschritten
+251C00	Drosselklappensteller, Ansteuerung: Versorgungsspannung zu niedrig
+251D00	Drosselklappensteller, Ansteuerung: Unterbrechung
+251E00	Drosselklappensteller, Ansteuerung: Endstufe Übertemperatur
+251F00	Drosselklappensteller, Ansteuerung: Kurzschluss nach Plus
+252000	Drosselklappensteller, Ansteuerung: Kurzschluss nach Masse
+252100	Wastegate-Ventil, Ansteuerung: Unterbrechung
+252200	Wastegate-Ventil, Ansteuerung: Endstufe Uebertemperatur
+252300	Wastegate-Ventil, Ansteuerung: Kurzschluss nach Plus
+252400	Wastegate-Ventil, Ansteuerung: Kurzschluss nach Masse
+252500	Ladedrucksteller, Ansteuerung: Unterbrechung
+252600	Ladedrucksteller, Ansteuerung: Endstufe Übertemperatur
+252700	Ladedrucksteller, Ansteuerung: Kurzschluss nach Plus
+252800	Ladedrucksteller (VNT), Ansteuerung: Unterbrechung
+252900	Ladedrucksteller (VNT), Ansteuerung: Endstufe Übertemperatur
+252A00	Ladedrucksteller (VNT), Ansteuerung: Kurzschluss nach Plus
+252B00	Ladedrucksteller (VNT), Ansteuerung: Kurzschluss nach Masse
+252C00	Reduktionsmittel Dosierventil, Ansteuerung: Unterbrechung
+252D00	Reduktionsmittel Dosierventil, Ansteuerung: Endstufe Übertemperatur
+252E00	Reduktionsmittel Dosierventil, Ansteuerung: Minusseite Kurzschluss nach Plus
+252F00	Reduktionsmittel Dosierventil, Ansteuerung: Minusseite Kurzschluss nach Masse
+253000	Reduktionsmittel Förderpumpe, Ansteuerung: Unterbrechung
+253100	Reduktionsmittel Förderpumpe, Ansteuerung: Endstufe Übertemperatur
+253200	Reduktionsmittel Förderpumpe, Ansteuerung: Kurzschluss nach Plus
+253300	Reduktionsmittel Förderpumpe, Ansteuerung: Kurzschluss nach Masse
+253400	Drallklappensteller, Positionsregelung: positive Regelabweichung
+253500	Drallklappensteller, Positionsregelung: Drallklappen zu weit offen/positive Regelabweichung nahe geschlossen Position
+253600	Drallklappensteller, Positionsregelung: negative Regelabweichung
+253700	Drallklappensteller, Positionsregelung: Drallklappen zu weit geschlossen/negative Regelabweichung nahe geschlossen Position
+253800	Elektrischer Zuheizer, Ansteuerung: Unterbrechung
+253900	Elektrischer Zuheizer, Ansteuerung: Endstufe Übertemperatur
+253A00	Elektrischer Zuheizer, Ansteuerung: Kurzschluss nach Plus
+254300	Reduktionsmittel Drucksensor, Plausibilität: Reduktionsmitteldruck zu hoch
+254400	Reduktionsmittel Druckaufbau, Plausibilität: kein Reduktionsmittel Druckaufbau möglich
+254A00	Luftmassenmesser: Luftmasse zu niedrig (Signalfrequenz zu niedrig)
+254B00	Luftmassenmesser: Luftmasse zu hoch (Signalfrequenz zu hoch)
+254C00	Info - Sicherheitsfall: Fahrpedal und Bremse gleichzeitig aktiv
+254D00	Versorgungsspannung: Versorgungsspannung DDE überschritten
+254E00	Versorgungsspannung: Versorgungsspannung DDE unterschritten
+255000	Bremsunterdrucksensor, Signal: Kurzschluss nach Plus
+255100	Bremsunterdrucksensor, Signal: Unterbrechung oder Kurzschluss nach Masse
+255200	Kühlmitteltemperatursensor, Bereich: obere physikalische Grenze überschritten
+255300	Kühlmitteltemperatursensor, Bereich: untere physikalische Grenze unterschritten
+255400	Kühlmitteltemperatursensor, Signal: Unterbrechung oder Kurzschluss nach Plus
+255500	Kühlmitteltemperatursensor, Signal: Kurzschluss nach Masse
+255600	AGR-Kühler Bypassklappe Positionssensor, Bereich: obere physikalische Grenze überschritten
+255700	AGR-Kühler Bypassklappe Positionssensor, Bereich: untere physikalische Grenze unterschritten
+255800	AGR-Kühler Bypassklappe Positionssensor, Signal: Kurzschluss nach Plus
+255900	AGR-Kühler Bypassklappe Positionssensor, Signal: Unterbrechung oder Kurzschluss nach Masse
+255A00	Steuergerätetemperatur: Temperatur zu hoch
+255B00	Abgasrückführsteller Hochdruck, Positionsregelung: positive Regelabweichung
+255C00	Abgasrückführsteller Hochdruck, Positionsregelung: negative Regelabweichung
+255D00	Abgasrückführsteller Hochdruck, Ansteuerung: Unterbrechung
+255E00	Abgasrückführsteller Hochdruck, Ansteuerung: maximaler Strom überschritten
+255F00	Abgasrückführsteller Hochdruck, Ansteuerung: Endstufe Übertemperatur
+256000	Abgasrückführsteller Hochdruck Ausgang 1 (DC+), Ansteuerung: Kurzschluss nach Plus
+256100	Abgasrückführsteller Hochdruck Ausgang 2 (DC+), Ansteuerung: Kurzschluss nach Plus
+256200	Abgasrückführsteller Hochdruck Ausgang 1 (DC-), Ansteuerung: Kurzschluss nach Masse
+256300	Abgasrückführsteller Hochdruck Ausgang 2 (DC-), Ansteuerung: Kurzschluss nach Masse
+256400	Abgasrückführsteller Hochdruck, Ansteuerung: Kurzschluss über Last
+256500	Abgasrückführsteller Hochdruck, Ansteuerung: temperaturabhängiger maximaler Strom überschritten
+256600	Abgasrückführsteller Hochdruck, Ansteuerung: Versorgungsspannung zu niedrig
+256700	Abgasrückführsteller Niederdruck, Positionsregelung: positive Regelabweichung
+256800	Abgasrückführsteller Niederdruck, Positionsregelung: negative Regelabweichung
+256900	Abgasrückführsteller Niederdruck, Ansteuerung: Unterbrechung
+256A00	Abgasrückführsteller Niederdruck, Ansteuerung: maximaler Strom überschritten
+256B00	Abgasrückführsteller Niederdruck, Ansteuerung: Endstufe Übertemperatur
+256C00	Abgasrückführsteller Niederdruck Ausgang 1 (DC+), Ansteuerung: Kurzschluss nach Plus
+256D00	Abgasrückführsteller Niederdruck Ausgang 2 (DC+), Ansteuerung: Kurzschluss nach Plus
+256E00	Abgasrückführsteller Niederdruck Ausgang 1 (DC-), Ansteuerung: Kurzschluss nach Masse
+256F00	Abgasrückführsteller Niederdruck Ausgang 2 (DC-), Ansteuerung: Kurzschluss nach Masse
+257000	Abgasrückführsteller Niederdruck, Ansteuerung: Kurzschluss über Last
+257100	Abgasrückführsteller Niederdruck, Ansteuerung: temperaturabhängiger maximaler Strom überschritten
+257200	Abgasrückführsteller Niederdruck, Ansteuerung: Versorgungsspannung zu niedrig
+257300	Niederdruck Abgasrückführsteller, Ansteuerung: Unterbrechung
+257400	Niederdruck Abgasrückführsteller, Ansteuerung: Endstufe Übertemperatur
+257500	Niederdruck Abgasrückführsteller, Ansteuerung: Kurzschluss nach Plus
+257600	Niederdruck Abgasrückführsteller, Ansteuerung: Kurzschluss nach Masse
+257700	Abgasrückführsteller Niederdruck Positionssensor, Signal: Unterbrechung oder Kurzschluss nach Plus
+257800	Abgasrückführsteller Niederdruck Positionssensor, Signal: Unterbrechung oder Kurzschluss nach Masse
+257900	Abgasrückführsteller, Ansteuerung: Unterbrechung
+257A00	Abgasrückführsteller, Ansteuerung: Endstufe Übertemperatur
+257B00	Abgasrückführsteller, Ansteuerung: Kurzschluss nach Plus
+257C00	Abgasrückführsteller, Ansteuerung: Kurzschluss nach Masse
+257D00	Abgasrückführsteller Hochdruck Positionssensor, Signal: Unterbrechung oder Kurzschluss nach Plus
+257E00	Abgasrückführsteller Hochdruck Positionssensor, Signal: Unterbrechung oder Kurzschluss nach Masse
+257F00	Überdrehzahlerkennung: Motordrehzahl mechanisch zu hoch
+258000	TD-Drehzahlsignal, Ansteuerung: Unterbrechung
+258100	TD-Drehzahlsignal, Ansteuerung: Kurzschluss nach Plus
+258200	TD-Drehzahlsignal, Ansteuerung: Kurzschluss nach Masse
+258300	Abgasgegendrucksensor, Signal: Signal zu hoch
+258400	Abgastemperatursensor vor Kat, Signal: Signal zu hoch
+258500	Abgastemperatursensor vor Partikelfilter, Signal: Signal zu hoch
+258600	xDFC_EnhSRCMaxT3ExhTMon: Diagnostic Fault Check for enhanced SRC-Max of third exhaust gas temperature
+258700	Abgasgegendrucksensor: Signal zu niedrig
+258800	Abgastemperatursensor vor Kat, Signal: Signal zu niedrig
+258900	Abgastemperatursensor vor Partikelfilter, Signal: Signal zu niedrig
+258A00	xDFC_EnhSRCMinT3ExhTMon: Diagnostic Fault Check for enhanced SRC-Min of third exhaust gas temperature
+258B00	Umgebungsdrucksensor (im Steuergerät verbaut), Bereich: obere physikalische Grenze überschritten
+258C00	Umgebungsdrucksensor (im Steuergerät verbaut), Bereich: untere physikalische Grenze unterschritten
+258D00	Umgebungsdrucksensor (im Steuergerät verbaut), Signal: Kurzschluss nach Plus
+258E00	Umgebungsdrucksensor (im Steuergerät verbaut), Signal: Unterbrechung oder Kurzschluss nach Masse
+258F00	Außentemperatursensor, Plausibilität: Außentemperatur nicht plausibel zu Ansauglufttemperatur
+259100	Abgastemperatursensor vor Kat, Plausibilität: Differenz gemessene zu berechneter Abgastemperatur vor Kat zu hoch
+259200	Abgastemperatursensor vor Partikelfilter, Plausibilität: Differenz gemessene zu berechneter Abgastemperatur vor Partikelfilter zu hoch
+259300	Abgastemperatursensor vor SCR-Kat, Plausibilität: Differenz gemessene zu berechneter Abgastemperatur vor SCR-Kat zu hoch
+259700	Vorförderdrucksensor, Signal: Unterbrechung oder Kurzschluss nach Plus
+259800	Vorförderdrucksensor, Signal: Kurzschluss nach Masse
+259C00	Kraftstofftemperatursensor, Bereich: obere physikalische Grenze überschritten
+259D00	Kraftstofftemperatursensor, Bereich: untere physikalische Grenze unterschritten
+259E00	Kraftstofftemperatursensor, Signal: Unterbrechung oder Kurzschluss nach Plus
+259F00	Kraftstofftemperatursensor, Signal: Kurzschluss nach Masse
+25A000	Nullgangsensor, Signal: Periodendauer zu hoch
+25A100	Nullgangsensor, Signal: Periodendauer zu niedrig
+25A200	Nullgangsensor, Signal: Tastverhältnis zu hoch
+25A300	Nullgangsensor, Signal: Tastverhältnis zu niedrig
+25A400	Raildruck, Plausibiliät: Raildruck während Raildruckregelung für Injektoransteuerung zu niedrig
+25A500	Lambdasonde, Signal Nernstspannung: Unterbrechung
+25A600	Lambdasonde, Signal Pumpstrom: Unterbrechung
+25A700	Lambdasonde, Signal virtuelle Masse: Unterbrechung
+25A800	Lambdasonde: Signalspannung zu hoch oder Signal Abgleichstrom Unterbrechung
+25A900	Lambdasonde: Signalspannung zu niedrig
+25AA00	DDE-Steuergerät intern (LSU SPI): Spannungsversorgung am SPI Chip zu niedrig (Lambda-Signalauswertung)
+25AB00	Lambdasonde, Signal Pumpstrom, Nernstspannung oder virtuelle Masse: Kurzschluss nach Plus
+25AC00	Lambdasonde, Signal Pumpstrom, Nernstspannung oder virtuelle Masse: Kurzschluss nach Masse
+25AD00	Mengenregelventil, Ansteuerung: Kurzschluss nach Masse
+25AF00	NOx-Sensor vor DeNOx-Kat, Bereich binäres Lambda: obere physikalische Grenze überschritten
+25B000	NOx-Sensor vor DeNOx-Kat, Bereich binäres Lambda: untere physikalische Grenze unterschritten
+25B100	NOx-Sensor vor DeNOx-Kat, Bereich lineares Lambda: obere physikalische Grenze überschritten
+25B200	NOx-Sensor vor DeNOx-Kat, Bereich lineares Lambda: untere physikalische Grenze unterschritten
+25B300	NOx-Sensor vor DeNOx-Kat, Plausibilität Lambda: Sauerstoffkonzentration zu hoch im Schub
+25B400	NOx-Sensor vor DeNOx-Kat, Plausibilität Lambda: Sauerstoffkonzentration zu niedrig im Schub
+25B500	NOx-Sensor vor DeNOx-Kat, Bereich NOx: obere physikalische Grenze überschritten
+25B600	NOx-Sensor vor DeNOx-Kat, Bereich NOx: untere physikalische Grenze unterschritten
+25B700	NOx-Sensor vor DeNOx-Kat, Signal NOx, binäres Lambda, lineares Lambda oder Heizung: Unterbrechung
+25B800	NOx-Sensor vor DeNOx-Kat, Signal NOx, binäres Lambda, lineares Lambda oder Heizung: Kurzschluss
+25BE00	NOx-Sensor nach DeNOx-Kat, Plausibilität Lambda: Sauerstoffkonzentration zu hoch im Schub
+25BF00	NOx-Sensor nach DeNOx-Kat, Plausibilität Lambda: Sauerstoffkonzentration zu niedrig im Schub
+25C000	NOx-Sensor nach DeNOx-Kat, Bereich NOx: obere physikalische Grenze überschritten
+25C100	NOx-Sensor nach DeNOx-Kat, Bereich NOx: untere physikalische Grenze unterschritten
+25C200	NOx-Sensor nach DeNOx-Kat, Signal NOx, binäres Lambda, lineares Lambda oder Heizung: Unterbrechung
+25C300	NOx-Sensor nach DeNOx-Kat, Signal NOx, binäres Lambda, lineares Lambda oder Heizung: Kurzschluss
+25C400	Abgasgegendrucksensor, Signal: dynamisch unplausibel
+25C500	Umgebungsdrucksensor (im Steuergerät verbaut): Umgebungsdruck nicht plausibel zu Druck vor Partikelfilter
+25C600	Abgasdifferenzdrucksensor Partikelfilter, Plausibilität: Schlauchleitungen vertauscht angeschlossen
+25C700	Partikelfiltersystem: Schlauchleitung zum Abgasgegendrucksensor vor Partikelfilter abgefallen oder vertauscht angeschlossen
+25C800	Abgasgegendrucksensor: Sensordrift außerhalb Toleranz
+25CB00	Öldrucksensor, Signal: Kurzschluss nach Plus
+25CC00	Öldrucksensor, Signal: Kurzschluss nach Masse
+25CD00	Raildruckregelventil, Ansteuerung: Kurzschluss nach Masse
+25CE00	Ladedrucksensor, Bereich: obere physikalische Grenze überschritten
+25CF00	Ladedrucksensor, Bereich: untere physikalische Grenze unterschritten
+25D000	Ladedrucksensor, Signal: Kurzschluss nach Plus
+25D100	Ladedrucksensor, Signal: Unterbrechung oder Kurzschluss nach Masse
+25D200	Abgasgegendrucksensor vor Partikelfilter, Bereich: obere physikalische Grenze überschritten
+25D300	Abgasgegendrucksensor vor Partikelfilter, Bereich: untere physikalische Grenze unterschritten
+25D400	Abgasdrucksensor vor Turbine, Bereich: obere physikalische Grenze überschritten
+25D500	Abgasdrucksensor vor Turbine, Bereich: untere physikalische Grenze unterschritten
+25D600	Fahrpedalmodul Sensor 1, Signal: Kurzschluss nach Plus
+25D700	Fahrpedalmodul Sensor 2, Signal: Kurzschluss nach Plus
+25D800	Fahrpedalmodul Sensor 1, Signal: Unterbrechung oder Kurzschluss nach Masse
+25D900	Fahrpedalmodul Sensor 2, Signal: Unterbrechung oder Kurzschluss nach Masse
+25DA00	Abgasdifferenzdrucksensor Partikelfilter, Signal: Kurzschluss nach Plus
+25DB00	Abgasgegendrucksensor vor Partikelfilter, Signal: Kurzschluss nach Plus
+25DC00	Abgasdrucksensor vor Turbine, Signal: Kurzschluss nach Plus
+25E100	Reduktionsmittel Drucksensor, Signal: Kurzschluss nach Plus
+25E200	Abgasdifferenzdrucksensor Partikelfilter, Signal: Unterbrechung oder Kurzschluss nach Masse
+25E300	Abgasgegendrucksensor vor Partikelfilter, Signal: Unterbrechung oder Kurzschluss nach Masse
+25E400	Abgasdrucksensor vor Turbine, Signal: Unterbrechung oder Kurzschluss nach Masse
+25E900	Reduktionsmittel Drucksensor, Signal: Unterbrechung oder Kurzschluss nach Masse
+25EB00	xDFC_SigUPmpP: Signal error for CAN message
+25EC00	Abgasdifferenzdrucksensor Partikelfilter, Plausibilität: Schlauchleitungen zum Abgasdifferenzdrucksensor abgefallen oder verstopft
+25ED00	Fahrpedalmodul, Plausibilität: Plausibilität zwischen Sensor 1 und 2 verletzt
+25EE00	Wake-up-Leitung: Klemme 15 Kurzschluss nach Masse
+25EF00	Ansauglufttemperatursensor: Temperatur zu hoch (Tastverhältnis zu hoch)
+25F000	Ansauglufttemperatursensor: Temperatur zu niedrig (Tastverhältnis zu niedrig)
+25F100	Ansauglufttemperatursensor (Referenzsignal für Luftmassenmesser): Frequenz zu niedrig
+25F200	Ansauglufttemperatursensor (Referenzsignal für Luftmassenmesser): Frequenz zu hoch
+25F300	Ansauglufttemperatursensor, Signal: Unterbrechung oder Kurzschluss nach Plus/Masse oder Temperatur zu hoch
+25F400	Ansauglufttemperatursensor, Signal: Temperatur zu niedrig
+25F500	Ansauglufttemperatursensor, Signal: Unterbrechung oder Kurzschluss nach Plus
+25F600	Ansauglufttemperatursensor, Signal: Kurzschluss nach Masse
+25F700	Ladelufttemperatursensor, Bereich: obere physikalische Grenze überschritten
+25F800	Ladelufttemperatursensor, Bereich: untere physikalische Grenze unterschritten
+25F900	Ladelufttemperatursensor, Signal: Unterbrechung oder Kurzschluss nach Plus
+25FA00	Ladelufttemperatursensor, Signal: Kurzschluss nach Masse
+25FB00	Steuergerätetemperatursensor, Bereich: obere physikalische Grenze überschritten
+25FC00	Steuergerätetemperatursensor, Bereich: untere physikalische Grenze unterschritten
+25FF00	Abgastemperatursensor nach Abgasrückführkühler, Bereich: obere physikalische Grenze überschritten
+260000	Abgastemperatursensor nach Abgasrückführkühler, Bereich: untere physikalische Grenze unterschritten
+260100	Abgastemperatursensor nach Abgasrückführkühler, Signal: Unterbrechung oder Kurzschluss nach Plus
+260200	Abgastemperatursensor nach Abgasrückführkühler, Signal: Kurzschluss nach Masse
+260300	Abgastemperatursensor nach Niederdruck-Abgasrückführkühler, Signal: Unterbrechung oder Kurzschluss nach Plus
+260400	Abgastemperatursensor nach Niederdruck-Abgasrückführkühler, Signal: Kurzschluss nach Masse
+260900	Abgastemperatursensor vor Katalysator, Bereich: obere physikalische Grenze überschritten
+260A00	Abgastemperatursensor vor Katalysator, Bereich: untere physikalische Grenze unterschritten
+260B00	Abgastemperatursensor vor Partikelfilter, Bereich: obere physikalische Grenze überschritten
+260C00	Abgastemperatursensor vor Partikelfilter, Bereich: untere physikalische Grenze unterschritten
+260F00	Drosselklappensteller Positionssensor, Signal: Unterbrechung oder Kurzschluss nach Plus
+261000	Drosselklappensteller Positionssensor, Signal: Unterbrechung oder Kurzschluss nach Masse
+261100	Abgastemperatursensor vor SCR-Kat, Bereich: obere physikalische Grenze überschritten
+261200	Abgastemperatursensor vor SCR-Kat, Bereich: untere physikalische Grenze unterschritten
+261300	Reduktionsmittel-Druckleitung Heizung, Ansteuerung: Unterbrechung
+261400	Reduktionsmittel-Druckleitung Heizung, Ansteuerung: Kurzschluss nach Plus
+261500	Reduktionsmittel-Druckleitung Heizung, Ansteuerung: Kurzschluss nach Masse
+261600	Reduktionsmittel-Druckleitung Heizungsdiagnose, Signal: Kurzschluss nach Plus
+261700	Reduktionsmittel-Druckleitung Heizungsdiagnose, Signal: Unterbrechung oder Kurzschluss nach Masse
+261800	Reduktionsmittel-Aktivtank Heizung, Ansteuerung: Unterbrechung
+261900	Reduktionsmittel-Aktivtank Heizung, Ansteuerung: Kurzschluss nach Plus
+261A00	Reduktionsmittel-Aktivtank Heizung, Ansteuerung: Kurzschluss nach Masse
+261B00	Reduktionsmittel-Aktivtank Heizungsdiagnose, Signal: Kurzschluss nach Plus
+261C00	Reduktionsmittel-Aktivtank Heizungsdiagnose, Signal: Unterbrechung oder Kurzschluss nach Masse
+261D00	Reduktionsmittel-Passivtank Füllstandssensor, Bereich: obere physikalische Grenze überschritten
+261E00	Reduktionsmittel-Passivtank Füllstandssensor, Bereich: untere physikalische Grenze unterschritten
+261F00	Reduktionsmittel Drucksensor, Bereich: obere physikalische Grenze überschritten
+262000	Reduktionsmittel Drucksensor, Bereich: untere physikalische Grenze unterschritten
+262100	Reduktionsmittel Drucksensor, Plausibilität: Differenzdruck zu hoch
+262200	Reduktionsmittel Drucksensor, Plausibilität: Differenzdruck zu niedrig
+262300	Reduktionsmittel Umpumpeinheit, Ansteuerung: Unterbrechung
+262400	Reduktionsmittel Umpumpeinheit, Ansteuerung: Kurzschluss nach Plus
+262500	Reduktionsmittel Umpumpeinheit, Ansteuerung: Kurzschluss nach Masse
+262600	Reduktionsmittel Umschaltventil, Ansteuerung: Unterbrechung
+262700	Reduktionsmittel Umschaltventil, Ansteuerung: Kurzschluss nach Plus
+262800	Reduktionsmittel Umschaltventil, Ansteuerung: Kurzschluss nach Masse
+262B00	Reduktionsmittel-Aktivtank Füllstandssensor, Bereich: obere physikalische Grenze überschritten
+262C00	Reduktionsmittel-Aktivtank Füllstandssensor, Bereich: untere physikalische Grenze unterschritten
+262D00	Reduktionsmittel-Aktivtank Temperatursensor, Signal: Unterbrechung oder Kurzschluss nach Plus
+262E00	Reduktionsmittel-Aktivtank Temperatursensor, Signal: Kurzschluss nach Masse
+262F00	xDFC_UTnkTSig: Signal error for CAN message
+263000	Reduktionsmittel-Aktivtank Temperatursensor, Plausibilität: Tanktemperatur im Vergleich zu Außentemperatur zu hoch
+263100	Reduktionsmittel-Aktivtank Temperatursensor, Plausibilität: Tanktemperatur im Vergleich zu Außentemperatur zu niedrig
+263200	Drallklappensteller, Ansteuerung: Unterbrechung
+263300	Drallklappensteller, Ansteuerung: maximaler Strom überschritten
+263400	Drallklappensteller, Ansteuerung: Endstufe Übertemperatur
+263500	Drallklappensteller Ausgang 1 (DC+), Ansteuerung: Kurzschluss nach Plus
+263600	Drallklappensteller Ausgang 2 (DC+), Ansteuerung: Kurzschluss nach Plus
+263700	Drallklappensteller Ausgang 1 (DC-), Ansteuerung: Kurzschluss nach Masse
+263800	Drallklappensteller Ausgang 2 (DC-), Ansteuerung: Kurzschluss nach Masse
+263900	Drallklappensteller, Ansteuerung: Kurzschluss über Last
+263A00	Drallklappensteller, Ansteuerung: temperaturabhängiger maximaler Strom überschritten
+263B00	Drallklappensteller, Ansteuerung: Versorgungsspannung zu niedrig
+263C00	Drallklappensteller, Ansteuerung: Unterbrechung
+263D00	Drallklappensteller, Ansteuerung: Endstufe Übertemperatur
+263E00	Drallklappensteller, Ansteuerung: Kurzschluss nach Plus
+263F00	Drallklappensteller, Ansteuerung: Kurzschluss nach Masse
+264000	Drallklappensteller Positionssensor, Signal: Unterbrechung oder Kurzschluss nach Plus
+264100	Drallklappensteller Positionssensor, Signal: Unterbrechung oder Kurzschluss nach Masse
+264200	Fahrgeschwindigkeitssignal: Geschwindigkeitssignal zu hoch
+264300	Fahrgeschwindigkeitssignal: Plausibilität mit Einspritzmenge und Motordrehzahl
+264400	Fahrgeschwindigkeitssignal über CAN: Signal fehlerhaft
+264500	Kupplungsschalter, Signal: nicht plausibel mit Gangwechsel
+267200	Injektoren Bank 1, Ansteuerung: Kurzschluss
+267300	Injektoren Bank 2, Ansteuerung: Kurzschluss
+267600	DDE-Steuergerät intern (IVDiaChp_0): Injektoren Bank 1, Fehler im Ansteuerbaustein
+267E00	Injektor Zylinder 1, Ansteuerung: Minusseite Unterbrechung
+267F00	Injektor Zylinder 5, Ansteuerung: Minusseite Unterbrechung
+268000	Injektor Zylinder 3, Ansteuerung: Minusseite Unterbrechung
+268100	Injektor Zylinder 6, Ansteuerung: Minusseite Unterbrechung
+268200	Injektor Zylinder 2, Ansteuerung: Minusseite Unterbrechung
+268300	Injektor Zylinder 4, Ansteuerung: Minusseite Unterbrechung
+268400	Injektor Zylinder 1, Ansteuerung: Kurzschluss
+268500	Injektor Zylinder 5, Ansteuerung: Kurzschluss
+268600	Injektor Zylinder 3, Ansteuerung: Kurzschluss
+268700	Injektor Zylinder 6, Ansteuerung: Kurzschluss
+268800	Injektor Zylinder 2, Ansteuerung: Kurzschluss
+268900	Injektor Zylinder 4, Ansteuerung: Kurzschluss
+268A00	Injektor Zylinder 1, Ansteuerung: Minusseite Kurzschluss zur Plusseite
+268B00	Injektor Zylinder 5, Ansteuerung: Minusseite Kurzschluss zur Plusseite
+268C00	Injektor Zylinder 3, Ansteuerung: Minusseite Kurzschluss zur Plusseite
+268D00	Injektor Zylinder 6, Ansteuerung: Minusseite Kurzschluss zur Plusseite
+268E00	Injektor Zylinder 2, Ansteuerung: Minusseite Kurzschluss zur Plusseite
+268F00	Injektor Zylinder 4, Ansteuerung: Minusseite Kurzschluss zur Plusseite
+269600	Lambdasonde: Dynamik des Sondensignals unplausibel
+269700	DDE-Steuergerät intern (LSU Kalibrierung): Offset der Lambda-Signalauswertung zu hoch (Nullpunktkorrektur)
+269800	DDE-Steuergerät intern (LSU Kalibrierung): Offset der Lambda-Signalauswertung zu niedrig (Nullpunktkorrektur)
+269900	Lambdasonde: Sauerstoffkonzentration unplausibel hoch (bei Volllast)
+269A00	Lambdasonde: Sauerstoffkonzentration unplausibel hoch (im Schubbetrieb)
+269B00	Lambdasonde: Sauerstoffkonzentration unplausibel hoch (bei Teillast)
+269C00	Lambdasonde: Sauerstoffkonzentration unplausibel niedrig (bei Volllast)
+269D00	Lambdasonde: Sauerstoffkonzentration unplausibel niedrig (im Schubbetrieb)
+269E00	Lambdasonde: Sauerstoffkonzentration unplausibel niedrig (bei Teillast)
+26A100	DDE-Steuergerät intern (LSU Referenzwiderstand): Referenzwiderstand zu hoch (Lambda-Temperaturauswertung)
+26A200	DDE-Steuergerät intern (LSU Referenzwiderstand): Referenzwiderstand zu niedrig (Lambda-Temperaturauswertung)
+26A500	Lambdasonde, Nebenschlusserkennung: Pumpstrom bei kalter Sonde zu niedrig
+26C300	Motorprozessgrößen: Abweichung zu hoch
+26CF00	Kraftstoff-Vorförderdruckregelung (Layer_NDR1): Kraftstoffvorförderdruck zu niedrig/positive Regelabweichung
+26D000	Kraftstoff-Vorförderdruckregelung (Layer_NDR1): Kraftstoffvorförderdruck zu hoch/negative Regelabweichung
+26D100	Kraftstoff-Vorförderdruckregelung (Layer_NDR1): Leistungsaufnahme Kraftstoffpumpe für aktuellen Vorförderdruck zu niedrig
+26D200	Kraftstoff-Vorförderdruckregelung (Layer_NDR1): Leistungsaufnahme Kraftstoffpumpe für aktuellen Vorförderdruck zu hoch
+26D400	Kraftstoff-Vorförderdruckregelung (Layer_NDR2): Kraftstofffilterheizung zu häufig aktiviert/Heizleistung zu gering
+26D500	Kraftstoff-Vorförderdruckregelung (Layer_NDR2): Kraftstoffdruck für aktuelle Kraftstoffpumpen-Ansteuerung zu hoch
+26DA00	Nullgangstellung, Abgleich: Position noch nicht mit Diagnose angelernt
+26EC00	NOx-Sensor vor DeNOx-Kat, Plausibilität NOx: NOx-Signal Offset zu hoch im Schub
+26ED00	NOx-Sensor vor DeNOx-Kat, Plausibilität NOx: NOx-Signal Offset zu niedrig
+26EE00	NOx-Sensor vor DeNOx-Kat, Plausibilität NOx: NOx-Status während der Betriebsmodusumschaltung von fett zu mager zu lange ungültig
+26EF00	NOx-Sensor nach DeNOx-Kat, Plausibilität NOx: NOx-Signal Offset zu hoch im Schub
+26F000	NOx-Sensor nach DeNOx-Kat, Plausibilität NOx: NOx-Signal Offset zu niedrig
+26F100	NOx-Sensor nach DeNOx-Kat, Plausibilität NOx: NOx-Status während der Betriebsmodusumschaltung von fett zu mager zu lange ungültig
+26F200	Raildruckregelventil, Ansteuerung: Stromerhöhung bei verzögertem Start aktiv
+26F300	Raildrucksensor, Plausibilität: Raildrucksignalgradient zu hoch
+26F400	DeNOx-System, Effizienz: Wirkungsgrad zu niedrig
+26F500	DeNOx-System, Effizienz: Wirkungsgrad zu niedrig im Bereich 1
+26F600	DeNOx-System, Effizienz: Wirkungsgrad zu niedrig im Bereich 2
+26F800	Reduktionsmittel Dosierventil, Plausibilität: Dosierventil klemmt geschlossen
+26F900	Reduktionsmittel Umschaltventil, Plausibilität: Umschaltventil klemmt geschlossen
+26FB00	Reduktionsmittel-Aktivtank Heizung, Plausibilität: Temperaturanstieg zu niedrig
+26FC00	Reduktionsmittel Druckregelung, Plausibilität: Reduktionsmitteldruck zu niedrig
+26FD00	Reduktionsmittel Dosierung, Langzeit-Adaption: Adaptionswert zu hoch
+26FE00	Reduktionsmittel Dosierung, Langzeit-Adaption: Adaptionswert zu niedrig
+270500	Mengendriftkompensation zurücksetzen: Mengendriftkompensation nach Injektor-Tausch nicht zurückgesetzt
+270700	Nullgangsensor, Plausibilität: Nullgangsensor defekt
+270A00	DiagnosemasterTest, I14229_ROE_BufFull: Übertragung Fehlerspeicher an Diagnosemaster unvollständig (Sendequeue voll)
+271600	DDE-Steuergerät intern (Mengenabgleich): Checksumme falsch
+271700	DDE-Steuergerät intern (Mengendriftkompensation): Checksumme falsch
+271800	DDE-Steuergerät intern (LSU SPI): unplausible Werte im SPI Chip (Lambda-Signalauswertung)
+271900	Dummyfehler 1: nicht verwendet
+271C00	Raildruckregelventil, Adaption: Adaptionswert zu hoch
+271D00	Raildruckregelventil, Adaption: Adaptionswert zu niedrig
+271E00	Umschaltung Raildruckregelung MeUn: Raildruckregelung wurde durch Diagnose auf Mengenregelung umgeschaltet MeUn
+271F00	Umschaltung Raildruckregelung PCV: Raildruckregelung wurde durch Diagnose auf Druckregelung umgeschaltet PCV
+272000	DeNOx-System, Warn- und Abschaltszenario: maximale Restreichweite erreicht (kein Motorstart möglich)
+272100	Partikelfiltersystem: Schlauchleitung oder Abgasgegendrucksensor vor Partikelfilter eingefroren
+272500	Wake-up-Leitung: interner Steuergeräte-Fehler (Klemme 15 Auswerteschaltung defekt)
+272600	Reduktionsmittel Dosierventil: Dosierventil längere Zeit über Grenztemperatur
+272800	Kühlmitteltemperatursensor, Plausibilität: Absolute plausibility test
+272900	Kühlmitteltemperatursensor, Plausibilität: kein Temperaturanstieg
+272A00	Kühlmitteltemperatursensor, Plausibilität: Temperatur permanent zu hoch
+272B00	DDE-Steuergerät intern (EEP): EEP Fehler beim Löschen
+272C00	DDE-Steuergerät intern (EEP): EEP Fehler beim Lesen
+272D00	DDE-Steuergerät intern (EEP): EEP Fehler beim Schreiben
+272E00	Abgasrückführsteller Hochdruck, Positionsregelung: mechanisch defekt nahe geschlossener Position
+272F00	Abgasrückführsteller Hochdruck, Positionsregelung: mechanisch defekt nahe offener Position
+273000	Abgasrückführsteller Niederdruck, Positionsregelung: mechanisch defekt nahe geschlossener Position
+273100	Abgasrückführsteller Niederdruck, Positionsregelung: mechanisch defekt nahe offener Position
+273200	Niederdruck Abgasrückführsteller Position, Langzeit-Drift: Positionsabweichung zu hoch (Aktuell/Neuzustand)
+273300	Niederdruck Abgasrückführventil, Plausibilität: mechanisch defekt während Offset-lernen
+273400	Niederdruck Abgasrückführventil, Plausibilität: EEPROM Initwerte gesetzt
+273500	Niederdruck Abgasrückführsteller Position, Kurzzeit-Drift: Positionsabweichung zu hoch (Aktuell/letzter Fahrzyklus)
+273600	Abgasrückführsteller Position, Langzeit-Drift: Positionsabweichung zu hoch (Aktuell/Neuzustand)
+273700	Abgasrückführventil, Plausibilität: mechanisch defekt während Offset-lernen
+273800	Abgasrückführventil, Plausibilität: EEPROM Initwerte gesetzt
+273900	Abgasrückführsteller Position, Kurzzeit-Drift: Positionsabweichung zu hoch (Aktuell/letzter Fahrzyklus)
+273A00	DDE-Steuergerät intern (EngICO): Injektorabschaltung bei hoher Drehzahl während Momentenbegrenzung aus Ebene2
+273B00	Nockenwellensensor, Signal: falsches Signal
+273C00	Nockenwellensensor, Signal: kein Signal
+273D00	Drehzahlüberwachung: Differenz zwischen Kurbelwellen- und Nockenwellen-Position zu hoch
+273E00	Kurbelwellensensor, Signal: falsches Signal
+273F00	Kurbelwellensensor, Signal: kein Signal
+274000	Kraftstofftemperatursensor, Plausibilität: Differenz Kraftstofftemperatur zu Referenztemperatur zu hoch
+274300	Diagnosemodus Kompressionstest: Kompressionstest aktiviert
+274900	DDE-Hauptrelais: Relais schaltet zu früh ab oder Unterspannung
+274A00	DDE-Hauptrelais: Relais schaltet zu spät ab
+274C00	Aussetzererkennung Zylinder 1: Anzahl erkannter Aussetzer zu hoch
+274D00	Aussetzererkennung Zylinder 5: Anzahl erkannter Aussetzer zu hoch
+274E00	Aussetzererkennung Zylinder 3: Anzahl erkannter Aussetzer zu hoch
+274F00	Aussetzererkennung Zylinder 6: Anzahl erkannter Aussetzer zu hoch
+275000	Aussetzererkennung Zylinder 2: Anzahl erkannter Aussetzer zu hoch
+275100	Aussetzererkennung Zylinder 4: Anzahl erkannter Aussetzer zu hoch
+275200	Aussetzererkennung in mehreren Zylindern: Anzahl erkannter Aussetzer zu hoch
+275300	DDE-Steuergerät intern (MoCADCNTP): Hardware Fehler, Analog-/Digital-Wandler NTP fehlerhaft
+275400	DDE-Steuergerät intern (MoCADCTst): Hardware Fehler, Analog-/Digital-Wandler Spannung zu hoch
+275500	DDE-Steuergerät intern (MoCADCVltgRatio): Hardware Fehler, Analog-/Digital-Wandler Spannungsverhältnis unplausibel
+275600	DDE-Steuergerät intern (MoCComErrCnt): Hardware Fehler, Plausibilisierung von Funktionsrechner und Überwachungsmodul
+275700	DDE-Steuergerät intern (MoCComSPI): Hardware Fehler, SPI-Kommunikation gestört
+275800	DDE-Steuergerät intern (MoCROMErrXPg): Hardware Fehler, ROM defekt
+275900	DDE-Steuergerät intern (MoCSOPHwNoRdy): Hardware Fehler, Hardware Initialisierung dauert zu lange
+275A00	DDE-Steuergerät intern (MoCSOPLoLi): Hardware Fehler, interne Spannung zu niedrig während Abschaltpfadtest
+275B00	DDE-Steuergerät intern (MoCSOPMM): Hardware Fehler, Watchdog Überwachungsmodul
+275C00	DDE-Steuergerät intern (MoCSOPTimeOut): Hardware Fehler, Abschaltpfadtest dauert zu lange
+275D00	DDE-Steuergerät intern (MoCSOPUpLi): Hardware Fehler, interne Spannung zu hoch während Abschaltpfadtest
+275E00	Funktionale Steuergeräteüberwachung, Fahrpedalmodul: Plausibilitaet zwischen Sensor 1 und 2 verletzt
+275F00	DDE-Steuergerät intern (MoFESpd): Kontinuierliche Momentenüberwachung, Motordrehzahlfehler
+276000	DDE-Steuergerät intern (MoFInjDatPhi): Kontinuierliche Momentenüberwachung, Plausibilität zwischen Ansteuerbeginn und Einspritzart
+276200	DDE-Steuergerät intern (MoFOvR): Kontinuierliche Momentenüberwachung, Schubüberwachung
+276300	DDE-Steuergerät intern (MoFVehAccET): Beschleunigungsgeführte Momentenüberwachung, Ansteuerdauer nicht plausibel
+276400	DDE-Steuergerät intern (MoFVehAccErrDiff): Beschleunigungsgeführte Momentenüberwachung, Ist-Beschleunigung größer Soll-Beschleunigung
+276900	Kennfelder PhyMod_trq2qBasX_MAP falsch appliziert: Kennfeldwerte nicht plausibel
+276B00	Raildrucksensor Offset-Test: Offset Maximum überschritten
+276C00	Raildrucksensor Offset-Test: Offset Minimum unterschritten
+276D00	EWS-Manipulationsschutz: Motorstart durch EWS gesperrt
+276E00	EWS-Manipulationsschutz: Noch kein Secret Key programmiert
+276F00	EWS-Manipulationsschutz: Kein authentisches Response erhalten
+277000	EWS-Manipulationsschutz: Signal check for DFP_SIA_E1
+277100	Schnittstelle EWS-DDE: CAS-Bus HW-Fehler
+277200	Schnittstelle EWS-DDE: Empfangsfehler der CAS-Schnittstelle, Frame-Fehler
+277300	Schnittstelle EWS-DDE: Empfangsfehler der CAS-Schnittstelle, CRC-Fehler
+277400	Schnittstelle EWS-DDE: Timeout EWS4 Telegramm
+277500	DDE-Steuergerät intern (EWS-Daten): EWS-Daten, kein freier Secret Key verfügbar
+277600	DDE-Steuergerät intern (EWS-Daten): EWS-Daten, Schreibfehler FSC
+277700	DDE-Steuergerät intern (EWS-Daten): EWS-Daten, Checksummenfehler
+277800	DDE-Steuergerät intern (EWS-Daten): EWS-Daten, Schreibfehler Secret Key
+277900	Botschaft EWS-DDE fehlerhaft: Empfangsfehler FlexRay
+277A00	Botschaft EWS-DDE fehlerhaft: Empfangsfehler CAN-Bus
+277B00	Botschaft EWS-DDE fehlerhaft: Timeout Daten EWS
+277C00	Botschaft EWS-DDE fehlerhaft: Timeout EWS4-Telegramm
+277D00	DDE-Steuergerät intern (Recovery visible): Recovery aufgetreten
+277E00	DDE-Steuergerät intern (Recovery locked): Recovery aufgetreten
+277F00	DDE-Steuergerät intern (Recovery suppressed): Recovery aufgetreten
+278600	Ansauglufttemperatursensor, Plausibilität: Differenz Startwert zu Referenztemperatur zu hoch
+278700	Ladelufttemperatursensor, Plausibilität: Differenz Startwert zu Referenztemperatur zu hoch
+278800	Abgastemperatursensor nach Abgasrückführkühler, Plausibilität: Differenz Startwert zu Referenztemperatur zu hoch
+278900	Drosselklappensteller Position, Langzeit-Drift: Positionsabweichung zu hoch (Aktuell/Neuzustand)
+278A00	Drosselklappensteller: elektrisch oder mechanisch defekt
+278B00	Drosselklappe, Plausibilität: Drosselklappe mechanisch defekt während Offset-lernen
+278C00	Drosselklappe, Positionsregelung: Drosselklappe zu weit offen/positive Regelabweichung
+278D00	Drosselklappe, Positionsregelung: Drosselklappe zu weit geschlossen/negative Regelabweichung
+278E00	Drosselklappensteller Position, Kurzzeit-Drift: Positionsabweichung zu hoch (Aktuell/letzter Fahrzyklus)
+278F00	Drallklappe, Plausibilität: mechanisch defekt
+279000	Drallklappensteller Position, Langzeit-Drift: Positionsabweichung zu hoch (Aktuell/Neuzustand)
+279100	Drallklappe, Plausibilität: Drallklappe mechanisch defekt während Offset-lernen
+279200	Drallklappe, Plausibilität: EEPROM Initwerte gesetzt
+279300	Drallklappensteller Position, Kurzzeit-Drift: Positionsabweichung zu hoch (Aktuell/letzter Fahrzyklus)
+279400	Drallklappe, Plausibilität: Feder gebrochen
+279700	Aktive-Kühlluftklappe, Plausibilität: Anschlag geschlossen wurde nicht erkannt
+279800	Aktive-Kühlluftklappe, Diagnoserückmeldung: Anschlag offen wurde zu früh erkannt
+279900	Aktive-Kühlluftklappe, Plausibilität: Anschlag offen wurde nicht erkannt
+279A00	Aktive-Kühlluftklappe, Diagnoserückmeldung: Fehler Kommunikation (von DDE zum LIN-Teilnehmer)
+279B00	Aktive-Kühlluftklappe, Diagnoserückmeldung: elektrischer Fehler
+279C00	Aktive-Kühlluftklappe, Diagnoserückmeldung: Temperaturfehler
+279D00	Aktive-Kühlluftklappe, Diagnoserückmeldung: Spannungsfehler
+279E00	Elektrolüfter-Spannungsversorgung, Ansteuerung: Unterbrechung
+279F00	Elektrolüfter-Spannungsversorgung, Ansteuerung: Endstufe Übertemperatur
+27A000	Elektrolüfter-Spannungsversorgung, Ansteuerung: Kurzschluss nach Plus
+27A100	Elektrolüfter-Spannungsversorgung, Ansteuerung: Kurzschluss nach Masse
+27A600	DDE-Steuergerät, Varianten-Codierung: Vergleich Codierprüfstempel zu VIN fehlerhaft
+27A700	DDE-Steuergerät, Varianten-Codierung: empfangene Codierdaten unplausibel
+27A800	DDE-Steuergerät, Varianten-Codierung: Varianten-Codierung fehlt oder Neutraldaten verwendet
+27A900	DDE-Steuergerät, Varianten-Codierung: Signatur der Codierdaten ungültig
+27AA00	DDE-Steuergerät, Varianten-Codierung: Abbruch während Codierdaten oder Codierprüfstempel schreiben
+27AB00	DDE-Steuergerät intern (Zyklische Authentisierung): Datensatzprüfung nicht in Ordnung
+27AC00	DDE-Steuergerät intern (Zyklische Authentisierung): Programmstandsprüfung nicht in Ordnung
+27AF00	DDE-Steuergerät intern (MoFBrk): Beschleunigungsgeführte Momentenüberwachung, Ebene 2 Bremssignal nicht plausibel
+27B200	Niederdruck Abgasrückführ-Kühler, Plausibilität: Kühlerwirkungsgrad zu niedrig
+27B300	xDFC_ASModPIndVolDvtMax: Dfc for TwinTrbn observer
+27B400	xDFC_ASModPIndVolDvtMaxLP: Dfc for TwinTrbn observer
+27B500	xDFC_ASModPIndVolDvtMin: Dfc for TwinTrbn observer
+27B600	xDFC_ASModPIndVolDvtMinLP: Dfc for TwinTrbn observer
+27B700	Abgasdruck vor Turbine, Plausibilität: Differenz gemessener zu berechnetem Abgasdruck zu hoch
+27B800	Abgasdruck vor Turbine, Plausibilität: Differenz gemessener zu berechnetem Abgasdruck zu hoch während Ladedruckregelung Niederdruckstufe
+27B900	Abgasdruck vor Turbine, Plausibilität: Differenz gemessener zu berechnetem Abgasdruck zu niedrig
+27BA00	Abgasdruck vor Turbine, Plausibilität: Differenz gemessener zu berechnetem Abgasdruck zu niedrig während Ladedruckregelung Niederdruckstufe
+27BB00	Botschaft (Ladedrucksteller-Diagnoserückmeldung, 0xXX): Signal(e) in Botschaft nicht gültig
+27BC00	Botschaft (Ladedrucksteller-Diagnoserückmeldung, 0xXX): Botschaft von Ladedrucksteller ausgefallen
+27BD00	Bitserielle Datenschnittstelle BSD: Kurzschluss
+27BE00	Abgastemperaturregler, Regelabweichung: Abweichung zum Temperatursollwert zu hoch (aktuelle Stellgröße des inneren Regelkreises am Maximalwert)
+27BF00	Abgastemperaturregler, Regelabweichung: Abweichung zum Temperatursollwert zu niedrig (aktuelle Stellgröße des inneren Regelkreises am Minimalwert)
+27C000	Abgastemperaturregler, Regelabweichung: Abweichung zum Temperatursollwert zu hoch (aktuelle Stellgröße des äußeren Regelkreises am Maximalwert)
+27C100	Abgastemperaturregler, Regelabweichung: Abweichung zum Temperatursollwert zu niedrig (aktuelle Stellgröße des äußeren Regelkreises am Minimalwert)
+27C200	Partikelfiltersystem: zu häufige Beladungsregenerationen
+27C700	Außentemperatursensor, Plausibilität: Außentemperatur nicht plausibel zu den restlichen Temperatursignalen
+27C800	Ladelufttemperatursensor, Plausibilität: Ladelufttemperatur nicht plausibel zu den restlichen Temperatursignalen
+27C900	Abgastemperatursensor nach Abgasrückführkühler, Plausibilität: Temperatur nach Abgasrückführkühler nicht plausibel zu den restlichen Temperatursignalen
+27CA00	Abgastemperatursensor nach Niederdruck-Abgasrückführkühler, Plausibilität: Temperatur nach Niederdruck-Abgasrückführkühler nicht plausibel zu den restlichen Temperatursignalen
+27CB00	Ansauglufttemperatursensor, Plausibilität: Ansauglufttemperatur nicht plausibel zu den restlichen Temperatursignalen
+27CC00	Temperatursensoren, Plausibilität: Mehrere Temperatursignale zueinander nicht plausibel
+27CD00	Reduktionsmittel Dosierventil, Ansteuerung: Plusseite Kurzschluss nach Plus
+27CE00	Reduktionsmittel Dosierventil, Ansteuerung: Plusseite Kurzschluss nach Masse
+27CF00	Reduktionsmittel Umpumpeinheit, Ansteuerung: Endstufe Übertemperatur
+27D000	Luftmassenmesser, Bereich: obere physikalische Grenze überschritten
+27D100	Luftmassenmesser, Bereich: untere physikalische Grenze unterschritten
+27D200	Niederdruck Abgasrückführsteller Positionssensor, Bereich: obere physikalische Grenze überschritten
+27D500	Niederdruck Abgasrückführsteller Positionssensor, Bereich: untere physikalische Grenze unterschritten
+27D800	Abgasrückführsteller Positionssensor, Bereich: obere physikalische Grenze überschritten
+27D900	Abgasrückführsteller Positionssensor, Bereich: untere physikalische Grenze unterschritten
+27DA00	Außentemperatursensor, Bereich: obere physikalische Grenze überschritten
+27DB00	Außentemperatursensor, Bereich: untere physikalische Grenze unterschritten
+27DC00	Abgasstauklappe, Positionsregelung: positive Regelabweichung
+27DD00	Abgasstauklappe, Positionsregelung: negative Regelabweichung
+27DE00	Abgasstauklappe, Ansteuerung: Unterbrechung
+27DF00	Abgasstauklappe, Ansteuerung: Kurzschluss nach Plus
+27E000	Abgasstauklappe, Ansteuerung: Kurzschluss nach Masse
+27E100	Abgasstauklappe Positionssensor, Signal: Unterbrechung oder Kurzschluss nach Plus
+27E200	Abgasstauklappe Positionssensor, Signal: Unterbrechung oder Kurzschluss nach Masse
+27E300	Vorförderdrucksensor, Offset-Test: Offset ausserhalb des zulässigen Bereichs
+27E600	Reduktionsmittel-Passivtank Füllstandssensor, Plausibilität: Plausibilitätsfehler
+27E700	Reduktionsmittel-Passivtank Füllstandssensor, Signal: Sensorfehler
+27E800	Reduktionsmittel-Passivtank Füllstandssensor, Signal: Sensorüberwachungsfehler
+27E900	Reduktionsmittel-Aktivtank Füllstandssensor, Plausibilität: Plausibilitätsfehler
+27EA00	Reduktionsmittel-Aktivtank Füllstandssensor, Signal: Sensorfehler
+27EB00	Reduktionsmittel-Aktivtank Füllstandssensor, Signal: Sensorüberwachungsfehler
+27ED00	Abgastemperaturregler, Plausibilität: Ansprechzeit des inneren Regelkreises zu hoch
+27EE00	Abgastemperaturregler, Plausibilität: Ansprechzeit des äußeren Regelkreises zu hoch
+27EF00	Partikefiltersystem: Regenerationshäufigkeit zu hoch
+27F000	Ladeluftschlauch-Überwachung im Leerlauf: Ladeluftschlauch abgefallen
+27F100	Ladeluftschlauch-Überwachung: Ladeluftschlauch abgefallen
+27F200	Motorschutz: Motorabschaltung bei Überdrehzahl
+27F300	Kraftstofftemperatursensor, Plausibilität: Temperatursignalgradient zu hoch
+27F400	Injektor Zylinder 1, Injektormengenabgleich: IMA-Programmierung fehlt
+27F500	Injektor Zylinder 5, Injektormengenabgleich: IMA-Programmierung fehlt
+27F600	Injektor Zylinder 3, Injektormengenabgleich: IMA-Programmierung fehlt
+27F700	Injektor Zylinder 6, Injektormengenabgleich: IMA-Programmierung fehlt
+27F800	Injektor Zylinder 2, Injektormengenabgleich: IMA-Programmierung fehlt
+27F900	Injektor Zylinder 4, Injektormengenabgleich: IMA-Programmierung fehlt
+27FA00	Außentemperatursensor, Signal: Unterbrechung oder Kurzschluss nach Plus
+27FB00	Außentemperatursensor, Signal: Kurzschluss nach Masse
+27FC00	DDE-Steuergerät intern (IVHFreeInjPlcErr): Kollision bei der Programmierung der Einspritzplätze
+27FD00	DDE-Steuergerät intern (MoCSOPErrMMRespByte): Hardware Fehler, Synchronisationsverlust vom Watchdog zur CPU
+27FE00	DDE-Steuergerät intern (MoCSOPErrRespTime): Hardware Fehler, Antwortzeitumschaltung für den Watchdog funktioniert nicht
+27FF00	DDE-Steuergerät intern (MoCSOPErrSPI): Hardware Fehler, SPI Kommunikationsfehler während des Abschaltpfadtests
+280000	DDE-Steuergerät intern (MoCSOPOSTimeOut): Hardware Fehler, Betriebssystemzeitüberschreitung für Abschaltpfadtestprozess ist überschritten
+280100	DDE-Steuergerät intern (MoCSOPPSIniTimeOut): Hardware Fehler, keine Einspritzungen möglich
+280200	Partikelfiltersystem, Plausibilität: Partikelfilter-Effizienz zu niedrig
+280300	Partikelfiltersystem: Regeneration unvollständig
+280400	Abgastemperatursensor nach Niederdruck-Abgasrückführkühler, Plausibilität: Differenz Startwert zu Referenztemperatur zu hoch
+280500	Abgasrückführ-Kühler, Plausibilität: Kühlerwirkungsgrad zu niedrig
+280700	Reduktionsmittel-Druckleitung Heizung: Kurzschluss Heizkreis
+280C00	NOx-Sensor vor DeNOx-Kat, Versorgungsspannung: Versorgungsspannung am Nox-Sensor zu niedrig
+280D00	NOx-Sensor vor DeNOx-Kat, Signal NOx: NOx-Signal zu lange ungültig
+280E00	NOx-Sensor nach DeNOx-Kat, Versorgungsspannung: Versorgungsspannung am Nox-Sensor zu niedrig
+280F00	NOx-Sensor nach DeNOx-Kat, Signal NOx: NOx-Signal zu lange ungültig
+281200	NOx-Sensor vor DeNOx-Kat, Plausibilität Nox: Differenz gemessenes zu berechnetem NOx-Signal zu hoch
+281300	NOx-Sensor vor DeNOx-Kat, Plausibilität Nox: Differenz gemessenes zu berechnetem NOx-Signal zu niedrig
+281400	Reduktionsmittel, Plausibilität: Schlechte Reduktionsmittel Qualität erkannt
+281700	Öldruckschalter, Plausibilität: Öldruckstatus nicht plausibel zu Motorbetriebszustand
+281900	Partikelfiltersystem: Unplausibler Abgasgegedrucksprung (ResFlow-Sprung) erkannt
+281A00	Lambdasonde: unplausible Sauerstoffkonzentration (Signal durch Heizung beeinflusst)
+281B00	Lambdasonde nach Kat: unplausible Sauerstoffkonzentration (Signal durch Heizung beeinflusst)
+282600	xDFC_NSCNOxDyn: Fault check Path for the dynamic NOx signal
+282700	xDFC_NSCNOxSlipMax: Fault check Path for the NSC NOx slip
+282800	NOx-Sensor vor DeNOx-Kat, Plausibilität NOx: NOx-Signal dynamisch unplausibel (während Fettbetrieb)
+282900	NOx Speicherkat, Plausibilität: NOx Regenerationswirkungsgrad zu niedrig
+282A00	NOx Speicherkat, Plausibilität: NSC-Speicherfähigkeit zu niedrig (Reduktionsmittelschlupf zu hoch)
+282B00	Abgasrückführraten-Regelung, Regelabweichung: Abgasrückführrate zu niedrig/positive Regelabweichung
+282C00	Abgasrückführraten-Regelung, Regelabweichung: Abgasrückführrate zu hoch/negative Regelabweichung
+282D00	Lambdasonde, Ansteuerung Heizung: Kurzschluss nach Plus
+282E00	Lambdasonde nach Kat, Ansteuerung Heizung: Kurzschluss nach Plus
+282F00	Lambdasonde, Ansteuerung Heizung: Kurzschluss nach Masse
+283000	Lambdasonde nach Kat, Ansteuerung Heizung: Kurzschluss nach Masse
+283100	Lambdasonde, Ansteuerung Heizung: Endstufe Übertemperatur
+283200	Lambdasonde nach Kat, Ansteuerung Heizung: Endstufe Übertemperatur
+283300	Lambdasonde, Ansteuerung Heizung: Unterbrechung
+283400	Lambdasonde nach Kat, Ansteuerung Heizung: Unterbrechung
+283500	Lambdasonde, Heizung: Temperatur zu hoch
+283600	Lambdasonde nach Kat, Heizung: Temperatur zu hoch
+283700	Lambdasonde, Heizung: Temperatur zu niedrig
+283800	Lambdasonde nach Kat, Heizung: Temperatur zu niedrig
+283900	Mengenregelventil, Ansteuerung: Endstufe Übertemperatur
+283A00	Raildruckregelventil, Ansteuerung: Endstufe Übertemperatur
+283C00	Kühlmitteltemperatursensor, Signal: CAN Wert nicht plausibel
+283D00	xDFC_EnhSRCMaxT4ExhTMon: Diagnostic Fault Check for enhanced SRC-Max of Fourth exhaust gas temperature
+283E00	xDFC_EnhSRCMaxT5ExhTMon: Diagnostic Fault Check for enhanced SRC-Max of fifth exhaust gas temperature
+283F00	xDFC_EnhSRCMaxT6ExhTMon: Diagnostic Fault Check for enhanced SRC-Max of sixth exhaust gas temperature
+284000	xDFC_EnhSRCMinT4ExhTMon: Diagnostic Fault Check for enhanced SRC-Min of Fourth exhaust gas temperature
+284100	xDFC_EnhSRCMinT5ExhTMon: Diagnostic Fault Check for enhanced SRC-Min of fifth exhaust gas temperature
+284200	xDFC_EnhSRCMinT6ExhTMon: Diagnostic Fault Check for enhanced SRC-Min of sixth exhaust gas temperature
+284300	Abgastemperatursensor vor Kat, Plausibilität: Abgastemperatur vor Kat nicht plausibel zu den restlichen Abgastemperatursignalen
+284400	Abgastemperatursensor vor Partikelfilter, Plausibilität: Abgastemperatur vor Partikelfilter nicht plausibel zu den restlichen Abgastemperatursignalen
+284500	Abgastemperatursensor vor SCR-Kat, Plausibilität: Abgastemperatur vor SCR-Kat nicht plausibel zu den restlichen Abgastemperatursignalen
+284600	Abgastemperatursensor nach SCR-Kat, Plausibilität: Abgastemperatur nach SCR-Kat nicht plausibel zu den restlichen Abgastemperatursignalen
+284700	Abgastemperatursensor 5, Plausibilität: Abgastemperatur 5 nicht plausibel zu den restlichen Abgastemperatursignalen
+284800	Abgastemperatursensor 6, Plausibilität: Abgastemperatur 6 nicht plausibel zu den restlichen Abgastemperatursignalen
+284900	Abgastemperatursensoren, Plausibilität: Mehrere Abgastemperatursignale zueinander nicht plausibel
+284A00	Abgastemperatursensor vor SCR-Kat, Plausibilität: Differenz gemessene zu berechneter Abgastemperatur vor SCR-Kat zu hoch (sensorfreies Modell)
+284B00	Abgastemperatursensor vor Kat, Plausibilität: Differenz gemessene zu berechneter Abgastemperatur vor Kat zu hoch (enge Grenzen)
+284C00	Abgastemperatursensor vor Partikelfilter, Plausibilität: Differenz gemessene zu berechneter Abgastemperatur vor Partikelfilter zu hoch (enge Grenzen)
+284D00	Lambdasonde, Signal Nernstspannung: Unterbrechung
+284E00	Lambdasonde nach Kat, Signal Nernstspannung: Unterbrechung
+284F00	Lambdasonde, Signal Pumpstrom: Unterbrechung
+285000	Lambdasonde nach Kat, Signal Pumpstrom: Unterbrechung
+285100	Lambdasonde, Signal virtuelle Masse: Unterbrechung
+285200	Lambdasonde nach Kat, Signal virtuelle Masse: Unterbrechung
+285300	Lambdasonde: Signalspannung zu hoch oder Signal Abgleichstrom Unterbrechung
+285400	Lambdasonde nach Kat: Signalspannung zu hoch oder Signal Abgleichstrom Unterbrechung
+285500	Lambdasonde: Signalspannung zu niedrig
+285600	Lambdasonde nach Kat: Signalspannung zu niedrig
+285700	DDE-Steuergerät intern (LSU SPI): Spannungsversorgung am SPI Chip zu niedrig (Lambda-Signalauswertung)
+285800	DDE-Steuergerät intern (LSU nach Kat SPI): Spannungsversorgung am SPI Chip zu niedrig (Lambda-Signalauswertung)
+285900	Lambdasonde, Signal Pumpstrom, Nernstspannung oder virtuelle Masse: Kurzschluss nach Plus
+285A00	Lambdasonde nach Kat, Signal Pumpstrom, Nernstspannung oder virtuelle Masse: Kurzschluss nach Plus
+285B00	Lambdasonde, Signal Pumpstrom, Nernstspannung oder virtuelle Masse: Kurzschluss nach Masse
+285C00	Lambdasonde nach Kat, Signal Pumpstrom, Nernstspannung oder virtuelle Masse: Kurzschluss nach Masse
+285D00	DDE-Steuergerät intern (MoFDCS): Kontinuierliche Momentenüberwachung, MSR-Begrenzung nur in Ebene 2 aktiv und in Ebene 1 inaktiv
+285E00	DDE-Steuergerät intern (MoFVSS): Beschleunigungsgeführte Momentenüberwachung, Ebene 2 Fahrgeschwindigkeitssignal nicht plausibel
+286300	DDE-Steuergerät intern (IVDiaChp_0): Injektoren Bank 1, Fehler im Ansteuerbaustein
+286400	Lambdasonden, Plausibilität: Differenz der Sauerstoffkonzentrationen zwischen Lambdasonde und Lambdasonde nach Kat zu hoch
+286500	Lambdasonde: Dynamik des Sondensignals unplausibel
+286600	Lambdasonde nach Kat: Dynamik des Sondensignals unplausibel
+286900	DDE-Steuergerät intern (LSU Kalibrierung): Offset der Lambda-Signalauswertung zu hoch (Nullpunktkorrektur)
+286A00	DDE-Steuergerät intern (LSU nach Kat Kalibrierung): Offset der Lambda-Signalauswertung zu hoch (Nullpunktkorrektur)
+286B00	DDE-Steuergerät intern (LSU Kalibrierung): Offset der Lambda-Signalauswertung zu niedrig (Nullpunktkorrektur)
+286C00	DDE-Steuergerät intern (LSU nach Kat Kalibrierung): Offset der Lambda-Signalauswertung zu niedrig (Nullpunktkorrektur)
+286D00	Lambdasonde: Sauerstoffkonzentration unplausibel hoch (bei Volllast)
+286E00	Lambdasonde nach Kat: Sauerstoffkonzentration unplausibel hoch (bei Volllast)
+286F00	Lambdasonde: Sauerstoffkonzentration unplausibel hoch (im Schubbetrieb)
+287000	Lambdasonde nach Kat: Sauerstoffkonzentration unplausibel hoch (im Schubbetrieb)
+287100	Lambdasonde: Sauerstoffkonzentration unplausibel hoch (bei Teillast)
+287200	Lambdasonde nach Kat: Sauerstoffkonzentration unplausibel hoch (bei Teillast)
+287300	Lambdasonde: Sauerstoffkonzentration unplausibel niedrig (bei Volllast)
+287400	Lambdasonde nach Kat: Sauerstoffkonzentration unplausibel niedrig (bei Volllast)
+287500	Lambdasonde: Sauerstoffkonzentration unplausibel niedrig (im Schubbetrieb)
+287600	Lambdasonde nach Kat: Sauerstoffkonzentration unplausibel niedrig (im Schubbetrieb)
+287700	Lambdasonde: Sauerstoffkonzentration unplausibel niedrig (bei Teillast)
+287800	Lambdasonde nach Kat: Sauerstoffkonzentration unplausibel niedrig (bei Teillast)
+287D00	DDE-Steuergerät intern (LSU Referenzwiderstand): Referenzwiderstand zu hoch (Lambda-Temperaturauswertung)
+287E00	DDE-Steuergerät intern (LSU nach Kat Referenzwiderstand): Referenzwiderstand zu hoch (Lambda-Temperaturauswertung)
+287F00	DDE-Steuergerät intern (LSU Referenzwiderstand): Referenzwiderstand zu niedrig (Lambda-Temperaturauswertung)
+288000	DDE-Steuergerät intern (LSU nach Kat Referenzwiderstand): Referenzwiderstand zu niedrig (Lambda-Temperaturauswertung)
+288500	Lambdasonde, Nebenschlusserkennung: Pumpstrom bei kalter Sonde zu niedrig
+288600	Lambdasonde nach Kat, Nebenschlusserkennung: Pumpstrom bei kalter Sonde zu niedrig
+288700	Kupplungsschalter, Plausibilität: Kupplungssignale Triebstrang offen und leichte Betätigung zueinander nicht plausibel
+288800	Powermanagement (Layer_AEPBATTDEF): Batterie auf Transport geschädigt
+288900	Powermanagement (Layer_AEPBATTENTL): Batterie auf Transport entladen
+288A00	Powermanagement (Layer_AEPBNS): Batterieloser Betrieb
+288B00	Powermanagement, Ruhestromüberwachung (Layer_AEPRUHVERL): Ruhestromverletzung
+288C00	Powermanagement, Batterieüberwachung (Layer_AEPTIEFENTL): Tiefentladung
+288D00	Powermanagement (Layer_AEPUESPG): Überspannung
+288E00	Powermanagement (Layer_AEPUSPG): Unterspannung
+288F00	Powermanagement (Layer_AEPVERBRED): Verbraucherreduzierung
+289000	Intelligenter Batteriesensor (Layer_IBSELIN): Kommunikation erweitertes IBS Protokoll gestört
+289100	Intelligenter Batteriesensor (Layer_IBSI): interne Strommessung defekt
+289200	Intelligenter Batteriesensor (Layer_IBSSYS): Systemfehler
+289300	Intelligenter Batteriesensor (Layer_IBST): interne Temperaturmessung defekt
+289400	Intelligenter Batteriesensor (Layer_IBSU): interne Spannungsmessung defekt
+289800	Motorprozessgrößen: Abweichung zu hoch
+289900	Nullgangstellung, Abgleich (Layer_NGLERN): Position noch nicht mit Diagnose angelernt
+28A200	Drehzahlbegrenzung bei stehendem Fahrzeug: Leerlaufdrehzahl zu lange zu hoch
+28A300	Diagnosemaster Test, I14229_ROE_TxFailed: Erkennung Senden von ResponseOnEvent fehlgeschlagen
+28A600	DDE-Steuergerät intern (LSU SPI): unplausible Werte im SPI Chip (Lambda-Signalauswertung)
+28A700	DDE-Steuergerät intern (LSU nach Kat SPI): unplausible Werte im SPI Chip (Lambda-Signalauswertung)
+28A900	Injektor Zylinder 1, Ansteuerung: Ansteuerdauer wurde extern verlängert
+28AA00	Injektor Zylinder 5, Ansteuerung: Ansteuerdauer wurde extern verlängert
+28AB00	Injektor Zylinder 3, Ansteuerung: Ansteuerdauer wurde extern verlängert
+28AC00	Injektor Zylinder 6, Ansteuerung: Ansteuerdauer wurde extern verlängert
+28AD00	Injektor Zylinder 2, Ansteuerung: Ansteuerdauer wurde extern verlängert
+28AE00	Injektor Zylinder 4, Ansteuerung: Ansteuerdauer wurde extern verlängert
+28AF00	Niederdruck-Abgasrückführ-Regelung: Soll-Position Niederdruck Abgasrückführventil zu stark begrenzt
+28B200	Intelligenter Batteriesensor, Diagnoserückmeldung: Fehler Kommunikation (von DDE zum LIN-Teilnehmer)
+28B300	Botschaft (CHGCOND_ST_IBS_LIN, 0xA, LIN): Botschaft von IBS (Intelligenter Batteriesensor) ausgefallen
+28B400	Botschaft (DT_RD_IBS_LIN, 0xF, LIN): Botschaft von IBS (Intelligenter Batteriesensor) ausgefallen
+28B500	Botschaft (ERR_ST_IBS_LIN, 0xB, LIN): Botschaft von IBS (Intelligenter Batteriesensor) ausgefallen
+28B600	Botschaft (SFY_STOR_RSACC_IBS_LIN, 0x10, LIN): Botschaft von IBS (Intelligenter Batteriesensor) ausgefallen
+28B800	Botschaft (VL_IBS_LIN, 0x9, LIN): Botschaft von IBS (Intelligenter Batteriesensor) ausgefallen
+28B900	Intelligenter Batteriesensor, Diagnoserückmeldung: Knotenfehler aktiv
+28BA00	Intelligenter Batteriesensor, Diagnoserückmeldung: Knotenfehler Statusänderung
+28C900	Botschaft (ST_AKKS_LIN, 0x33, LIN): Botschaft von Aktive-Kühlluftklappe ausgefallen
+28CA00	Versorgungsspannung: Fehlererkennungen teilweise durch Überspannung deaktiviert
+28CB00	Versorgungsspannung: Fehlererkennungen teilweise durch Unterspannung deaktiviert
+28CC00	LIN Bus, Kommunikation: Steuergerät hat sich vom Bus abgeschaltet (Bus off)
+28CD00	LIN Bus, Kommunikation: keine Botschaften von Aktive-Kühlluftklappe empfangen
+28CE00	LIN Bus, Kommunikation: keine Botschaften von Glühsteuergerät GSG empfangen
+28CF00	LIN Bus, Kommunikation: keine Botschaften von IBS (Intelligenter Batteriesensor) empfangen
+28D100	Oxidationskatalysator, Plausibilität: HC-Konvertierung während exothermer Reaktion zu niedrig
+28D400	Lambdasonde: Versorgungsspannung zu niedrig
+28D500	Lambdasonde nach Kat: Versorgungsspannung zu niedrig
+28D600	Luftmassenmesser: Signal Unterbrechung oder Kurzschluss nach Plus/Masse
+28D700	Motorentlüftungsheizung, Ansteuerung: Unterbrechung
+28D800	Motorentlüftungsheizung, Ansteuerung: Endstufe Übertemperatur
+28D900	Motorentlüftungsheizung, Ansteuerung: Kurzschluss nach Plus
+28DA00	Motorentlüftungsheizung, Ansteuerung: Kurzschluss nach Masse
+28DB00	Drehzahlsensor Getriebe, Signal: kein Signal
+28DC00	Drehzahlsensor Getriebe, Signal: Signal fehlerhaft
+28DD00	Drehzahlsensor Getriebe, Plausibilität: maximale Drehzahl überschritten
+28DE00	Abgasdrucksensor vor Turbine, Plausibilität: Abgasdruck vor Turbine dynamisch nicht plausibel
+28DF00	Abgastemperatursensor nach Niederdruck-Abgasrückführkühler, Bereich: obere physikalische Grenze überschritten
+28E000	Abgastemperatursensor nach Niederdruck-Abgasrückführkühler, Bereich: untere physikalische Grenze unterschritten
+28E100	Abgastemperatursensor vor Kat, Plausibilität: Differenz gemessene zu simulierter Abgastemperatur vor Kat zu hoch
+28E200	Abgastemperatursensor vor Katalysator, Signal: Unterbrechung oder Kurzschluss nach Plus
+28E300	Abgastemperatursensor vor Katalysator, Signal: Kurzschluss nach Masse
+28E400	Elektrolüfter, Plausibilität: Lüfter antwortet nicht auf Testanfrage
+28E500	Elektrolüfter, Plausibilität: Lüfterfehler mit Funktionseinschränkung (Lüfter blockiert oder elektrisch defekt)
+28E600	Elektrolüfter, Plausibilität: Lüfter defekt (kein Lüfterbetrieb möglich)
+28E700	NOx-Sensor nach DeNOx-Kat, Signal binäres Lambda: Kurzschluss nach Plus
+28E800	NOx-Sensor nach DeNOx-Kat, Signal binäres Lambda: Kurzschluss nach Masse
+28E900	NOx-Sensor nach DeNOx-Kat, Signal lineares Lambda: Kurzschluss nach Plus
+28EA00	NOx-Sensor nach DeNOx-Kat, Signal lineares Lambda: Kurzschluss nach Masse
+28EB00	NOx-Sensor vor DeNOx-Kat, Plausibilität: NOx-Signal dynamisch zu langsam bei Zug-Schub-Übergang
+28EC00	Abgasdrucksensor vor Turbine, Plausibilität: Abgasdruck vor Turbine nicht plausibel zu Umgebungsdruck im Nachlauf
+28ED00	Ladedrucksensor, Plausibilität: Ladedruck nicht plausibel zu Abgasdruck vor Turbine im Nachlauf
+28EE00	NOx-Sensor vor DeNOx-Kat, Plausibilität NOx: NOx-Signal Offset Lernwert zu hoch
+28EF00	NOx-Sensor vor DeNOx-Kat, Plausibilität NOx: NOx-Signal Offset Lernwert zu niedrig
+28F000	NOx-Sensor nach DeNOx-Kat, Plausibilität NOx: NOx-Signal Offset Lernwert zu hoch
+28F100	NOx-Sensor nach DeNOx-Kat, Plausibilität NOx: NOx-Signal Offset Lernwert zu niedrig
+28F200	Kupplung, Plausibilität (Layer_CLTPRTS1): übertragbares Moment zu niedrig, Kupplung leicht geschädigt
+28F300	Kupplung, Plausibilität (Layer_CLTPRTS2): übertragbares Moment zu niedrig, Kupplung geschädigt
+28F400	Kupplung, Plausibilität (Layer_CLTPRTS3): übertragbares Moment zu niedrig, Kupplung stark geschädigt
+28F500	DDE-Steuergerät intern (MoCSOPErrNoChk): Hardware Fehler, Abschaltpfadtest oder Injektoransteuerung nicht plausibel
+28F600	DDE-Steuergerät intern (MoFTraDXCCpl): Beschleunigungsgeführte Momentenüberwachung, Allrad Erkennung im EEPROM fehlerhaft
+28F700	DDE-Steuergerät intern (MoFTraTypVehCpl): Beschleunigungsgeführte Momentenüberwachung, Fahrzeugtyp Erkennung im EEPROM fehlerhaft
+28F800	DDE-Steuergerät intern (CAN-Bus): CAN-Controller defekt
+28F900	DDE-Steuergerät intern (FlexRay): FlexRay-Controller defekt
+28FA00	Ölniveausensor, Signal: elektrisch defekt
+28FB00	Ölniveausensor, Plausibilität: Ölniveau
+28FC00	Ölniveausensor, Plausibilität: Öltemperatur
+28FD00	Öltemperatursensor, Signal: elektrisch defekt
+28FE00	Öltemperatursensor, Plausibilität: Öltemperatur
+28FF00	Ölzustandssensor, Signal: Ölniveau defekt
+290000	Ölzustandssensor, Plausibilität: Ölniveau
+290100	Ölzustandssensor, Signal: Ölqualität defekt
+290200	Ölzustandssensor, Plausibilität: Ölqualität
+290300	Ölzustandssensor, Signal: Öltemperatur defekt
+290400	Ölzustandssensor, Plausibilität: Öltemperatur
+290500	Klemme 15.3, Signal: Kurzschluss nach Plus (Status Klemme 15.3 ein während Klemme 15 aus)
+290600	Klemme 15.3, Signal: Unterbrechung oder Kurzschluss nach Masse (Status Klemme 15.3 aus während Klemme 15 ein)
+290700	Drehzahlsensor Getriebe, Plausibilität: Differenz zu Motordrehzahl zu hoch
+290800	Raildruckregelungsmodus, Plausibilität: Unerwünschte Umschaltung von CPC (gekoppelte Druck/Mengen-Regelung) auf Mengenregelung erkannt
+290900	Luftsystem, Luft- zu AGR-Massenstrom Plausibilität: gemessene Luftmasse im Vergleich zu berechneter Luftmasse zu hoch
+290A00	Luftsystem, Luft- zu AGR-Massenstrom Plausibilität: gemessene Luftmasse im Vergleich zu berechneter Luftmasse zu hoch und hohe Ladedruckabweichung
+290B00	Luftsystem, Luft- zu AGR-Massenstrom Plausibilität: gemessene Luftmasse im Vergleich zu berechneter Luftmasse zu niedrig
+290C00	Luftsystem, Luft- zu AGR-Massenstrom Plausibilität: gemessene Luftmasse im Vergleich zu berechneter Luftmasse zu niedrig und hohe Ladedruckabweichung
+290D00	Ölzustandssensor: keine Kommunikation über BSD-Schnittstelle
+290E00	DDE-Steuergerät intern (MonUMaxSupply2): DDE interne Spannung zu hoch
+290F00	DDE-Steuergerät intern (MonUMinSupply2): DDE interne Spannung zu niedrig
+291000	Laderegler für Zusatzbatterie: sekundäre Batterie defekt
+291100	Laderegler für Zusatzbatterie: Fehler Kommunikation (von DDE zum LIN-Teilnehmer)
+291200	Laderegler für Zusatzbatterie: Ladebetriebsunterbrechung durch Notbetrieb
+291300	Laderegler für Zusatzbatterie: interner Fehler
+291400	Botschaft (ST_ENERG_GEN_BN2_LIN, 0x5, LIN): Botschaft von Laderegler Zusatzbatterie ausgefallen
+291500	Laderegler für Zusatzbatterie, Leitungsüberwachung: Fehlfunktion
+291600	Laderegler für Zusatzbatterie: Fehler im Trennelement/Kabelbaum oder sekundäre Batterie tiefentladen
+291700	Laderegler für Zusatzbatterie: Fehler auf der zweiten Spannungsebene
+291800	LIN Bus, Kommunikation: keine Botschaften von Laderegler Zusatzbatterie empfangen
+291D00	Ladedrucksteller (VNT): Ladedrucksteller elektrisch oder mechanisch defekt oder Übertemperatur
+291E00	Ladedrucksteller (VNT): Positionssensor im Ladedrucksteller defekt
+291F00	Ladedrucksteller (VNT), Ansteuerung: Ansteuersignal Ladedrucksteller unplausibel
+292000	Ladedrucksteller (VNT): Übertemperaturerkennung im Ladedrucksteller
+292100	Ladedrucksteller (VNT): Ladedrucksteller elektrisch oder mechanisch defekt oder Übertemperatur
+292200	Ladedrucksteller (VNT): Positionssensor im Ladedrucksteller defekt oder Unterspannung
+292300	Ladedrucksteller (VNT), Ansteuerung: Ansteuersignal Ladedrucksteller unplausibel
+292400	Ladedrucksteller (VNT): Übertemperaturerkennung im Ladedrucksteller
+292500	Ladedrucksteller (VNT), Positionssensor oder Statusleitung: Unterbrechung oder Kurzschluss nach Plus
+292600	Ladedrucksteller (VNT), Positionssensor oder Statusleitung: Unterbrechung oder Kurzschluss nach Masse oder Signal fehlerhaft
+292700	Reduktionsmittel-Aktivtank Füllstand: Aktivtank ist leer
+292900	Reduktionsmittel-Aktivtank Förderbecher Heizung: Kurzschluss Heizkreis
+292A00	Reduktionsmittel-Aktivtank Heizung: Kurzschluss Heizkreis
+292B00	Reduktionsmittel-Aktivtank Temperatursensor, Signal: Tanktemperatur Signaloffset ausserhalb des zulässigen Bereichs
+292C00	Reduktionsmittel-Aktivtank Temperatursensor, Plausibilität: Differenz Tanktemperatur zu Referenztemperatur zu hoch
+292D00	Kraftstoff-Füllstandssensor 1, Bereich: obere physikalische Grenze überschritten
+292E00	Kraftstoff-Füllstandssensor 1, Bereich: untere physikalische Grenze unterschritten
+292F00	Kraftstoff-Füllstandssensor 2, Bereich: obere physikalische Grenze überschritten
+293000	Kraftstoff-Füllstandssensor 2, Bereich: untere physikalische Grenze unterschritten
+293500	Reduktionsmittel-Heizungsrelais, Ansteuerung: Unterbrechung
+293600	Reduktionsmittel-Heizungsrelais, Ansteuerung: Endstufe Übertemperatur
+293700	Reduktionsmittel-Heizungsrelais, Ansteuerung: Kurzschluss nach Plus
+293800	Reduktionsmittel-Heizungsrelais, Ansteuerung: Kurzschluss nach Masse
+293900	Reduktionsmittel-Druckleitung Heizung: Unterbrechung Heizkreis
+293A00	Reduktionsmittel-Druckleitung Heizung: maximale Heizleistung zu niedrig
+293B00	Reduktionsmittel-Druckleitung Heizung: maximale Heizleistung zu hoch
+293C00	Reduktionsmittel-Aktivtank Förderbecher Heizung: Unterbrechung Heizkreis
+293D00	Reduktionsmittel-Aktivtank Förderbecher Heizung: maximale Heizleistung zu niedrig
+293E00	Reduktionsmittel-Aktivtank Förderbecher Heizung: maximale Heizleistung zu hoch
+293F00	Reduktionsmittel-Aktivtank Heizung: Unterbrechung Heizkreis
+294000	Reduktionsmittel-Aktivtank Heizung: maximale Heizleistung zu niedrig
+294100	Reduktionsmittel-Aktivtank Heizung: maximale Heizleistung zu hoch
+294200	Reduktionsmittel-Aktivtank Förderbecher Heizung, Ansteuerung: Unterbrechung
+294300	Reduktionsmittel-Aktivtank Förderbecher Heizung, Ansteuerung: Kurzschluss nach Plus
+294400	Reduktionsmittel-Aktivtank Förderbecher Heizung, Ansteuerung: Kurzschluss nach Masse
+294500	Reduktionsmittel-Aktivtank Förderbecher Heizungsdiagnose, Signal: Kurzschluss nach Plus
+294600	Reduktionsmittel-Aktivtank Förderbecher Heizungsdiagnose, Signal: Unterbrechung oder Kurzschluss nach Masse
+294A00	NOx-Sensor vor DeNOx-Kat, Plausibilität: NOx-Signal dynamisch zu langsam bei Zug-Schub-Übergang (Aktualisierung von OBD-DIUMPR)
+294B00	NOx-Sensor vor DeNOx-Kat, Plausibilität Heizung: Sensortemperatur nach Aufheizphase zu niedrig
+294C00	NOx-Sensor nach DeNOx-Kat, Plausibilität NOx: korrigiertes NOx-Signal Offset zu hoch
+294D00	NOx-Sensor nach DeNOx-Kat, Plausibilität NOx: korrigiertes NOx-Signal Offset zu niedrig
+294E00	NOx-Sensor nach DeNOx-Kat, Plausibilität Heizung: Sensortemperatur nach Aufheizphase zu niedrig
+294F00	NOx-Sensor nach DeNOx-Kat, Plausibilität NOx: mittlere NOx-Konzentration nicht plausibel zu NOx-Signal vor DeNOx-Kat bei Lastwechsel
+295000	NOx-Sensor nach DeNOx-Kat, Plausibilität NOx: erforderliche NOx-Signaländerung nicht plausibel zu NOx-Signal vor DeNOx-Kat bei Lastwechsel
+295100	DDE-Steuergerät intern (TECUSPIErr): Steuergerätetemperatursensor (LM71) defekt
+295200	Reduktionsmittel Förderpumpe: Aufwärmphase nicht erfolgreich abgeschlossen
+295300	Reduktionsmittel Druckregelung, Plausibilität: Reduktionsmitteldruck zu hoch
+295400	Reduktionsmittel Dosierung, Freigabe: Abgastemperatursensor vor SCR-Kat und nach Kat ausgefallen
+295500	Reduktionsmittel Förderpumpe: Pumpenmotordrehzahl unplausibel
+295700	Reduktionsmittel Umpumpeinheit: Transferpumpendrehzahl zu niedrig
+295D00	Kraftstoff-Füllstandssensor 1, Signal: Kurzschluss nach Plus
+295E00	Kraftstoff-Füllstandssensor 1, Signal: Unterbrechung oder Kurzschluss nach Masse
+295F00	Kraftstoff-Füllstandssensor 2, Signal: Kurzschluss nach Plus
+296000	Kraftstoff-Füllstandssensor 2, Signal: Unterbrechung oder Kurzschluss nach Masse
+296200	Manipulationsschutz SWT: Drehzahlbegrenzung Stufe 1
+296300	Manipulationsschutz SWT: Drehzahlbegrenzung Stufe 2
+296400	Manipulationsschutz SWT: Geschwindigkeitsbegrenzung
+297000	Botschaft (AVL_STEA_FTAX, 57.1.2, FX), Qualifier: Signalqualität QU_AVL_STEA_FTAX_WHL unzureichend
+297100	TD-Drehzahlsignal, Ansteuerung: Endstufe Übertemperatur
+297200	Ölniveau (Layer_MOELNIV): Motorölniveau zu niedrig
+297400	Ladedrucksteller: Ladedrucksteller elektrisch oder mechanisch defekt oder Übertemperatur
+297500	Ladedrucksteller: Positionssensor im Ladedrucksteller defekt
+297600	Ladedrucksteller, Ansteuerung: Ansteuersignal Ladedrucksteller unplausibel
+297700	Ladedrucksteller: Übertemperaturerkennung im Ladedrucksteller
+297800	Ladedrucksteller: Ladedrucksteller elektrisch oder mechanisch defekt oder Übertemperatur
+297900	Ladedrucksteller: Positionssensor im Ladedrucksteller defekt oder Unterspannung
+297A00	Ladedrucksteller, Ansteuerung: Ansteuersignal Ladedrucksteller unplausibel
+297B00	Ladedrucksteller: Übertemperaturerkennung im Ladedrucksteller
+297C00	Ladedrucksteller, Statusleitung: Unterbrechung oder Kurzschluss nach Plus
+297D00	Ladedrucksteller, Statusleitung: Kurzschluss nach Masse oder Signal fehlerhaft
+297E00	Ladedrucksteller (VNT): Ladedrucksteller elektrisch oder mechanisch defekt oder Übertemperatur
+297F00	Ladedrucksteller (VNT): Positionssensor im Ladedrucksteller defekt
+298000	Ladedrucksteller (VNT), Ansteuerung: Ansteuersignal Ladedrucksteller unplausibel
+298100	Ladedrucksteller (VNT): Übertemperaturerkennung im Ladedrucksteller
+298200	Ladedrucksteller (VNT), Statusleitung: Unterbrechung oder Kurzschluss nach Plus
+298300	Ladedrucksteller (VNT), Statusleitung: Kurzschluss nach Masse oder Signal fehlerhaft
+298700	Ladedrucksteller, Ansteuerung: Unterbrechung
+298800	Ladedrucksteller, Ansteuerung: maximaler Strom überschritten
+298900	Ladedrucksteller, Ansteuerung: Endstufe Übertemperatur
+298A00	Ladedrucksteller Ausgang 1 (DC+), Ansteuerung: Kurzschluss nach Plus
+298B00	Ladedrucksteller Ausgang 2 (DC+), Ansteuerung: Kurzschluss nach Plus
+298C00	Ladedrucksteller Ausgang 1 (DC-), Ansteuerung: Kurzschluss nach Masse
+298D00	Ladedrucksteller Ausgang 2 (DC-), Ansteuerung: Kurzschluss nach Masse
+298E00	Ladedrucksteller, Ansteuerung: Überlastung
+298F00	Ladedrucksteller, Ansteuerung: temperaturabhängiger maximaler Strom überschritten
+299000	Ladedrucksteller, Ansteuerung: Versorgungsspannung zu niedrig
+299100	Ladedrucksteller (VNT), Ansteuerung: Unterbrechung
+299200	Ladedrucksteller (VNT), Ansteuerung: maximaler Strom überschritten
+299300	Ladedrucksteller (VNT), Ansteuerung: Endstufe Übertemperatur
+299400	Ladedrucksteller (VNT) Ausgang 1 (DC+), Ansteuerung: Kurzschluss nach Plus
+299500	Ladedrucksteller (VNT) Ausgang 2 (DC+), Ansteuerung: Kurzschluss nach Plus
+299600	Ladedrucksteller (VNT) Ausgang 1 (DC-), Ansteuerung: Kurzschluss nach Masse
+299700	Ladedrucksteller (VNT) Ausgang 2 (DC-), Ansteuerung: Kurzschluss nach Masse
+299800	Ladedrucksteller (VNT), Ansteuerung: Überlastung
+299900	Ladedrucksteller (VNT), Ansteuerung: temperaturabhängiger maximaler Strom überschritten
+299A00	Ladedrucksteller (VNT), Ansteuerung: Versorgungsspannung zu niedrig
+299B00	Klimadrucksensor, Signal: Kurzschluss nach Plus
+299C00	Klimadrucksensor, Signal: Unterbrechung oder Kurzschluss nach Masse
+299D00	Ladedrucksteller Position, Langzeit-Drift: Positionsabweichung zu hoch (Aktuell/Neuzustand)
+299E00	Ladedrucksteller, Plausibilität: Ladedrucksteller mechanisch defekt während Offset-lernen
+29A100	Ladedrucksteller Position, Kurzzeit-Drift: Positionsabweichung zu hoch (Aktuell/letzter Fahrzyklus)
+29A200	Ladedrucksteller (VNT) Position, Langzeit-Drift: Positionsabweichung zu hoch (Aktuell/Neuzustand)
+29A300	Ladedrucksteller (VNT), Plausibilität: Ladedrucksteller (VNT) mechanisch defekt während Offset-lernen
+29A600	Ladedrucksteller (VNT) Position, Kurzzeit-Drift: Positionsabweichung zu hoch (Aktuell/letzter Fahrzyklus)
+29A700	Abgasrückführ-Kühler, Plausibilität: reduzierter Kühlerwirkungsgrad
+29A900	Drallklappensteller: mechanisch defekt (Endanschlagsposition unplausibel)
+29AA00	Lambdasonde nach Kat, Plausibilität: Dynamik des Sondensignals beim Übergang mager auf fett unplausibel
+29AB00	Lambdasonde, Plausibilität: Dynamik des Sondensignals beim Übergang mager auf fett unplausibel
+29AC00	Relais Vorförderpumpe, Ansteuerung: Unterbrechung
+29AD00	Relais Vorförderpumpe, Ansteuerung: Endstufe Übertemperatur
+29AE00	Relais Vorförderpumpe, Ansteuerung: Kurzschluss nach Plus
+29AF00	Relais Vorförderpumpe, Ansteuerung: Kurzschluss nach Masse
+29B500	Batteriezustandserkennung (Layer_BZEBTDFK): Batterie defekt
+29E700	Gangsensor, Plausibilität (Layer_NGPLAUS): Signal Nullgangstellung unplausibel (zu Kupplungsmoment)
+29E800	NOx-Sensor vor DeNOx-Kat, Plausibilität NOx: korrigiertes NOx-Signal Offset zu hoch
+29E900	NOx-Sensor vor DeNOx-Kat, Plausibilität NOx: korrigiertes NOx-Signal Offset zu niedrig
+29EA00	Ladeluftkühler, Plausibilität: Kühlerwirkungsgrad zu niedrig
+29EB00	Abgasrückführ-Kühlung, Plausibilität: AGR-Kühler Bypassklappe defekt oder Kühlerwirkungsgrad zu niedrig
+29FB00	DeNOx-System, Warn- und Abschaltszenario: Warnstufe 1
+29FC00	DeNOx-System, Warn- und Abschaltszenario: Warnstufe 2
+29FD00	DeNOx-System, Warn- und Abschaltszenario: Warnstufe 3 (maximale Restreichweite erreicht)
+2A0500	Reduktionsmittel-Passivtank Füllstand: Passivtank ist leer
+2A0600	Reduktionsmittel Umpumpeinheit: Fördermenge unplausibel niedrig
+2A0700	Batteriezustandserkennung (Layer_BZETE): Tiefentladung
+2A0800	Dummyfehler 2: nicht verwendet
+2A0900	Intelligenter Batteriesensor (Layer_IBSNPL): IBS nicht plausibel
+2A0A00	Intelligenter Batteriesensor (Layer_IBSWUOP): Kl. 15 Wake-up-Leitung Unterbrechung
+2A0B00	Intelligenter Batteriesensor (Layer_IBSWUSC): Kl. 15 Wake-up-Leitung Kurzschluss
+2A0C00	Intelligentes Starter-Generator-Cluster: Codierung fehlt
+2A0D00	Generator (Layer_ISGGENBUS): keine Kommunikation
+2A0E00	Generator (Layer_ISGGENEL): elektrischer Fehler
+2A0F00	Generator (Layer_ISGGENELB): Bordnetzspannung im Vergleich zu Generatorsollspannung zu niedrig
+2A1000	Generator (Layer_ISGGENHT): Überhitzung (durch Generatorregler gemeldet)
+2A1100	Generator (Layer_ISGGENME): mechanischer Fehler
+2A1200	Generator (Layer_ISGGENSUL): Verletzung SULEV-Kriterien
+2A1300	Generator (Layer_ISGGENUP): falscher Generatortyp oder -regler verbaut
+2A1400	Starter-Generator im Riemen (Layer_ISGSGRBUS): keine Kommunikation
+2A1500	Starter-Generator im Riemen (Layer_ISGSGREL): elektronische Brückenschaltung defekt
+2A1600	Starter-Generator im Riemen (Layer_ISGSGRELB): Bordnetzspannung im Vergleich zu Generatorsollspannung zu niedrig
+2A1700	Starter-Generator im Riemen (Layer_ISGSGRHT): Übertemperatur
+2A1800	Starter-Generator im Riemen (Layer_ISGSGRME): mechanischer Fehler
+2A1900	Starter-Generator im Riemen (Layer_ISGSGRMSAHWL): Hardwareleitung
+2A1A00	Starter-Generator im Riemen (Layer_ISGSGRMSAPD): Permanente Deaktivierung MSA
+2A1B00	Starter-Generator im Riemen (Layer_ISGSGRMSATD): Temporäre Deaktivierung MSA
+2A1C00	Starter-Generator im Riemen (Layer_ISGSGRSENS): Sensorfehler
+2A1D00	Starter-Generator im Riemen (Layer_ISGSGRSUL): Verletzung SULEV-Kriterien
+2A1E00	Starter-Generator im Riemen (Layer_ISGSGRUP): falscher Generatortyp oder -regler verbaut
+2A1F00	Motor-Start-Stop-Automatik MSA, Sicherheitskonzept (Layer_MSASIKO): Fehler durch MSA-Sicherheitskonzept erkannt
+2A2400	Bypassklappe Niederdruck-Verdichter, Ansteuerung: Unterbrechung
+2A2500	Bypassklappe Niederdruck-Verdichter, Ansteuerung: Endstufe Übertemperatur
+2A2600	Bypassklappe Niederdruck-Verdichter, Ansteuerung: Kurzschluss nach Plus
+2A2700	Bypassklappe Niederdruck-Verdichter, Ansteuerung: Kurzschluss nach Masse
+2A2B00	Nacheinspritzmenge 1, Plausibilität: Nacheinspritzung 1 abgeschaltet oder Abweichung der Ansteuerung vom Sollwert
+2A2C00	Nacheinspritzmenge 2, Plausibilität: Nacheinspritzung 2 abgeschaltet oder Abweichung der Ansteuerung vom Sollwert
+2A2D00	DeNOx-System, Funktion: Maximale Zeitdauer überschritten bis Dosierung aktiv
+2A2E00	Dummyfehler (DFC_INVALID): nicht verwendet
+2A2F00	Injektor Zylinder 1, Schließdauerkompensation: gemessene Schließdauer zu hoch
+2A3000	Injektor Zylinder 5, Schließdauerkompensation: gemessene Schließdauer zu hoch
+2A3100	Injektor Zylinder 3, Schließdauerkompensation: gemessene Schließdauer zu hoch
+2A3200	Injektor Zylinder 6, Schließdauerkompensation: gemessene Schließdauer zu hoch
+2A3300	Injektor Zylinder 2, Schließdauerkompensation: gemessene Schließdauer zu hoch
+2A3400	Injektor Zylinder 4, Schließdauerkompensation: gemessene Schließdauer zu hoch
+2A4200	Botschaft (ST_AUWP_LIN, 0x38, LIN): Botschaft von Zusatzkühlmittelpumpe ausgefallen
+2A4300	Botschaft (VRS_AUWP_LIN, 0x3A, LIN): Botschaft von Zusatzkühlmittelpumpe ausgefallen
+2A4800	Zusatzkühlmittelpumpe, Diagnoserückmeldung: Fehler Kommunikation (von DDE zum LIN-Teilnehmer)
+2A4A00	Zusatzkühlmittelpumpe, Diagnoserückmeldung: Fehler Gesamtstatus
+2A4B00	Zusatzkühlmittelpumpe, Diagnoserückmeldung: Status Blockierung
+2A4C00	Zusatzkühlmittelpumpe für Ladeluftkühlung (EWP22), Diagnoserückmeldung: Status Trockenlauf
+2A4E00	Zusatzkühlmittelpumpe für Ladeluftkühlung (EWP22), Diagnoserückmeldung: zulässige Elektroniktemperatur überschritten
+2A4F00	Zusatzkühlmittelpumpe für Ladeluftkühlung (EWP22), Diagnoserückmeldung: zulässige Stromaufnahme überschritten
+2A5000	Zusatzkühlmittelpumpe für Ladeluftkühlung (EWP22), Diagnoserückmeldung: Status Versorgungsspannung
+2A5500	LIN Bus, Kommunikation: keine Botschaften von Zusatzkühlmittelpumpe für Ladeluftkühlung (EWP22) empfangen
+2A5600	Lambdaregelung, Plausibilität: maximaler Sollwert kann nicht ausgeregelt werden
+2A5700	Lambdaregelung, Plausibilität: minimaler Sollwert kann nicht ausgeregelt werden
+2A5800	Lambdaregelung, Plausibilität: Ansprechzeit unplausibel
+2A6000	Versorgungsspannung Luftmassenmesser: Spannung außerhalb zulässigem Bereich
+2A6400	Luftmassenmesser, Driftkompensation: Signalabweichung zu hoch bei Massenstromstützstelle 0 (Leerlauf)
+2A6500	Luftmassenmesser, Driftkompensation: Signalabweichung zu hoch bei Massenstromstützstelle 1
+2A6600	Glühsteuergerät, Fertigungsmodus aktiv: Glühen deaktiviert
+2A6800	Laufruheregler Zylinder 1: Korrekturmenge ausserhalb des zulässigen Bereichs
+2A6900	Laufruheregler Zylinder 5: Korrekturmenge ausserhalb des zulässigen Bereichs
+2A6A00	Laufruheregler Zylinder 3: Korrekturmenge ausserhalb des zulässigen Bereichs
+2A6B00	Laufruheregler Zylinder 6: Korrekturmenge ausserhalb des zulässigen Bereichs
+2A6C00	Laufruheregler Zylinder 2: Korrekturmenge ausserhalb des zulässigen Bereichs
+2A6D00	Laufruheregler Zylinder 4: Korrekturmenge ausserhalb des zulässigen Bereichs
+2A6E00	Reduktionsmittel-Druckleitung Heizung, Ansteuerung: Unterbrechung Heizkreis
+2A6F00	Reduktionsmittel-Druckleitung Heizung, Ansteuerung: Kurzschluss Heizkreis
+2A7000	Reduktionsmittel-Fördermodul Heizung, Ansteuerung: Unterbrechung Heizkreis
+2A7100	Reduktionsmittel-Fördermodul Heizung, Ansteuerung: Kurzschluss Heizkreis
+2A7200	NOx-Sensor vor DeNOx-Kat, Plausibilität Lambda: Dynamik des Sondensignals unplausibel
+2A7300	NOx-Sensor nach DeNOx-Kat, Plausibilität Lambda: Dynamik des Sondensignals unplausibel
+2A7400	NOx-Sensor vor DeNOx-Kat, Plausibilität Lambda: Sauerstoffkonzentration unplausibel hoch (bei Volllast)
+2A7500	NOx-Sensor nach DeNOx-Kat, Plausibilität Lambda: Sauerstoffkonzentration unplausibel hoch (bei Volllast)
+2A7600	NOx-Sensor vor DeNOx-Kat, Plausibilität Lambda: Sauerstoffkonzentration unplausibel hoch (im Schubbetrieb)
+2A7700	NOx-Sensor nach DeNOx-Kat, Plausibilität Lambda: Sauerstoffkonzentration unplausibel hoch (im Schubbetrieb)
+2A7800	NOx-Sensor vor DeNOx-Kat, Plausibilität Lambda: Sauerstoffkonzentration unplausibel hoch (bei Teillast)
+2A7900	NOx-Sensor nach DeNOx-Kat, Plausibilität Lambda: Sauerstoffkonzentration unplausibel hoch (bei Teillast)
+2A7A00	NOx-Sensor vor DeNOx-Kat, Plausibilität Lambda: Sauerstoffkonzentration unplausibel niedrig (bei Volllast)
+2A7B00	NOx-Sensor nach DeNOx-Kat, Plausibilität Lambda: Sauerstoffkonzentration unplausibel niedrig (bei Volllast)
+2A7C00	NOx-Sensor vor DeNOx-Kat, Plausibilität Lambda: Sauerstoffkonzentration unplausibel niedrig (im Schubbetrieb)
+2A7D00	NOx-Sensor nach DeNOx-Kat, Plausibilität Lambda: Sauerstoffkonzentration unplausibel niedrig (im Schubbetrieb)
+2A7E00	NOx-Sensor vor DeNOx-Kat, Plausibilität Lambda: Sauerstoffkonzentration unplausibel niedrig (bei Teillast)
+2A7F00	NOx-Sensor nach DeNOx-Kat, Plausibilität Lambda: Sauerstoffkonzentration unplausibel niedrig (bei Teillast)
+2A8300	Abgasrückführ-Regelung, Dynamik: langsames Ansprechverhalten der Luftmassenabnahme bei negativem Luftmassen-Gradienten
+2A8400	Abgasrückführ-Regelung, Dynamik: langsames Ansprechverhalten des Luftmassenanstiegs bei positivem Luftmassen-Gradienten
+2A8500	Abgasrückführraten-Regelung, Dynamik: langsames Ansprechverhalten der AGR-Ratenabnahme bei negativem AGR-Ratengradienten
+2A8600	Abgasrückführraten-Regelung, Dynamik: langsames Ansprechverhalten des AGR-Ratenanstiegs bei positivem AGR-Ratengradienten
+2A8700	Laufruheregler, Funktion: Maximale Zeitdauer überschritten bis Regelung aktiv
+2A8800	Motor-Start-Stop-Automatik MSA (Layer_MSASTARTVERZ): Drehzahlaufbau beim MSA-Start zu langsam oder Fahrerabwesenheit während des Startvorgangs erkannt
+2A8900	Motor-Start-Stop-Automatik MSA (Layer_STARTTIMEOUT): Startsystem nicht angesteuert oder unzulässig hohe MSA-Startzeit
+2A8A00	Schaltzeitpunkt: Anpassung
+2A8B00	DDE-Steuergerät intern (AccMonAccPedErr): Fahrerwunschmoment Ebene 1 grösser als in Ebene 2
+2A8C00	Selbsterkennungsstatus Fahrzeugkonfiguration, Plausibilität: BCU und PCU gleichzeitig gelernt
+2A8D00	Injektoren, Nullmenge: Injektor öffnet zu früh
+2A8E00	Botschaft (ST_GEN_LIN, 0x15, LIN): Botschaft von Generator ausgefallen
+2A9100	LIN Bus, Kommunikation: keine Botschaften von Generator empfangen
+2A9200	Raildruck-Plausibilität mengengeregelt: Stellgröße von Mengenregelventil im Leerlauf nicht plausibel
+2A9900	Botschaft (IDENT_GEN_LIN, 0x12, LIN): Botschaft von Generator ausgefallen
+2A9B00	Öldruckregelventil, Ansteuerung: Unterbrechung
+2A9C00	Öldruckregelventil, Ansteuerung: Endstufe Übertemperatur
+2A9D00	Öldruckregelventil, Ansteuerung: Kurzschluss nach Plus
+2A9E00	Öldruckregelventil, Ansteuerung: Kurzschluss nach Masse
+2A9F00	Thermischer Ölniveausensor, Plausibilität: Ölniveau
+2AA000	Thermischer Ölniveausensor, Signal: kein Signal
+2AA100	Thermischer Ölniveausensor, Signal: unplausibles Signal
+2AA200	Thermischer Ölniveausensor, Plausibilität: Öltemperatur
+2AA300	Hinterachsübersetzung, Plausibilität: Übersetzungsverhältnis nicht plausibel zu Motorsteuergerät-Konfiguration
+2AA400	Motor-Start-Stop-Automatik MSA (Layer_MSA_KUPP_PLAUS): Kupplungssignale unplausibel
+2AA500	Generator, Diagnoserückmeldung: Fehler Kommunikation (von DDE zum LIN-Teilnehmer)
+2AA600	Botschaft (IDENT_GEN_LIN, 0x12, LIN), Signalfehler: Signal(e) in Botschaft (Identifikation_Generator_LIN) von GEN_LIN nicht gültig
+2AA700	Botschaft (ST_GEN_LIN, 0x15, LIN), Signalfehler: Signal(e) in Botschaft (Status_Generator_LIN) von GEN_LIN nicht gültig
+2AA800	Botschaft (ST_AUWP_LIN, 0x38, LIN): Signal(e) in Botschaft nicht gültig
+2AA900	Botschaft (VRS_AUWP_LIN, 0x3A, LIN): Signal(e) in Botschaft nicht gültig
+2AAA00	Botschaft (ERR_ST_IBS_LIN, 0xB, LIN), Signalfehler: Signal(e) in Botschaft (Fehler_Status_IBS_LIN) von IBS nicht gültig
+2AAB00	Botschaft (VL_IBS_LIN, 0x9, LIN), Signalfehler: Signal(e) in Botschaft (Werte_IBS_LIN) von IBS nicht gültig
+2AAC00	Botschaft (ST_ENERG_GEN_BN2_LIN, 0x5, LIN), Signalfehler: Signal(e) in Botschaft (Status_Energieerzeugung_Bordnetz_2_LIN) von BCU150 nicht gültig
+2AAD00	Botschaft (ST_GSG_LIN, 0x18, LIN): Signal(e) in Botschaft nicht gültig
+2AAF00	Botschaft (ST_AKKS_LIN, 0x33, LIN), Signalfehler: Signal(e) in Botschaft (Status_AKKS_LIN) von AKKS nicht gültig
+2AB100	Momenteneingriff Getriebe, Plausibilität: momentenerhöhender Eingriff unplausibel
+2AB200	Umgebungsdrucksensor (im Steuergerät verbaut), Plausibilität: Umgebungsdruck zu hoch (nicht plausibel zu Druck vor Turbine und Ladedruck)
+2AB300	Umgebungsdrucksensor (im Steuergerät verbaut), Plausibilität: Umgebungsdruck zu niedrig (nicht plausibel zu Druck vor Turbine und Ladedruck)
+2AB400	Ladedrucksensor, Plausibilität: Ladedruck zu hoch (nicht plausibel zu Druck vor Turbine und Umgebungsdruck)
+2AB500	Ladedrucksensor, Plausibilität: Ladedruck zu niedrig (nicht plausibel zu Druck vor Turbine und Umgebungsdruck)
+2AB600	Abgasdrucksensor vor Turbine, Plausibilität: Druck vor Turbine zu hoch (nicht plausibel zu Ladedruck und Umgebungsdruck)
+2AB700	Abgasdrucksensor vor Turbine, Plausibilität: Druck vor Turbine zu niedrig (nicht plausibel zu Ladedruck und Umgebungsdruck)
+2AB800	Drucksensoren, Plausibilität: Druck vor Turbine, Ladedruck und Umgebungsdruck nicht plausibel zueinander
+2AB900	Glühsteuergerät, Diagnoserückmeldung: Mischverbauung unterschiedlicher Glühstifttypen detektiert
+2ABA00	Glühsteuergerät, Diagnoserückmeldung: geforderte Motorkonfiguration im GSG nicht vorhanden
+2ABB00	VSU Spannungsstabilisator zur Bordnetzunterstützung, Ansteuerung: Unterbrechung
+2ABC00	VSU Spannungsstabilisator zur Bordnetzunterstützung, Ansteuerung: Endstufe Übertemperatur
+2ABD00	VSU Spannungsstabilisator zur Bordnetzunterstützung, Ansteuerung: Kurzschluss nach Plus
+2ABE00	VSU Spannungsstabilisator zur Bordnetzunterstützung, Ansteuerung: Kurzschluss nach Masse
+2ABF00	Kupplungstemperatur, CC-Meldung (Layer_CLUTCH_TEMP1): Warnschwellenwert 1 ohne Schädigung überschritten
+2AC000	Kupplungstemperatur, CC-Meldung (Layer_CLUTCH_TEMP2): Warnschwellenwert 2 ohne Schädigung überschritten
+2AC100	DDE Programmierung, Plausibilität: falscher Datenstand
+2AC200	Reduktionsmittel-Aktivtank Heizung, Ansteuerung: Endstufe Übertemperatur
+2AC300	Reduktionsmittel-Druckleitung Heizung, Ansteuerung: Endstufe Übertemperatur
+2AC400	Reduktionsmittel-Aktivtank Temperatursensor, Bereich: obere physikalische Grenze überschritten
+2AC500	Reduktionsmittel-Aktivtank Temperatursensor, Bereich: untere physikalische Grenze unterschritten
+2AC600	DeNOx-System, Effizienz: Wirkungsgrad zu niedrig im Bereich 3
+2AC700	Öldruck, Plausibilität: Öldruck zu niedrig (Solldruck schaltbare Kolbenkühlung hoch)
+2AC800	Öldruck, Plausibilität: Öldruck zu hoch (Solldruck schaltbare Kolbenkühlung niedrig)
+2AC900	Lenksystem EPS, Zustandsmeldung: Welligkeit der Spannung am Fremdstartstützpunkt nicht i.O.
+2ACA00	Zusatzkühlmittelpumpe für Ladeluftkühlung (EWP22), Plausibilität: Abweichung Soll-/ Ist-Pumpendrehzahl zu hoch
+2ACB00	CC-Meldung (ID 257): Motor zu heiß! Gemäßigt fahren
+2ACC00	CC-Meldung (ID 39): Motor überhitzt. Vorsichtig halten
+2ACD00	CC-Meldung (ID 567): Motorlüfter! Gemäßigt fahren
+2ACE00	CC-Meldung (ID 212): Motoröldruck. Vorsichtig anhalten
+2AD000	CC-Meldung (ID 25): Vorglühen. Bitte warten
+2AD100	CC-Meldung (ID 484): Batterie OK (im Transportmodus)
+2AD200	CC-Meldung (ID 229): Batterie laden
+2AD300	CC-Meldung (ID 27): Motoröl nachfüllen
+2AD400	CC-Meldung (ID 450): Auto Start Stop Funktion deaktiviert
+2AD500	CC-Meldung (ID 397): Auto Start Stop Funktion ausgefallen
+2AD700	CC-Meldung (ID 278): Niedrigeren Gang wählen
+2AD800	Getriebeölkühlerleitungen Automatikgetriebe (Layer_GRBX_RP_OT): Übertemperatur
+2AD900	Getriebeölkühlerleitungen Automatikgetriebe (Layer_GRBX_RP_OT_DMG): Überhitzung und Vorschädigung
+2ADA00	Intelligentes Starter-Generator-Cluster (Layer_ISGCOMP): Bedateter oder codierter Maschinentyp nicht zum Programmstand kompatibel
+2ADB00	Motorschutz, Sicherheitskonzept: Motordrehzahl-Reduzierung wegen unplausibler Beschleunigung
+2ADC00	Motor-Start-Stop-Automatik MSA (Layer_MSASTARTERREFLEX), Starter: zulässige Maximalzahl aller Reflexstarts (MSA-Starts unter Risiko des Einspurens in den laufenden Motor) erreicht
+2ADD00	Motor-Start-Stop-Automatik MSA (Layer_MSASTARTERTOTAL), Starter: zulässige Maximalzahl aller Motorstarts erreicht
+2ADE00	Raildruck-Plausibilität: Raildruck zu niedrig/positive Regelabweichung während Kat-Heizen
+2ADF00	Raildruck-Plausibilität: Raildruck zu hoch/negative Regelabweichung während Kat-Heizen
+2AE000	Raildruck-Plausibilität, Sammeleintrag: Raildruck zu hoch/negative Regelabweichung während Kat-Heizen
+2AE100	Raildruck-Plausibilität, Sammeleintrag: Raildruck zu niedrig/positive Regelabweichung während Kat-Heizen
+2AE200	Drosselklappensteller: mechanisch defekt (Regelabweichung nahe geschlossener Position) während Kat-Heizen
+2AE300	Drosselklappensteller: elektrisch oder mechanisch defekt (Lagesensorfehler, Regelabweichung, Motorüberstrom) während Kat-Heizen
+2AE400	Drosselklappensteller: Ansteuersignal unplausibel, Versorgungsspannung ungültig, Übertemperatur während Kat-Heizen
+2AE500	Drosselklappensteller: elektrisch defekt (EEPROM) während Kat-Heizen
+2AE600	Drallklappensteller: mechanisch defekt (Regelabweichung nahe geschlossener Position) während Kat-Heizen
+2AE700	Drallklappensteller: mechanisch defekt (Endanschlagsposition unplausibel) während Kat-Heizen
+2AE800	Drallklappensteller: elektrisch oder mechanisch defekt (Lagesensorfehler, Regelabweichung, Motorüberstrom) während Kat-Heizen
+2AE900	Drallklappensteller: Ansteuersignal unplausibel, Versorgungsspannung ungültig, Übertemperatur während Kat-Heizen
+2AEA00	Drallklappensteller: elektrisch defekt (EEPROM) während Kat-Heizen
+2AEB00	Abgasrückführraten-Regelung, Regelabweichung: Abgasrückführrate zu niedrig/positive Regelabweichung während Kat-Heizen
+2AEC00	Abgasrückführ-Regelung, Regelabweichung: Luftmasse zu niedrig/positive Regelabweichung während Kat-Heizen
+2AED00	Abgasrückführraten-Regelung, Regelabweichung: Abgasrückführrate zu hoch/negative Regelabweichung während Kat-Heizen
+2AEE00	Abgasrückführ-Regelung, Regelabweichung: Luftmasse zu hoch/negative Regelabweichung während Kat-Heizen
+2AEF00	Drosselklappensteller, Ansteuerung: Kurzschluss nach Masse während Kat-Heizen
+2AF000	Drallklappensteller, Ansteuerung: Kurzschluss nach Masse während Kat-Heizen
+2AF100	Montagemodus aktiv: Aktuatoransteuerungen gesperrt
+2AF200	Abgasrückführventil, Plausibilität: mechanisch defekt nahe geschlossener Position während Kat-Heizen
+2AF300	Abgasrückführventil, Plausibilität: mechanisch defekt nahe offener Position während Kat-Heizen
+2AF400	Niederdruck Abgasrückführventil, Plausibilität: mechanisch defekt nahe geschlossener Position während Kat-Heizen
+2AF500	Niederdruck Abgasrückführventil, Plausibilität: mechanisch defekt nahe offener Position während Kat-Heizen
+2AF600	Raildrucksensor Offset-Test: zulässige Raildruckkorrektur zu hoch
+2AF700	Raildrucksensor Offset-Test: zulässige Raildruckkorrektur zu niedrig
+2AF800	Getriebesteuergerät, Zustandsmeldung: elektrisches oder mechanisches Getriebenotprogramm aktiv
+2AF900	Reduktionsmittel-Aktivtank Förderbecher Heizung, Ansteuerung: Endstufe Übertemperatur
+2AFA00	Reduktionsmittel Umschaltventil, Ansteuerung: Endstufe Übertemperatur
+2AFC00	Verbrennungslageregelung Zylinder 1, Regelabweichung: Lage der Hauptverbrennung zu früh/positive Regelabweichung
+2AFD00	Verbrennungslageregelung Zylinder 5, Regelabweichung: Lage der Hauptverbrennung zu früh/positive Regelabweichung
+2AFE00	Verbrennungslageregelung Zylinder 3, Regelabweichung: Lage der Hauptverbrennung zu früh/positive Regelabweichung
+2AFF00	Verbrennungslageregelung Zylinder 6, Regelabweichung: Lage der Hauptverbrennung zu früh/positive Regelabweichung
+2B0000	Verbrennungslageregelung Zylinder 2, Regelabweichung: Lage der Hauptverbrennung zu früh/positive Regelabweichung
+2B0100	Verbrennungslageregelung Zylinder 4, Regelabweichung: Lage der Hauptverbrennung zu früh/positive Regelabweichung
+2B0200	Verbrennungslageregelung Zylinder 1, Regelabweichung: Lage der Hauptverbrennung zu spät/negative Regelabweichung
+2B0300	Verbrennungslageregelung Zylinder 5, Regelabweichung: Lage der Hauptverbrennung zu spät/negative Regelabweichung
+2B0400	Verbrennungslageregelung Zylinder 3, Regelabweichung: Lage der Hauptverbrennung zu spät/negative Regelabweichung
+2B0500	Verbrennungslageregelung Zylinder 6, Regelabweichung: Lage der Hauptverbrennung zu spät/negative Regelabweichung
+2B0600	Verbrennungslageregelung Zylinder 2, Regelabweichung: Lage der Hauptverbrennung zu spät/negative Regelabweichung
+2B0700	Verbrennungslageregelung Zylinder 4, Regelabweichung: Lage der Hauptverbrennung zu spät/negative Regelabweichung
+2B0800	Abgastemperatursensor nach Zusatz-AGR-Kühler, Plausibilität: Temperatur nach Zusatz-AGR-Kühler nicht plausibel zu den restlichen Temperatursignalen
+2B0900	Absperrventil Ausgleichsbehälter für Kühlmittel, Ansteuerung: Unterbrechung
+2B0A00	Absperrventil Ausgleichsbehälter für Kühlmittel, Ansteuerung: Endstufe Übertemperatur
+2B0B00	Absperrventil Ausgleichsbehälter für Kühlmittel, Ansteuerung: Kurzschluss nach Plus
+2B0C00	Brennraumdrucksensor Zylinder 1, Störungs-Überprüfung: Druckgradient unplausibel
+2B0D00	Brennraumdrucksensor Zylinder 5, Störungs-Überprüfung: Druckgradient unplausibel
+2B0E00	Brennraumdrucksensor Zylinder 3, Störungs-Überprüfung: Druckgradient unplausibel
+2B0F00	Brennraumdrucksensor Zylinder 6, Störungs-Überprüfung: Druckgradient unplausibel
+2B1000	Brennraumdrucksensor Zylinder 2, Störungs-Überprüfung: Druckgradient unplausibel
+2B1100	Brennraumdrucksensor Zylinder 4, Störungs-Überprüfung: Druckgradient unplausibel
+2B1200	Brennraumdrucksensor Zylinder 1, Hysterese-Überprüfung: Hysteresedifferenz im Schub ausserhalb des zulässigen Bereichs
+2B1300	Brennraumdrucksensor Zylinder 5, Hysterese-Überprüfung: Hysteresedifferenz im Schub ausserhalb des zulässigen Bereichs
+2B1400	Brennraumdrucksensor Zylinder 3, Hysterese-Überprüfung: Hysteresedifferenz im Schub ausserhalb des zulässigen Bereichs
+2B1500	Brennraumdrucksensor Zylinder 6, Hysterese-Überprüfung: Hysteresedifferenz im Schub ausserhalb des zulässigen Bereichs
+2B1600	Brennraumdrucksensor Zylinder 2, Hysterese-Überprüfung: Hysteresedifferenz im Schub ausserhalb des zulässigen Bereichs
+2B1700	Brennraumdrucksensor Zylinder 4, Hysterese-Überprüfung: Hysteresedifferenz im Schub ausserhalb des zulässigen Bereichs
+2B1800	Brennraumdruck, Signalerfassung: inkorrekte Abtastung des Drucksignals (SG intern)
+2B1900	Brennraumdrucksensor Zylinder 1, Signal: Unterbrechung oder Kurzschluss nach Plus
+2B1A00	Brennraumdrucksensor Zylinder 5, Signal: Unterbrechung oder Kurzschluss nach Plus
+2B1B00	Brennraumdrucksensor Zylinder 3, Signal: Unterbrechung oder Kurzschluss nach Plus
+2B1C00	Brennraumdrucksensor Zylinder 6, Signal: Unterbrechung oder Kurzschluss nach Plus
+2B1D00	Brennraumdrucksensor Zylinder 2, Signal: Unterbrechung oder Kurzschluss nach Plus
+2B1E00	Brennraumdrucksensor Zylinder 4, Signal: Unterbrechung oder Kurzschluss nach Plus
+2B1F00	Brennraumdrucksensor Zylinder 1, Signal: Kurzschluss nach Masse
+2B2000	Brennraumdrucksensor Zylinder 5, Signal: Kurzschluss nach Masse
+2B2100	Brennraumdrucksensor Zylinder 3, Signal: Kurzschluss nach Masse
+2B2200	Brennraumdrucksensor Zylinder 6, Signal: Kurzschluss nach Masse
+2B2300	Brennraumdrucksensor Zylinder 2, Signal: Kurzschluss nach Masse
+2B2400	Brennraumdrucksensor Zylinder 4, Signal: Kurzschluss nach Masse
+2B2500	Brennraumdrucksensor Zylinder 1, Bereich: obere physikalische Grenze überschritten
+2B2600	Brennraumdrucksensor Zylinder 5, Bereich: obere physikalische Grenze überschritten
+2B2700	Brennraumdrucksensor Zylinder 3, Bereich: obere physikalische Grenze überschritten
+2B2800	Brennraumdrucksensor Zylinder 6, Bereich: obere physikalische Grenze überschritten
+2B2900	Brennraumdrucksensor Zylinder 2, Bereich: obere physikalische Grenze überschritten
+2B2A00	Brennraumdrucksensor Zylinder 4, Bereich: obere physikalische Grenze überschritten
+2B2B00	Brennraumdrucksensor Zylinder 1, Bereich: untere physikalische Grenze unterschritten
+2B2C00	Brennraumdrucksensor Zylinder 5, Bereich: untere physikalische Grenze unterschritten
+2B2D00	Brennraumdrucksensor Zylinder 3, Bereich: untere physikalische Grenze unterschritten
+2B2E00	Brennraumdrucksensor Zylinder 6, Bereich: untere physikalische Grenze unterschritten
+2B2F00	Brennraumdrucksensor Zylinder 2, Bereich: untere physikalische Grenze unterschritten
+2B3000	Brennraumdrucksensor Zylinder 4, Bereich: untere physikalische Grenze unterschritten
+2B3100	Brennraumdrucksensor Zylinder 1, Plausibilität: Signal Wertänderung zu niedrig oder Offset unplausibel
+2B3200	Brennraumdrucksensor Zylinder 5, Plausibilität: Signal Wertänderung zu niedrig oder Offset unplausibel
+2B3300	Brennraumdrucksensor Zylinder 3, Plausibilität: Signal Wertänderung zu niedrig oder Offset unplausibel
+2B3400	Brennraumdrucksensor Zylinder 6, Plausibilität: Signal Wertänderung zu niedrig oder Offset unplausibel
+2B3500	Brennraumdrucksensor Zylinder 2, Plausibilität: Signal Wertänderung zu niedrig oder Offset unplausibel
+2B3600	Brennraumdrucksensor Zylinder 4, Plausibilität: Signal Wertänderung zu niedrig oder Offset unplausibel
+2B3700	Brennraumdrucksensor Zylinder 1, Empfindlichkeits-Überprüfung: Druckmaximum im Schub im Vergleich zu Modellwert über Ladedruck unplausibel
+2B3800	Brennraumdrucksensor Zylinder 5, Empfindlichkeits-Überprüfung: Druckmaximum im Schub im Vergleich zu Modellwert über Ladedruck unplausibel
+2B3900	Brennraumdrucksensor Zylinder 3, Empfindlichkeits-Überprüfung: Druckmaximum im Schub im Vergleich zu Modellwert über Ladedruck unplausibel
+2B3A00	Brennraumdrucksensor Zylinder 6, Empfindlichkeits-Überprüfung: Druckmaximum im Schub im Vergleich zu Modellwert über Ladedruck unplausibel
+2B3B00	Brennraumdrucksensor Zylinder 2, Empfindlichkeits-Überprüfung: Druckmaximum im Schub im Vergleich zu Modellwert über Ladedruck unplausibel
+2B3C00	Brennraumdrucksensor Zylinder 4, Empfindlichkeits-Überprüfung: Druckmaximum im Schub im Vergleich zu Modellwert über Ladedruck unplausibel
+2B3D00	Brennraumdrucksensor Zylinder 1, oberer Totpunkt-Überprüfung: Lage des Druckmaximums im Schub unplausibel
+2B3E00	Brennraumdrucksensor Zylinder 5, oberer Totpunkt-Überprüfung: Lage des Druckmaximums im Schub unplausibel
+2B3F00	Brennraumdrucksensor Zylinder 3, oberer Totpunkt-Überprüfung: Lage des Druckmaximums im Schub unplausibel
+2B4000	Brennraumdrucksensor Zylinder 6, oberer Totpunkt-Überprüfung: Lage des Druckmaximums im Schub unplausibel
+2B4100	Brennraumdrucksensor Zylinder 2, oberer Totpunkt-Überprüfung: Lage des Druckmaximums im Schub unplausibel
+2B4200	Brennraumdrucksensor Zylinder 4, oberer Totpunkt-Überprüfung: Lage des Druckmaximums im Schub unplausibel
+2B4300	Absperrventil Ausgleichsbehälter für Kühlmittel, Ansteuerung: Kurzschluss nach Masse
+2B4400	Brennraumdrucksensoren, Sammeleintrag: mehrere Sensoren defekt oder Signalerfassung fehlerhaft
+2B4500	Brennraumdrucksensor Zylinder 1, Sammeleintrag: Sensor defekt oder Signalerfassung fehlerhaft (während aktueller Zylinder aktiv)
+2B4600	Brennraumdrucksensor Zylinder 5, Sammeleintrag: Sensor defekt oder Signalerfassung fehlerhaft (während aktueller Zylinder aktiv)
+2B4700	Brennraumdrucksensor Zylinder 3, Sammeleintrag: Sensor defekt oder Signalerfassung fehlerhaft (während aktueller Zylinder aktiv)
+2B4800	Brennraumdrucksensor Zylinder 6, Sammeleintrag: Sensor defekt oder Signalerfassung fehlerhaft (während aktueller Zylinder aktiv)
+2B4900	Brennraumdrucksensor Zylinder 2, Sammeleintrag: Sensor defekt oder Signalerfassung fehlerhaft (während aktueller Zylinder aktiv)
+2B4A00	Brennraumdrucksensor Zylinder 4, Sammeleintrag: Sensor defekt oder Signalerfassung fehlerhaft (während aktueller Zylinder aktiv)
+2B4B00	Reduktionsmittel Umpumpeinheit: Fördermenge der Transferpumpe zu niedrig
+2B4D00	Kurbelwellensensor, Plausibilität: Drehrichtungserfassung fehlerhaft
+2B4E00	Umschaltventil Kühlmittelkreislauf für Niedertemperatur-AGR, Ansteuerung: Unterbrechung
+2B4F00	Umschaltventil Kühlmittelkreislauf für Niedertemperatur-AGR, Ansteuerung: Endstufe Übertemperatur
+2B5000	Umschaltventil Kühlmittelkreislauf für Niedertemperatur-AGR, Ansteuerung: Kurzschluss nach Plus
+2B5100	Zusatz-AGR-Kühler Bypassklappe, Ansteuerung: Unterbrechung
+2B5200	Zusatz-AGR-Kühler Bypassklappe, Ansteuerung: Endstufe Übertemperatur
+2B5300	Zusatz-AGR-Kühler Bypassklappe, Ansteuerung: Kurzschluss nach Plus
+2B5400	Zusatzkühlmittelpumpe für Niedertemperatur-AGR, Ansteuerung: Unterbrechung
+2B5500	Zusatzkühlmittelpumpe für Niedertemperatur-AGR, Ansteuerung: Endstufe Übertemperatur
+2B5600	Zusatzkühlmittelpumpe für Niedertemperatur-AGR, Ansteuerung: Kurzschluss nach Plus
+2B5700	Kühlmitteltemperatursensor vor AGR-Kühler, Signal: Unterbrechung oder Kurzschluss nach Plus
+2B5800	Kühlmitteltemperatursensor vor AGR-Kühler, Signal: Kurzschluss nach Masse
+2B5900	Umschaltventil Kühlmittelkreislauf für Niedertemperatur-AGR, Ansteuerung: Kurzschluss nach Masse
+2B5A00	Zusatz-AGR-Kühler Bypassklappe, Ansteuerung: Kurzschluss nach Masse
+2B5B00	Zusatzkühlmittelpumpe für Niedertemperatur-AGR, Ansteuerung: Kurzschluss nach Masse
+2B5C00	Abgastemperatursensor nach Zusatz-AGR-Kühler, Signal: Unterbrechung oder Kurzschluss nach Plus
+2B5D00	Abgastemperatursensor nach Zusatz-AGR-Kühler, Signal: Kurzschluss nach Masse
+2B5E00	Nullmengenadaption, Funktion: Maximale Zeitdauer überschritten bis Adaption aktiv
+2B5F00	Zusatz-AGR-Kühler, Plausibilität: Kühlerwirkungsgrad zu niedrig
+2B6000	Zusatz-AGR-Kühler, Plausibilität: reduzierter Kühlerwirkungsgrad
+2B6100	Niederdruck Abgasrückführ-Kühler, Plausibilität: reduzierter Kühlerwirkungsgrad
+2B6200	NOx-Sensor vor DeNOx-Kat, Plausibilität: Sensor Eigendiagnose der Empfindlichkeit
+2B6300	NOx-Sensor nach DeNOx-Kat, Plausibilität: Sensor Eigendiagnose der Empfindlichkeit
+2B6400	Ladedruck nach Niederdruck-Verdichter, Regelabweichung: Ladedruck zu niedrig/positive Regelabweichung
+2B6500	Ladedruck nach Niederdruck-Verdichter, Regelabweichung: Ladedruck zu hoch/negative Regelabweichung
+2B6600	Ladedrucksensor nach Niederdruck-Verdichter, Bereich: obere physikalische Grenze überschritten
+2B6700	Ladedrucksensor nach Niederdruck-Verdichter, Bereich: untere physikalische Grenze unterschritten
+2B6800	Ladedrucksensor nach Niederdruck-Verdichter, Signal: Plausibilität mit Umgebungsdrucksensor im Leerlauf
+2B6900	Ladedrucksensor nach Niederdruck-Verdichter, Signal: Kurzschluss nach Plus
+2B6A00	Ladedrucksensor nach Niederdruck-Verdichter, Signal: Unterbrechung oder Kurzschluss nach Masse
+2B6C00	Gangsensor (SENT), Diagnoserückmeldung: interner Hardware Fehler
+2B6D00	Gangsensor (SENT), Kommunikation: Botschaft von Gangsensor ausgefallen
+2B6F00	Einspritzmengenüberwachung (FMO), Funktion: Maximale Zeitdauer überschritten bis Mengenfehlerkorrektur aktiv
+2B7000	Lambdasonde, Funktion: Maximale Zeitdauer überschritten bis Taupunktende erkannt
+2B7100	Lambdasonde, Funktion: Maximale Zeitdauer überschritten bis Taupunktende erkannt (Aktualisierung von OBD-DIUMPR)
+2B7200	Zusatz-Abgasrückführ-Kühlung, Plausibilität: Zusatz-AGR-Kühler Bypassklappe defekt oder Kühlerwirkungsgrad zu niedrig
+2B7300	Geregelte Ölpumpe, Plausibilität: mechanisch defekt (Öldruck zu hoch)
+2B7400	Geregelte Ölpumpe, Plausibilität: mechanisch defekt (Öldruck zu niedrig)
+2B7500	Öldruckregelung, Regelabweichung dynamisch: Öldruckschwankungen
+2B7600	CC-Meldung (ID 427): Motoröldruck! Gemäßigt fahren
+2B7700	CC-Meldung (ID 212): Motoröldruck! Vorsichtig anhalten
+2B7800	Öldruckregelventil, Plausibilität: mechanisch defekt (Öldruck zu niedrig)
+2B7900	Öldruckregelventil, Plausibilität: mechanisch defekt (Öldruck zu hoch)
+2B7A00	Öldruckregelventil, Plausibilität: mechanisch defekt (Öldruck unplausibel)
+2B7B00	Öldruckregelung, Regelabweichung statisch: Öldruck zu hoch
+2B7C00	Öldruckregelung, Regelabweichung statisch: Öldruck zu niedrig
+2B7D00	Öldrucksensor, Plausibilität: Öldruck zu hoch (nicht plausibel zu Umgebungsdruck vor Start)
+2B7E00	Öldrucksensor, Plausibilität: Öldruck zu niedrig (nicht plausibel zu Umgebungsdruck vor Start)
+2B7F00	Öldrucksensor, Plausibilität: Signal Wertänderung zu niedrig
+2B8000	Öldrucksystem: Öldruckregelung instabil
+2B8100	NOx-Sensor vor DeNOx-Kat, Plausibilität Nox: gefilterte Differenz gemessenes zu berechnetem NOx-Signal zu hoch
+2B8200	NOx-Sensor vor DeNOx-Kat, Plausibilität Nox: gefilterte Differenz gemessenes zu berechnetem NOx-Signal zu niedrig
+2B8300	Reduktionsmittel Dosierung, Langzeit-Adaption: Adaptionswert zu hoch wegen Signal NOx-Sensor vor DeNOx-Kat zu niedrig
+2B8400	Reduktionsmittel Dosierung, Langzeit-Adaption: Adaptionswert zu hoch wegen schlechter Reduktionsmittel Qualität
+2B8500	Abgasrückführ-Regelung, Regelabweichung: Luftmasse Regelabweichung während Kat-Heizen (mit stark unterschiedlichem Sollwert zum Normalbetrieb)
+2B8600	Abgasrückführraten-Regelung, Regelabweichung: Abgasrückführrate Regelabweichung während Kat-Heizen (mit stark unterschiedlichem Sollwert zum Normalbetrieb)
+2B8700	Kraftstoffeinspritzmenge, Plausibilität: Einspritzmenge im Leerlauf zu hoch
+2B8800	Kraftstoffeinspritzmenge, Plausibilität: Einspritzmenge im Leerlauf zu niedrig
+2B8B00	Abgasrückführ-Regelung, Funktion: Maximale Zeitdauer überschritten bis Abgasrückführ-Regelung erneut aktiv
+2B8C00	Abgasrückführ-Regelung, Funktion: Maximale Zeitdauer überschritten bis Abgasrückführ-Regelung erstmalig aktiv
+2B8E00	Gangsensor (SENT), Plausibilität: Winkelkoordinaten unplausibel zu Schalthebelposition
+2B9200	DeNOx-System, Effizienz (aktive Füllstandsüberwachung): Wirkungsgrad zu niedrig
+2B9300	Reduktionsmittel Dosierventil, Plausibilität: Dosierventil klemmt geschlossen während aktiver Füllstandsüberwachung
+2B9400	Reduktionsmittel Dosierventil, Plausibilität: Dosierventil klemmt geschlossen während aktiver Füllstandsüberwachung (Aktualisierung von OBD-DIUMPR)
+2B9500	Injektor Zylinder 1, Schließdauerregelung: Schließdauerregelabweichung zu hoch
+2B9600	Injektor Zylinder 5, Schließdauerregelung: Schließdauerregelabweichung zu hoch
+2B9700	Injektor Zylinder 3, Schließdauerregelung: Schließdauerregelabweichung zu hoch
+2B9800	Injektor Zylinder 6, Schließdauerregelung: Schließdauerregelabweichung zu hoch
+2B9900	Injektor Zylinder 2, Schließdauerregelung: Schließdauerregelabweichung zu hoch
+2B9A00	Injektor Zylinder 4, Schließdauerregelung: Schließdauerregelabweichung zu hoch
+2B9B00	Partikelsensor, Diagnoserückmeldung: Spannungsdifferenz Partikelsensor zu DDE Versorgungsspannung zu hoch (ohne Sensorheizung ein)
+2B9C00	Botschaft (EGSPM_Diag, 0x249, Sensor-CAN): Signal(e) in Botschaft nicht gültig
+2B9D00	Partikelsensor, Diagnoserückmeldung: Heizkreis, elektrisch defekt (ohne Sensorheizung ein)
+2B9E00	Partikelsensor, Diagnoserückmeldung: Heizkreis, elektrisch defekt (während Sensorheizung ein)
+2B9F00	Partikelsensor, Diagnoserückmeldung: Messelektrode, negative Seite elektrisch defekt (während Messung aus)
+2BA000	Botschaft (EGSPM_Sig, 0x250, Sensor-CAN): Signal(e) in Botschaft nicht gültig
+2BA100	Partikelsensor, Diagnoserückmeldung: Mäandertemperaturmessung, elektrisch defekt
+2BA200	Partikelsensor, Plausibilität: Gemessene Mäandertemperatur im Vergleich zu modellierter Temperatur unplausibel
+2BA300	Ladedrucksteller, Positionsregelung: Ladedrucksteller zu weit offen/positive Regelabweichung
+2BA400	Ladedrucksteller, Positionsregelung: Ladedrucksteller zu weit geschlossen/negative Regelabweichung
+2BA500	Ladedrucksteller (VNT), Positionsregelung: Ladedrucksteller (VNT) zu weit offen/positive Regelabweichung
+2BA600	Ladedrucksteller (VNT), Positionsregelung: Ladedrucksteller (VNT) zu weit geschlossen/negative Regelabweichung
+2BA700	Abgastemperatursensor vor SCR-Kat, Plausibilität: Differenz gemessene zu berechneter Abgastemperatur zu hoch
+2BA800	Kraftstoff-Vorförderpumpe, Ansteuerung: Unterbrechung
+2BA900	Kraftstoff-Vorförderpumpe, Ansteuerung: Endstufe Übertemperatur
+2BAA00	Kraftstoff-Vorförderpumpe, Ansteuerung: Kurzschluss nach Plus
+2BAB00	Kraftstoff-Vorförderpumpe, Ansteuerung: Kurzschluss nach Masse
+2BAC00	Abgastemperatursensor vor Partikelfilter, Plausibilität: Differenz gemessene zu berechneter Abgastemperatur zu hoch
+2BAD00	Abgastemperatursensor vor Partikelfilter, Signal: Unterbrechung oder Kurzschluss nach Plus
+2BAE00	Abgastemperatursensor vor Partikelfilter, Signal: Kurzschluss nach Masse
+2BAF00	Abgastemperatursensor vor SCR-Kat, Signal: Unterbrechung oder Kurzschluss nach Plus
+2BB000	Abgastemperatursensor vor SCR-Kat, Signal: Kurzschluss nach Masse
+2BB100	Partikelfiltersystem, Plausibilität mit Partikelsensor: Partikelfilter-Effizienz zu niedrig
+2BB200	Partikelsensor, Diagnoserückmeldung: Heizkreis, Eigendiagnose
+2BB300	Partikelsensor, Diagnoserückmeldung: Messelektrode, Eigendiagnose
+2BB400	Partikelsensor, Diagnoserückmeldung: Messelektrode, negative Seite elektrisch defekt (während Messung ein)
+2BB500	Partikelsensor, Diagnoserückmeldung: Messelektrode, positive Seite elektrisch defekt
+2BB600	Partikelsensor, Diagnoserückmeldung: Messelektrode, Nebenschlusserkennung
+2BB700	Partikelsensor, Plausibilität: Sensorschutzrohr verstopft
+2BB900	Partikelsensor, Plausibilität: Messelektrode, Korrekturfaktur ausserhalb des zulässigen Bereichs
+2BBA00	Partikelsensor, Plausibilität: Mäandertemperatur nicht plausibel zu den restlichen Abgastemperatursignalen
+2BBB00	Ladedrucksteller, Plausibilität: mechanisch defekt nahe geschlossener Position
+2BBC00	Ladedrucksteller, Plausibilität: mechanisch defekt nahe offener Position
+2BBD00	Ladedrucksteller (VNT), Plausibilität: mechanisch defekt nahe geschlossener Position
+2BBE00	Ladedrucksteller (VNT), Plausibilität: mechanisch defekt nahe offener Position
+2BBF00	Botschaft (EGSPM_DIAG, 0x249, Sensor-CAN): Botschaft von Partikelsensor ausgefallen
+2BC000	Botschaft (EGSPM_SIG, 0x250, Sensor-CAN): Botschaft von Partikelsensor ausgefallen
+2BC100	Sensor-CAN-Bus: Steuergerät hat sich vom Bus abgeschaltet (Bus off)
+2BC300	Botschaft (NOx-Sensor vor DeNOx-Kat, 0x135, Sensor-CAN): Botschaft von NOx-Sensor vor DeNOx-Kat ausgefallen
+2BC500	Botschaft (NOx-Sensor nach DeNOx-Kat, 0x130, Sensor-CAN): Botschaft von NOx-Sensor nach DeNOx-Kat ausgefallen
+2BC600	Botschaft (CALId-CVN von NOx-Sensor vor DeNOx-Kat, 0x362, Sensor-CAN): Botschaft von NOx-Sensor vor DeNOx-Kat ausgefallen
+2BC700	Botschaft (CALId-CVN von NOx-Sensor nach DeNOx-Kat, 0x35B, Sensor-CAN): Botschaft von NOx-Sensor nach DeNOx-Kat ausgefallen
+2BC800	NOx-Sensoren, Anfragemodus: Anfrage Nummern unplausibel
+2BC900	NOx-Sensor nach DeNOx-Kat, Plausibilität: falscher Sensor verbaut
+2BCA00	NOx-Sensor vor DeNOx-Kat, Plausibilität: falscher Sensor verbaut
+2BCB00	NOx-Sensor nach DeNOx-Kat, Plausibilität: Kennlinien-Korrekturfaktor im Sensor (Steigung oder Offset) ausserhalb gültigem Bereich
+2BCC00	NOx-Sensor vor DeNOx-Kat, Plausibilität: Kennlinien-Korrekturfaktor im Sensor (Steigung oder Offset) ausserhalb gültigem Bereich
+2BCD00	Gangsensor (SENT), Temperatursensor: Getriebetemperatur ausserhalb des zulässigen Bereichs
+2BCE00	Gangsensor (SENT), Slow-Channel: Fehler in der Botschaft (Checksummenfehler)
+2BCF00	Reduktionsmittel Umpumpeinheit, Plausibilität: berechnete Reduktionsmittelmasse zu maximalem Tankfüllstand unplausibel
+2BD000	Lambdasonde, Plausibilität: Sauerstoff Speicherfähigkeit zu niedrig
+2BD100	Lambdasonde nach Kat, Plausibilität: Sauerstoff Speicherfähigkeit zu niedrig
+2BD200	Gangsensor (SENT), Temperatursensor: Getriebetemperatur Signalgradient zu hoch
+2BD300	Gangsensor (SENT), Signal: Unterbrechung oder Kurzschluss nach Plus
+2BD400	Gangsensor (SENT), Signal: Kurzschluss nach Masse
+2BD500	Gangsensor (SENT), Fast-Channel: Signal(e) in Botschaft nicht gültig
+2BD600	Gangsensor (SENT), Fast-Channel: Fehler in der Botschaft (Checksummenfehler)
+2BD700	Segelbetrieb, Funktion: Segeln deaktiviert wegen unplausibler Freigabebedingungen
+2BD800	Umschaltventil Kühlmittelkreislauf für Niedertemperatur-AGR, Plausibilität: Kühlmitteltemperaturänderung (vor AGR-Kühler) nach Umschaltvorgang zu niedrig
+2BDF00	Kraftstoff-Vorförderpumpe FPC, Diagnoserückmeldung: Interner Fehler
+2BE000	Kraftstoff-Vorförderpumpe FPC, Diagnoserückmeldung: Übertemperaturschwelle 2
+2BE100	Kraftstoff-Vorförderpumpe FPC, Diagnoserückmeldung: Übertemperaturschwelle 3
+2BE200	Kraftstoff-Vorförderpumpe FPC, Diagnoserückmeldung: Kurzschluss Vorförderpumpe
+2BE300	Kraftstoff-Vorförderpumpe FPC, Diagnoserückmeldung: Fehler Kommunikation Crashsignal (von ACSM zu FPC)
+2BE400	Kraftstoff-Vorförderpumpe FPC, Diagnoserückmeldung: kein Parametersatz aktiv
+2BE500	Kraftstoff-Vorförderpumpe FPC, Diagnoserückmeldung: Vorförderpumpe Strom zu hoch
+2BE600	Kraftstoff-Vorförderpumpe FPC, Diagnoserückmeldung: Vorförderpumpe Strom zu niedrig
+2BE700	Kraftstoff-Vorförderpumpe FPC, Diagnoserückmeldung: Drehzahl fehlt/nicht erkannt oder Vorförderpumpe blockiert
+2BE800	Öldrucksystem: Drehmomentreduzierung wegen unzureichender Kolbenkühlung (Öldruck zu niedrig)
+2C1900	DDE-Steuergerät intern (AccPedSailMOErr): Segeln deaktiviert wegen fehlerhafter Schubmomentberechnung
+2C1A00	DDE-Steuergerät intern (rMaxStackCons): User-/CSA-Stackverbrauch zu hoch
+2C1B00	DDE-Steuergerät intern (rMaxStackConsAppl): User-/CSA-Stackverbrauch zu hoch im Applikations-Steuergerät
+2C1C00	Kat-Heizen, Plausibilität: Temperaturanstieg vor Kat während Kat-Heizen zu niedrig
+2C1D00	Kat-Heizen, Plausibilität: Temperaturanstieg nach Kat während Kat-Heizen zu niedrig
+2C1E00	Einspritzmengenüberwachung (FMO), diskret: Mengenfehlerkorrektur über zulässigem Bereich (Lambda- und Luftmassenwert nicht plausibel zu Einspritzmenge)
+2C1F00	Einspritzmengenüberwachung (FMO), diskret: Mengenfehlerkorrektur unter zulässigem Bereich (Lambda- und Luftmassenwert nicht plausibel zu Einspritzmenge)
+2C2000	NOx-Sensor vor DeNOx-Kat, Plausibilität: Sensor ohne Eigendiagnose verbaut
+2C2100	NOx-Sensor nach DeNOx-Kat, Plausibilität: Sensor ohne Eigendiagnose verbaut
+2C2200	Kühlmitteltemperatursensor vor AGR-Kühler, Plausibilität: Kühlmitteltemperatur vor AGR-Kühler zu Kühlmitteltemperatur nicht plausibel
+2C2300	Laufruheregler Zylinder 1: Korrektur Injektormengenabgleich durch Adaption ausserhalb des zulässigen Bereichs
+2C2400	Laufruheregler Zylinder 5: Korrektur Injektormengenabgleich durch Adaption ausserhalb des zulässigen Bereichs
+2C2500	Laufruheregler Zylinder 3: Korrektur Injektormengenabgleich durch Adaption ausserhalb des zulässigen Bereichs
+2C2600	Laufruheregler Zylinder 6: Korrektur Injektormengenabgleich durch Adaption ausserhalb des zulässigen Bereichs
+2C2700	Laufruheregler Zylinder 2: Korrektur Injektormengenabgleich durch Adaption ausserhalb des zulässigen Bereichs
+2C2800	Laufruheregler Zylinder 4: Korrektur Injektormengenabgleich durch Adaption ausserhalb des zulässigen Bereichs
+2C2900	Kühlmitteltemperatursensor vor AGR-Kühler, Bereich: obere physikalische Grenze überschritten
+2C2A00	Kühlmitteltemperatursensor vor AGR-Kühler, Bereich: untere physikalische Grenze unterschritten
+2C2B00	Abgastemperatursensor nach Zusatz-AGR-Kühler, Bereich: obere physikalische Grenze überschritten
+2C2C00	Abgastemperatursensor nach Zusatz-AGR-Kühler, Bereich: untere physikalische Grenze unterschritten
+2C2D00	NOx-Sensor vor DeNOx-Kat, Plausibilität: Sensor Eigendiagnose wurde abgebrochen
+2C2E00	NOx-Sensor nach DeNOx-Kat, Plausibilität: Sensor Eigendiagnose wurde abgebrochen
+2C2F00	Gangsensor (SENT), Lernwerte: keine gültigen Lernwerte vorhanden oder EEPROM Fehler beim Lesen/Schreiben
+2C3000	SCR-System, Diagnoserückmeldung: Übertragung Status Systemfehler OBD vom SCR-Steuergerät zur DDE
+2C3100	Zusatzkühlmittelpumpe für Niedertemperatur-AGR, Plausibilität: Pumpe schickt keine Lebenderkennung
+2C3200	Drallklappe, Plausibilität: mechanisch defekt (Hebelbrucherkennung)
+2C3300	Zusatzkühlmittelpumpe für Niedertemperatur-AGR, Diagnoserückmeldung 1: Status Trockenlauf
+2C3400	Zusatzkühlmittelpumpe für Niedertemperatur-AGR, Diagnoserückmeldung 2: Status Blockierung oder Drehzahlabweichung
+2C3500	Zusatzkühlmittelpumpe für Niedertemperatur-AGR, Diagnoserückmeldung 3: Status Überhitzung
+2C3600	Zusatzkühlmittelpumpe für Niedertemperatur-AGR, Diagnoserückmeldung 4: Status Überstromabschaltung
+2C3700	xDFC_EGRCPmpXErr: Fault code for Diagnostic ground keying X Error
+2C3800	xDFC_EGRCPmpY2Err: Fault code for Diagnostic ground keying Y Error
+2C3900	xDFC_EGRCPmpY3Err: Fault code for Diagnostic ground keying Y Error
+2C3A00	xDFC_EGRCPmpY4Err: Fault code for Diagnostic ground keying Y Error
+2C3B00	xDFC_EGRCPmpY5Err: Fault code for Diagnostic ground keying Y Error
+2C3C00	xDFC_EGRCPmpYErr: Fault code for Diagnostic ground keying Y Error
+2C4800	Lambdasonde, virtuelle Masse: Spannungspotential zu hoch
+2C4900	Lambdasonde nach Kat, virtuelle Masse: Spannungspotential zu hoch
+2C4A00	Lambdasonde, virtuelle Masse: Spannungspotential zu niedrig
+2C4B00	Lambdasonde nach Kat, virtuelle Masse: Spannungspotential zu niedrig
+2C4C00	Lambdasonden, Plausibilität: Differenz zwischen Sauerstoffkonzentration von Lambdasonde vor und nach Kat zu hoch (im stationären Betrieb)
+2C4D00	Partikelsensor, Diagnoserückmeldung: Spannungsdifferenz Partikelsensor zu DDE Versorgungsspannung zu hoch (während Sensorheizung ein)
+2C4E00	DeNOx-System, Plausibilität: Systemfehler oder schlechte Reduktionsmittel Qualität erkannt
+2C4F00	Lambdasonde nach Kat, Plausibilität: Sauerstoffkonzentration zu NOx-Sensor vor DeNOx-Kat unplausibel (während Fettbetrieb)
+2C5000	Elektrolüfter, aktive Diagnoserückmeldung 1: Lüfter schwergängig (Leistungsaufnahme zu hoch)
+2C5100	Elektrolüfter, aktive Diagnoserückmeldung 2: Lüfter schwergängig (Strom-Regelschwelle überschritten)
+2C5200	Elektrolüfter, aktive Diagnoserückmeldung 3: Lüfter schwergängig (Temperatur-Warnschwelle überschritten)
+2C5300	Elektrolüfter, aktive Diagnoserückmeldung 4: Lüfter blockiert (Strom-Abschaltschwelle überschritten)
+2C5400	Elektrolüfter, aktive Diagnoserückmeldung 5: Übertemperatur (Temperatur-Abschaltschwelle überschritten)
+2C5500	Elektrolüfter, aktive Diagnoserückmeldung 6: interner Fehler (elektrisch defekt)
+2C5600	Drosselklappe, Positionsregelung: Drosselklappe zu weit geschlossen/positive Regelabweichung während RHU
+2C5700	Drosselklappe, Positionsregelung: Drosselklappe zu weit offen/negative Regelabweichung während RHU
+2C5800	Nullmengenadaption, Funktion: Ansteuerdauerkorrektur (Aktualisierung von OBD-DIUMPR)
+2C5900	Abgasrückführ-Kühler und Zusatz-AGR-Kühler, Plausibilität: Gesamtkühlerwirkungsgrad zu niedrig
+2C5A00	Botschaft (ERR_ST_GSG_LIN, 0x17, LIN): Signal(e) in Botschaft nicht gültig
+2C5B00	Bremsunterdrucksensor, Bereich: obere physikalische Grenze überschritten
+2C5C00	Bremsunterdrucksensor, Bereich: untere physikalische Grenze unterschritten
+2C5D00	Bremsunterdrucksensor, Plausibilität: Unterdruckabbau während Bremsvorgang zu gering
+2C5E00	CC-Meldung (ID 446): Launch Control aktiv
+2C5F00	Bremsunterdrucksensor, Signal: Kurzschluss nach Plus
+2C6000	Bremsunterdrucksensor, Signal: Unterbrechung oder Kurzschluss nach Masse
+2C6100	NOx-Sensor vor DeNOx-Kat, Plausibilität: Sensor Eigendiagnose nicht vorhanden
+2C6200	NOx-Sensor nach DeNOx-Kat, Plausibilität: Sensor Eigendiagnose nicht vorhanden
+2C6300	Kupplung, Plausibilität (Layer_KSU1): übertragbares Moment zu niedrig, Kupplung leicht geschädigt
+2C6400	Kupplung, Plausibilität (Layer_KSU2): übertragbares Moment zu niedrig, Kupplung geschädigt
+2C6500	Kupplung, Plausibilität (Layer_KSU3): übertragbares Moment zu niedrig, Kupplung stark geschädigt
+2C6600	Abgasrückführ-Kühlung, Plausibilität: AGR-Kühler Bypassklappe schließt nicht
+2C6700	Zusatz-Abgasrückführ-Kühlung, Plausibilität: Zusatz-AGR-Kühler Bypassklappe schließt nicht
+2C6800	Zusatz-Abgasrückführ-Kühlung, Plausibilität: Zusatz-AGR-Kühler Bypassklappe öffnet nicht
+2C6900	Abgasrückführ-Kühlung, Plausibilität: AGR-Kühler Bypassklappe öffnet nicht
+2C6A00	NOx-Sensor vor DeNOx-Kat, Plausibilität: Sauerstoffkonzentration zu Lambdasonde nach Kat unplausibel (während Fettbetrieb)
+2C6B00	Abgasrückführventil, Plausibilität: erster gelernter Offset-Wert ausserhalb gültigem Bereich
+2C6C00	Ölniveau (Layer_MOELNIV_UEBERFUELL): Motorölniveau zu hoch
+2C6D00	Luftmassenmesser, Diagnoserückmeldung: interner Fehler
+2C6E00	Raddrehzahlsensor vorne links, Signal: Kurzschluss nach Masse (gemeldet von DSC_Modul)
+2C6F00	Raddrehzahlsensor vorne rechts, Signal: Kurzschluss nach Masse (gemeldet von DSC_Modul)
+2C7000	Raddrehzahlsensor hinten links, Signal: Kurzschluss nach Masse (gemeldet von DSC_Modul)
+2C7100	Raddrehzahlsensor hinten rechts, Signal: Kurzschluss nach Masse (gemeldet von DSC_Modul)
+2C7200	Raddrehzahlsensor vorne links, Signal: Kurzschluss nach Plus (gemeldet von DSC_Modul)
+2C7300	Raddrehzahlsensor vorne rechts, Signal: Kurzschluss nach Plus (gemeldet von DSC_Modul)
+2C7400	Raddrehzahlsensor hinten links, Signal: Kurzschluss nach Plus (gemeldet von DSC_Modul)
+2C7500	Raddrehzahlsensor hinten rechts, Signal: Kurzschluss nach Plus (gemeldet von DSC_Modul)
+2C7600	Raddrehzahlsensor vorne links, Signal: Unterbrechung (gemeldet von DSC_Modul)
+2C7700	Raddrehzahlsensor vorne rechts, Signal: Unterbrechung (gemeldet von DSC_Modul)
+2C7800	Raddrehzahlsensor hinten links, Signal: Unterbrechung (gemeldet von DSC_Modul)
+2C7900	Raddrehzahlsensor hinten rechts, Signal: Unterbrechung (gemeldet von DSC_Modul)
+2C7A00	SCR-System, Verriegelungsinformation: Übertragung Ersatzreaktion 0 vom SCR-Steuergerät zur DDE
+2C7B00	SCR-System, Verriegelungsinformation: Übertragung Ersatzreaktion 1 vom SCR-Steuergerät zur DDE
+2C7C00	SCR-System, Verriegelungsinformation: Übertragung Ersatzreaktion 2 vom SCR-Steuergerät zur DDE
+2C7D00	SCR-System, Verriegelungsinformation: Übertragung Ersatzreaktion 3 vom SCR-Steuergerät zur DDE
+2C7E00	SCR-System, Verriegelungsinformation: Übertragung Ersatzreaktion 4 vom SCR-Steuergerät zur DDE
+2C7F00	DDE-Steuergerät intern (MoXTrqAct): FlexRay-Sendesignal Ist_Drehmoment_Kurbelwelle (AVL_TORQ_CRSH) fehlerhaft berechnet
+2C8000	xDFC_Layer_AEPHYSYSNIO: -
+2C8100	xDFC_Layer_AEPHYUSPG: -
+2C8200	xDFC_Layer_CCM_AUTEST_NOK: -
+2C8300	xDFC_Layer_CCM_AUTEST_OK: -
+2C8400	xDFC_Layer_IBSOBDI_MAX: -
+2C8500	xDFC_Layer_IBSOBDI_MIN: -
+2C8600	xDFC_Layer_IBSOBDT_MAX: -
+2C8700	xDFC_Layer_IBSOBDT_MIN: -
+2C8800	xDFC_Layer_IBSOBDU_MAX: -
+2C8900	xDFC_Layer_IBSOBDU_MIN: -
+2C8A00	xDFC_Layer_NGELRN: -
+2C8B00	Startsystem (Layer_RSSTARTTIMEOUT): Starter nicht angesteuert oder unzulässig hohe Startzeit
+2C8C00	Startsystem (Layer_SGRSTARTTIMEOUT): Starter-Generator nicht angesteuert oder unzulässig hohe Startzeit
+2C8D00	Startsystem (Layer_EMSTARTTIMEOUT): Elektromaschine nicht angesteuert oder unzulässig hohe Startzeit
+2C8E00	Startsystem (Layer_EMSTARTTIMEOUTX): Elektromaschine nicht angesteuert oder unzulässig hohe Startzeit
+2C8F00	xDFC_Layer_BLS_DIAG: Fehler Bremslichtschalter
+2C9000	Raildruck-Plausibilität mengengeregelt: Stellgröße für Mengenregelventil unter Schwelle (Zumesseinheit klemmt offen)
+2C9100	Raildruck-Plausibilität mengengeregelt: Stellgröße für Mengenregelventil unter Schwelle (Zumesseinheit defekt)
+2C9200	CC-Meldung (ID 882): Fahrzeug gegen Wegrollen sichern
+2C9300	DFC_Layer_HSCHALT_KOMB: Aufforderung Hochschalten ans Kombi als CC Meldung
+2C9400	DFC_Layer_RSCHALT_KOMB: Aufforderung Rückschalten ans Kombi als CC Meldung
+2C9A00	CC-Meldung (ID 276): Höheren Gang wählen
+2C9B00	Starter, Plausibilität: Startertemperatur zu hoch
+2C9C00	Einspurrelais Starter, Plausibilität: elektrisch defekt (Relaiskontakt dauerhaft geschlossen)
+2C9D00	Antrieb, Sicherheitsfunktion: Fahrpedalbegrenzungswert überschritten
+2C9E00	xDFC_TrqInrCtlDvtMax_0: High deviation error
+2C9F00	xDFC_TrqInrCtlDvtMax_1: High deviation error
+2CA000	xDFC_TrqInrCtlDvtMax_2: High deviation error
+2CA100	xDFC_TrqInrCtlDvtMax_3: High deviation error
+2CA200	xDFC_TrqInrCtlDvtMax_4: High deviation error
+2CA300	xDFC_TrqInrCtlDvtMax_5: High deviation error
+2CA400	xDFC_TrqInrCtlDvtMin_0: Low deviation error
+2CA500	xDFC_TrqInrCtlDvtMin_1: Low deviation error
+2CA600	xDFC_TrqInrCtlDvtMin_2: Low deviation error
+2CA700	xDFC_TrqInrCtlDvtMin_3: Low deviation error
+2CA800	xDFC_TrqInrCtlDvtMin_4: Low deviation error
+2CA900	xDFC_TrqInrCtlDvtMin_5: Low deviation error
+2CAA00	Turbinensteller Niederdruck, Diagnoserückmeldung 1: interner Fehler (elektrisch defekt)
+2CAB00	Turbinensteller Niederdruck, Diagnoserückmeldung 2: Übertemperatur oder Versorgungsspannung ungültig
+2CAC00	Turbinensteller Niederdruck, Diagnoserückmeldung 3: Fehler Kommunikation
+2CAD00	Turbinensteller Niederdruck, Diagnoserückmeldung 4: mechanisch defekt
+2CAE00	Turbinensteller Niederdruck, Diagnoserückmeldung 5: nv
+2CAF00	Turbinensteller Niederdruck, Statusleitung: Signal fehlerhaft
+2CB000	Turbinensteller Niederdruck, Statusleitung: Unterbrechung oder Kurzschluss nach Plus
+2CB100	Turbinensteller Niederdruck, Statusleitung: Kurzschluss nach Masse
+2CB200	DFC_RailMonTTC: check for TTC rail pressure build up during start
+2CB400	Öldrucksensor, Plausibilität: Rohsignal Wertänderung zu niedrig
+2CB500	Öldruckregelventil, Plausibilität: Ansteuerung nicht plausibel zu Öldrucksensorwert
+2CB600	DFC_Cy327SpiCom: CY327 SPI Communication Error
+2CB700	Sensor Speisespannung 1: Spannung zu hoch
+2CB800	Sensor Speisespannung 1: Kurzschluss nach Masse
+2CB900	Sensor Speisespannung 1: Spannung zu niedrig
+2CBA00	Sensor Speisespannung 2: Spannung zu hoch
+2CBB00	Sensor Speisespannung 2: Kurzschluss nach Masse
+2CBC00	Sensor Speisespannung 2: Spannung zu niedrig
+2CBD00	Sensor Speisespannung 3: Spannung zu hoch
+2CBE00	Sensor Speisespannung 3: Kurzschluss nach Masse
+2CBF00	Sensor Speisespannung 3: Spannung zu niedrig
+2CC000	DFC_SSpMonOT: Sensor supply over temperature
+2CC100	Motorstart, Plausibilität: Raildruck bei Motorstart zu niedrig
+2CC200	Motorstart, Plausibilität: Einspritzsystem wurde nicht freigegeben
+2CC300	xDFC_Layer_KP_SCHLAF_CC: Kupplungsschläfer
+2CC400	xDFC_Layer_KP_SCHLAF_INFO: Kupplungsschläfer Info
+2CC500	Antrieb, Sicherheitsfunktion: Bussignal Fahrpedalwert unplausibel
+2CC600	Antrieb, Sicherheitsfunktion: Bussignal Hinterachsdrehzahl unplausibel
+2CC700	Antrieb, Sicherheitsfunktion: Bussignal Motordrehzahl unplausibel
+2CC800	Antrieb, Sicherheitsfunktion: Bussignal zulässige Motordrehzahl unplausibel
+2CC900	Antrieb, Sicherheitsfunktion: Bussignal Ist-Gang unplausibel
+2CCA00	Antrieb, Sicherheitsfunktion: Bussignal Ziel-Gang unplausibel
+2CCB00	Antrieb, Sicherheitsfunktion: Bussignal Fahrerwunschfahrtrichtung unplausibel
+2CCC00	Antrieb, Sicherheitsfunktion: Bussignal Statusrückmeldung an Fahrerassistenzsystem unplausibel
+2CCD00	Antrieb, Sicherheitsfunktion: Bussignal Status Kraftschluss unplausibel
+2CCE00	Antrieb, Sicherheitsfunktion: Bussignal Drehzahlabsenkung unplausibel
+2CCF00	Antrieb, Sicherheitsfunktion: Bussignal Status Kupplung unplausibel
+2E0600	Motorstart, Plausibilität: Kraftstoff-Vorförderdruck bei Motorstart zu niedrig
+2E0700	Info - Elektrolüfter, Funktion: Lüfternachlauf angefordert
+2E4500	Motorschutz: Drehmomentreduzierung wegen Überhitzungsschutz
+2F2A00	Drehzahlüberwachung: Differenz zwischen Kurbelwellen- und Nockenwellen-Position während Einbauprüfung zu hoch
+2F2C00	Partikelfiltersystem, Plausibilität: minimaler Differenzdruck unterschritten (Partikelfilter-Effizienz zu niedrig)
+2F5300	Reduktionsmittel, Plausibilität: Schlechte Reduktionsmittel Qualität von SCR-Steuergerät empfangen
+2F9500	Partikelsensor, Diagnoserückmeldung: Messelektrode, Regeneration unvollständig
+2F9600	Luftmassenmesser, Driftkompensation: Signalabweichung zu hoch bei Massenstromstützstelle 2
+2F9700	Luftmassenmesser, Driftkompensation: Signalabweichung zu hoch bei Massenstromstützstelle 3
+2F9800	Luftmassenmesser, Driftkompensation: Signalabweichung zu hoch bei Massenstromstützstelle 4
+2F9900	Luftmassenmesser, Driftkompensation: Signalabweichung zu hoch bei Massenstromstützstelle 5
+2F9A00	Luftmassenmesser, Driftkompensation: Signalabweichung zu hoch bei Massenstromstützstelle 6
+2F9B00	Luftmassenmesser, Driftkompensation: Signalabweichung zu hoch bei Massenstromstützstelle 7
+2FBC00	Kalibrierung oberer Totpunkt, Funktion: Winkelabweichung noch nicht angelernt
+2FC000	Absperrventil Kühlmittelkreislauf (Zylinderkopf), Ansteuerung: Unterbrechung
+2FC100	Absperrventil Kühlmittelkreislauf (Zylinderkopf), Ansteuerung: Endstufe Übertemperatur
+2FC200	Absperrventil Kühlmittelkreislauf (Zylinderkopf), Ansteuerung: Kurzschluss nach Plus
+2FC300	Absperrventil Kühlmittelkreislauf (Zylinderkopf), Ansteuerung: Kurzschluss nach Masse
+2FC400	Absperrventil Kühlmittelkreislauf (Zylinderkopf), Plausibilität: Kühlmitteltemperaturänderung nach Umschaltvorgang zu niedrig
+2FC500	Zweimassenschwungrad, Schutzfunktion: ZMS-Resonanz während Motorstart
+2FDE00	DFC_EngPrtFlywhOscn1: Diagnostic fault check for FlyWheel oscillation Detection for speed synchronous process
+2FDF00	DFC_EngPrtFlywhOscn2: Diagnostic fault check for FlyWheel oscillation Detection for time synchronous process
+306F00	Einspurrelais Starter, Plausibilität: elektrisch defekt (Relaiskontakt sporadisch geschlossen)
+308500	Abgasrückführsteller Hochdruck, Positionsregelung: Steller klemmt während Kaltstart
+309600	Zweimassenschwungrad, Schutzfunktion: kritisch niedrige Motordrehzahl während Motorlauf
+30BE00	Geregelte Ölpumpe, Plausibilität: Deaktivierung Kaltstartvorsteuerung (Öldruck zu niedrig)
+30CB00	xDFC_MisfDetVWhlFrntLeOORHi: rough road detection, out of range error wheel speed front left
+30CC00	xDFC_MisfDetVWhlFrntLeRatyHi: rough road detection, error wheel speed deviation front left
+30CD00	xDFC_MisfDetVWhlFrntLeRatyLo: rough road detection, error wheel speed deviation front left
+30CE00	xDFC_MisfDetVWhlFrntLeStuck: rough road detection, error wheel speed stuck front left
+30CF00	xDFC_MisfDetVWhlFrntRiOORHi: rough road detection, out of range error wheel speed front right
+30D000	xDFC_MisfDetVWhlFrntRiRatyHi: rough road detection, error wheel speed deviation front right
+30D100	xDFC_MisfDetVWhlFrntRiRatyLo: rough road detection, error wheel speed deviation front right
+30D200	xDFC_MisfDetVWhlFrntRiStuck: rough road detection, error wheel speed stuck front right
+30D300	xDFC_MisfDetVWhlReLeOORHi: rough road detection, out of range error wheel speed rear left
+30D400	xDFC_MisfDetVWhlReLeRatyHi: rough road detection, error wheel speed deviation rear left
+30D500	xDFC_MisfDetVWhlReLeRatyLo: rough road detection, error wheel speed deviation rear left
+30D600	xDFC_MisfDetVWhlReLeStuck: rough road detection, error wheel speed stuck rear left
+30D700	xDFC_MisfDetVWhlReRiOORHi: rough road detection, out of range error wheel speed rear right
+30D800	xDFC_MisfDetVWhlReRiRatyHi: rough road detection, error wheel speed deviation rear right
+30D900	xDFC_MisfDetVWhlReRiRatyLo: rough road detection, error wheel speed deviation rear right
+30DA00	xDFC_MisfDetVWhlReRiStuck: rough road detection, error wheel speed stuck rear right
+30DB00	xDFC_MisfDetdVWhlFrntLePlaus: roughroad detection, implausible wheel acceleration front left
+30DC00	xDFC_MisfDetdVWhlFrntRiPlaus: roughroad detection, implausible wheel acceleration front right
+30DD00	xDFC_MisfDetdVWhlReLePlaus: roughroad detection, implausible wheel acceleration rear left
+30DE00	xDFC_MisfDetdVWhlReRiPlaus: roughroad detection, implausible wheel acceleration rear right
+30DF00	xDFC_RoughRoad: error rough road detection, no wheel speed available
+30E000	Aussetzererkennung Zylinder 1: Anzahl erkannter Verbrennungsaussetzer zu hoch
+30E100	Aussetzererkennung Zylinder 5: Anzahl erkannter Verbrennungsaussetzer zu hoch
+30E200	Aussetzererkennung Zylinder 3: Anzahl erkannter Verbrennungsaussetzer zu hoch
+30E300	Aussetzererkennung Zylinder 6: Anzahl erkannter Verbrennungsaussetzer zu hoch
+30E400	Aussetzererkennung Zylinder 2: Anzahl erkannter Verbrennungsaussetzer zu hoch
+30E500	Aussetzererkennung Zylinder 4: Anzahl erkannter Verbrennungsaussetzer zu hoch
+30E600	DFC_MDEmi: Exhaust damaging misfire detected
+30E700	DFC_MDEmiStrt: Exhaust damaging misfire detected during Start
+30E800	Aussetzererkennung in mehreren Zylindern: Anzahl erkannter Verbrennungsaussetzer zu hoch
+30E900	xDFC_MDSegTiAdpn: Maximum difference of correction factors at new learning exceeded
+30EC00	Partikelsensor, Plausibilität: Sensortemperatur zu niedrig (Sensor defekt oder nicht verbaut)
+312E00	Kupplung, Plausibilität: kritische Kupplungsscheibendrehzahl überschritten
+314E00	Motor-Start-Stop-Automatik MSA (Layer_MSADEAKBDCSTART): MSA deaktiviert nach Anforderung von FEM/BDC
+315000	Zweimassenschwungrad, Schutzfunktion: ZMS-Resonanz während Motorstart mit niedrigem Startermoment
+315100	Zweimassenschwungrad, Schutzfunktion: ZMS-Resonanz während Motorstart in Motorauslauf (Durchstarten)
+315200	Zweimassenschwungrad, Schutzfunktion: ZMS-Resonanz während Motorstart mit eingelegtem Gang
+315300	Zweimassenschwungrad, Schutzfunktion: ZMS-Resonanz während Motorstart mit Gang in Neutral
+315400	Zweimassenschwungrad, Schutzfunktion: ZMS-Resonanz erkannt (während Motor angeschleppt wird)
+31D200	Info - Partikelfiltersystem: Restlaufstrecke des Partikelfilter reduziert (Differenzdruck zu hoch)
+31D500	Zweimassenschwungrad, Schutzfunktion: ZMS-Resonanz während Motorstart (unabhängig vom Motorzustand)
+31DF00	xDFC_OxiCatLvl1rLdMon: -
+31E000	xDFC_OxiCatLvl2rLdMon: -
+321700	Motorstart, Plausibilität: Kraftstoff-Vorförderdruck bei Motorstart nach Tankleerfahrt zu niedrig
+32C700	NOx Speicherkat, Plausibilität: keine NSC-Speicherfähigkeit (Reduktionsmittelschlupf zu hoch)
+331700	Abgasrückführ-Kühlung, Plausibilität: AGR-Kühler Bypassklappe schließt nicht (Temperatur nach Kühler zu hoch)
+331800	Abgasrückführ-Kühlung, Plausibilität: AGR-Kühler Bypassklappe mechanisch defekt nahe offener Position
+33B900	Info - Lastanhebung: Anforderung Betriebsartenumschaltung nicht erfolgreich
+33BA00	Info - Lastanhebung: Anforderung Drehmomenterhöhung nicht erfolgreich
+33BB00	Info - Lastanhebung: Anforderung elektrische Last nicht zulässig
+341100	Elektrischer Luftheizer, Diagnoserückmeldung: Fehler Kommunikation (von DDE zum LIN-Teilnehmer)
+341200	Elektrischer Luftheizer, Diagnoserückmeldung: Masseversatz
+341300	Elektrischer Luftheizer, Diagnoserückmeldung: interner Hardware Fehler
+341400	Elektrischer Luftheizer, Diagnoserückmeldung: Knotenfehler aktiv
+341500	Elektrischer Luftheizer, Diagnoserückmeldung: interne Temperatur zu hoch
+341600	Elektrischer Luftheizer, Diagnoserückmeldung: Versorgungsspannung zu hoch
+341700	Botschaft (ST_EDH_LSG_LIN, 0x36, LIN), Timeout: Botschaft (Status_EDH_LSG_LIN) von EDH_LSG ausgefallen
+341800	Botschaft (ST_EDH_LSG_LIN, 0x36, LIN), Signalfehler: Signal(e) in Botschaft (Status_EDH_LSG_LIN) von EDH_LSG nicht gültig
+341900	Elektrischer Luftheizer, Diagnoserückmeldung: Spannung Kl. 30 am Luftheizer fehlt
+341A00	Elektrischer Luftheizer, Diagnoserückmeldung: keine Kommunikation
+341B00	LIN Bus, Kommunikation: keine Botschaften von EDH_LSG (Elektrischer Luftheizer) empfangen
+341C00	Abgasrückführ-Kühlung, Plausibilität: Temperatur nach Kühler im Bypassbetrieb zu hoch
+348D00	NOx-Sensor vor DeNOx-Kat, Plausibilität: falscher Sensortyp verbaut
+348E00	NOx-Sensor nach DeNOx-Kat, Plausibilität: falscher Sensortyp verbaut
+34EA00	Lambdasonde vor Kat, Funktion: Maximale Zeitdauer überschritten bis Taupunktende erkannt
+34F400	newDFC_DewDetDiagS5B1: Dew point detection diagnosis for sensor 5
+34F500	newDFC_DewDetDiagS2B1: Dew point detection diagnosis for sensor 2
+34F600	newDFC_DewDetDiagS3B1: Dew point detection diagnosis for sensor 3
+34F700	newDFC_DewDetDiagS4B1: Dew point detection diagnosis for sensor 4
+357C00	DDE-Hauptrelais, Plausibilität: Relais schaltet zu früh ab oder Unterspannung
+35AD00	Elektrischer Luftheizer, Plausibilität: Abweichung Soll-/ Ist-Leistung zu hoch
+35C200	Elektrischer Luftheizer, Diagnoserückmeldung: Endstufe defekt (permanent ausgeschaltet)
+35C300	Elektrischer Luftheizer, Diagnoserückmeldung: Ansteuerung Unterbrechung
+35C400	Elektrischer Luftheizer, Diagnoserückmeldung: Ansteuerung Kurzschluss
+35C500	Elektrischer Luftheizer, Diagnoserückmeldung: Endstufe defekt (permanent eingeschaltet)
+CD840A	FA-CAN-Bus: Steuergerät hat sich vom Bus abgeschaltet (Bus off)
+CD841F	FlexRay, physikalischer Busfehler: Unterbrechung oder Kurzschluss
+CD8420	FlexRay: Steuergerät hat sich vom Bus abgeschaltet (Bus off)
+CD8486	A-CAN-Bus: Steuergerät hat sich vom Bus abgeschaltet (Bus off)
+CD8487	FlexRay: Kommunikationsfehler (Aufstartzeit überschritten)
+CD8BFF	Diagnosemaster Test, I14229_ROETst_Netw: Netzwerk-Dummy-Fehlerspeichereintrag mit Diagnosejob erzeugt
+CD8D01	CCP-CAN-Bus: Steuergerät hat sich vom Bus abgeschaltet (Bus off)
+CD9400	Botschaft (RQ_AIC, 0x2F9, FA): Signal(e) in Botschaft nicht gültig
+CD9401	Botschaft (RQ_AIC, 0x2F9, FA): Botschaft von IHKA ausgefallen
+CD9402	Botschaft (A_TEMP, 0x2CA, FA): Signal(e) in Botschaft nicht gültig
+CD9403	Botschaft (A_TEMP, 0x2CA, FA): Botschaft von Kombi ausgefallen
+CD9406	Botschaft (AVL_BRTORQ_SUM_ST_PRMSN_IBRK, 43.3.4, FX): Fehler in der Botschaft (Checksummenfehler)
+CD9407	Botschaft (AVL_BRTORQ_SUM_ST_PRMSN_IBRK, 43.3.4, FX): Botschaft von Sende-Steuergerät nicht aktuell (Alivecounter)
+CD9408	Botschaft (AVL_BRTORQ_SUM_ST_PRMSN_IBRK, 43.3.4, FX): Signal(e) in Botschaft nicht gültig
+CD9409	Botschaft (AVL_BRTORQ_SUM_ST_PRMSN_IBRK, 43.3.4, FX): Botschaft von DSC ausgefallen
+CD9410	Botschaft (CODIERUNG_PM, 0x395, FA): Signal(e) in Botschaft nicht gültig
+CD9416	Botschaft (CTR_CRASH_SWO_EKP, 0x135, FA): Signal(e) in Botschaft nicht gültig
+CD9417	Botschaft (CTR_CRASH_SWO_EKP, 0x135, FA): Botschaft von ACSM ausgefallen
+CD9418	SG-Systemzeit: Botschaft (RELATIVZEIT, 0x328, FA) von Kombi während Bus aktiv nicht empfangen
+CD941D	Botschaft (DIAG_OBD_GRB, 0x396, A): Signal(e) in Botschaft nicht gültig
+CD941E	Botschaft (DIAG_OBD_GRB, 0x396, A): Botschaft von Getriebesteuergerät ausgefallen
+CD9422	Botschaft (FAHRZEUGTYP, 0x388, FA): Signal(e) in Botschaft nicht gültig
+CD9423	Botschaft (FLLUPT_GPWSUP, 0x3BE, FA): Signal(e) in Botschaft nicht gültig
+CD9424	Botschaft (FLLUPT_GPWSUP, 0x3BE, FA): Botschaft von CAS ausgefallen
+CD9425	Botschaft (DT_GRDT, 0x1AF, A): Fehler in der Botschaft (Checksummenfehler)
+CD9426	Botschaft (DT_GRDT, 0x1AF, FA): Fehler in der Botschaft (Checksummenfehler)
+CD9427	Botschaft (DT_GRDT, 0x1AF, A): Botschaft von Sende-Steuergerät nicht aktuell (Alivecounter)
+CD9428	Botschaft (DT_GRDT, 0x1AF, FA): Botschaft von Sende-Steuergerät nicht aktuell (Alivecounter)
+CD9429	Botschaft (DT_GRDT, 0x1AF, A): Signal(e) in Botschaft nicht gültig
+CD942A	Botschaft (DT_GRDT, 0x1AF, FA): Signal(e) in Botschaft nicht gültig
+CD942B	Botschaft (DT_GRDT, 0x1AF, A): Botschaft von Getriebesteuergerät ausgefallen
+CD942C	Botschaft (DT_GRDT, 0x1AF, FA): Botschaft von Getriebesteuergerät ausgefallen
+CD942D	Botschaft (KLEMMEN, 0x12F, FA): Fehler in der Botschaft (Checksummenfehler)
+CD942E	Botschaft (KLEMMEN, 0x12F, FA): Botschaft von Sende-Steuergerät nicht aktuell (Alivecounter)
+CD942F	Botschaft (KLEMMEN, 0x12F, FA): Signal(e) in Botschaft nicht gültig
+CD9430	Botschaft (KLEMMEN, 0x12F, FA): Botschaft von CAS ausgefallen
+CD9433	Botschaft (KILOMETERSTAND, 0x330, FA): Signal(e) in Botschaft nicht gültig
+CD9434	Botschaft (KILOMETERSTAND, 0x330, FA): Botschaft von Kombi ausgefallen
+CD9437	Botschaft (RELATIVZEIT, 0x328, FA): Signal(e) in Botschaft nicht gültig
+CD9438	Botschaft (RELATIVZEIT, 0x328, FA): Botschaft von Kombi ausgefallen
+CD943D	Botschaft (AVL_RPM_WHL, 46.1.2, FX): Fehler in der Botschaft (Checksummenfehler)
+CD943E	Botschaft (AVL_RPM_WHL, 46.1.2, FX): Botschaft von Sende-Steuergerät nicht aktuell (Alivecounter)
+CD943F	Botschaft (AVL_RPM_WHL, 46.1.2, FX): Botschaft von DSC ausgefallen
+CD944D	Botschaft (SLRDI_GLB_FZM, 0x3A5, FA): Botschaft von ZGW ausgefallen
+CD944F	Botschaft (V_VEH, 55.3.4, FX): Fehler in der Botschaft (Checksummenfehler)
+CD9450	Botschaft (V_VEH, 55.3.4, FX): Botschaft von Sende-Steuergerät nicht aktuell (Alivecounter)
+CD9451	Botschaft (V_VEH, 55.3.4, FX): Signal(e) in Botschaft nicht gültig
+CD9452	Botschaft (V_VEH, 55.3.4, FX): Botschaft von ICM_QL ausgefallen
+CD9453	Botschaft (ST_STAB_DSC, 47.1.2, FX): Fehler in der Botschaft (Checksummenfehler)
+CD9454	Botschaft (ST_STAB_DSC, 47.1.2, FX): Botschaft von Sende-Steuergerät nicht aktuell (Alivecounter)
+CD9455	Botschaft (ST_STAB_DSC, 47.1.2, FX): Signal(e) in Botschaft nicht gültig
+CD9456	Botschaft (ST_STAB_DSC, 47.1.2, FX): Botschaft von DSC ausgefallen
+CD9459	Botschaft (STAT_EKP, 0x335, A): Signal(e) in Botschaft nicht gültig
+CD945A	Botschaft (STAT_EKP, 0x335, A): Botschaft von EKP ausgefallen
+CD945B	Botschaft (STAT_GANG_RUECKWAERTS, 0x3B0, FA): Signal(e) in Botschaft nicht gültig
+CD945C	Botschaft (STAT_GANG_RUECKWAERTS, 0x3B0, FA): Botschaft von FRMFA ausgefallen
+CD945D	Botschaft (STAT_ZV_KLAPPEN, 0x2FC, FA): Signal(e) in Botschaft nicht gültig
+CD945E	Botschaft (STAT_ZV_KLAPPEN, 0x2FC, FA): Botschaft von CAS ausgefallen
+CD9465	Botschaft (ST_BLT_CT_SOCCU, 0x297, FA): Signal(e) in Botschaft nicht gültig
+CD9467	Botschaft (ST_BLT_CT_SOCCU, 0x297, FA): Botschaft von ACSM ausgefallen
+CD9468	Botschaft (ST_GRB_ECU, 0x39A, A): Signal(e) in Botschaft nicht gültig
+CD9469	Botschaft (ST_GRB_ECU, 0x39A, FA): Signal(e) in Botschaft nicht gültig
+CD946A	Botschaft (ST_GRB_ECU, 0x39A, A): Botschaft von Getriebesteuergerät ausgefallen
+CD946B	Botschaft (ST_GRB_ECU, 0x39A, FA): Botschaft von Getriebesteuergerät ausgefallen
+CD947A	Botschaft (UHRZEIT_DATUM, 0x2F8, FA): Signal(e) in Botschaft nicht gültig
+CD947B	Botschaft (UHRZEIT_DATUM, 0x2F8, FA): Botschaft von Kombi ausgefallen
+CD947D	Botschaft (STAT_ANHAENGER, 0x2E4, FA): Signal(e) in Botschaft nicht gültig
+CD947F	Botschaft (STAT_ANHAENGER, 0x2E4, FA): Botschaft von AHM ausgefallen
+CD9480	Botschaft (RQ_TORQ_CRSH_DRDY, 58.1.4, FX): Fehler in der Botschaft (Checksummenfehler)
+CD9481	Botschaft (RQ_TORQ_CRSH_DRDY, 58.1.4, FX): Botschaft von Sende-Steuergerät nicht aktuell (Alivecounter)
+CD9482	Botschaft (RQ_TORQ_CRSH_DRDY, 58.1.4, FX): Signal(e) in Botschaft nicht gültig
+CD9483	Botschaft (RQ_TORQ_CRSH_DRDY, 58.1.4, FX): Botschaft von ICM_QL ausgefallen
+CD9484	Botschaft (RQ_TORQ_CRSH_GRB, 0xB0, A): Fehler in der Botschaft (Checksummenfehler)
+CD9485	Botschaft (RQ_TORQ_CRSH_GRB, 0xB0, A): Botschaft von Sende-Steuergerät nicht aktuell (Alivecounter)
+CD9486	Botschaft (RQ_TORQ_CRSH_GRB, 0xB0, A): Signal(e) in Botschaft nicht gültig
+CD9487	Botschaft (RQ_TORQ_CRSH_GRB, 0xB0, A): Botschaft von Getriebesteuergerät ausgefallen
+CD948E	Botschaft (RQ_TORQ_CRSH_GRB, 0xB0, FA): Fehler in der Botschaft (Checksummenfehler)
+CD948F	Botschaft (RQ_TORQ_CRSH_GRB, 0xB0, FA): Botschaft von Sende-Steuergerät nicht aktuell (Alivecounter)
+CD9490	Botschaft (RQ_TORQ_CRSH_GRB, 0xB0, FA): Signal(e) in Botschaft nicht gültig
+CD9491	Botschaft (RQ_TORQ_CRSH_GRB, 0xB0, FA): Botschaft von Getriebesteuergerät ausgefallen
+CD9496	Botschaft (RQ_WMOM_PT_SUM_DRS, 33.1.4, FX): Fehler in der Botschaft (Checksummenfehler)
+CD9497	Botschaft (RQ_WMOM_PT_SUM_DRS, 33.1.4, FX): Botschaft von Sende-Steuergerät nicht aktuell (Alivecounter)
+CD9498	Botschaft (RQ_WMOM_PT_SUM_DRS, 33.1.4, FX): Signal(e) in Botschaft nicht gültig
+CD9499	Botschaft (RQ_WMOM_PT_SUM_DRS, 33.1.4, FX): Botschaft von ICM_QL ausgefallen
+CD94A5	Botschaft (RQ_WMOM_PT_SUM_STAB, 43.1.4, FX): Fehler in der Botschaft (Checksummenfehler)
+CD94A6	Botschaft (RQ_WMOM_PT_SUM_STAB, 43.1.4, FX): Botschaft von Sende-Steuergerät nicht aktuell (Alivecounter)
+CD94A7	Botschaft (RQ_WMOM_PT_SUM_STAB, 43.1.4, FX): Signal(e) in Botschaft nicht gültig
+CD94A8	Botschaft (RQ_WMOM_PT_SUM_STAB, 43.1.4, FX): Botschaft von DSC ausgefallen
+CD94AD	Botschaft (ACLNX_MASSCNTR, 55.0.2, FX): Fehler in der Botschaft (Checksummenfehler)
+CD94AE	Botschaft (ACLNX_MASSCNTR, 55.0.2, FX): Botschaft von Sende-Steuergerät nicht aktuell (Alivecounter)
+CD94AF	Botschaft (ACLNX_MASSCNTR, 55.0.2, FX): Signal(e) in Botschaft nicht gültig
+CD94B0	Botschaft (ACLNX_MASSCNTR, 55.0.2, FX): Botschaft von ICM_QL ausgefallen
+CD94B1	Botschaft (ACLNY_MASSCNTR, 55.0.2, FX): Fehler in der Botschaft (Checksummenfehler)
+CD94B2	Botschaft (ACLNY_MASSCNTR, 55.0.2, FX): Botschaft von Sende-Steuergerät nicht aktuell (Alivecounter)
+CD94B3	Botschaft (ACLNY_MASSCNTR, 55.0.2, FX): Signal(e) in Botschaft nicht gültig
+CD94B4	Botschaft (ACLNY_MASSCNTR, 55.0.2, FX): Botschaft von ICM_QL ausgefallen
+CD94B5	Botschaft (SU_SW_DRDY, 272.4.8, FX): Botschaft von Sende-Steuergerät nicht aktuell (Alivecounter)
+CD94B6	Botschaft (SU_SW_DRDY, 272.4.8, FX): Signal(e) in Botschaft nicht gültig
+CD94B7	Botschaft (SU_SW_DRDY, 272.4.8, FX): Botschaft von ICM_QL ausgefallen
+CD94B8	Botschaft (DISP_RPM_ENG_DYNS, 0xF8, A): Botschaft von Sende-Steuergerät nicht aktuell (Alivecounter)
+CD94B9	Botschaft (DISP_RPM_ENG_DYNS, 0xF8, A): Signal(e) in Botschaft nicht gültig
+CD94BA	Botschaft (DISP_RPM_ENG_DYNS, 0xF8, A): Botschaft von Getriebesteuergerät ausgefallen
+CD94BB	Botschaft (AVL_RPM_WHL, 46.1.2, FX): Signal(e) in Botschaft nicht gültig
+CD94BD	Botschaft (SU_SW_DRDY, 272.4.8, FX): Fehler in der Botschaft (Checksummenfehler)
+CD94BE	Botschaft (FZZSTD, 0x3A0, FA): Signal(e) in Botschaft nicht gültig
+CD94BF	Botschaft (FZZSTD, 0x3A0, FA): Botschaft von JBBF ausgefallen
+CD94C1	Botschaft (V_VEH, 55.3.4, FX), Signalqualität: QU_V_VEH_COG (Qualifier_Geschwindigkeit_Fahrzeug_Schwerpunkt) von DSC unzureichend
+CD94C2	Botschaft (DIAG_OBD_GRB, 0x396, FA): Signal(e) in Botschaft nicht gültig
+CD94C3	Botschaft (DIAG_OBD_GRB, 0x396, FA): Botschaft von Getriebesteuergerät ausgefallen
+CD94C6	Botschaft (RQ_PWR_EL_EPS, 234.0.2, FX): Signal(e) in Botschaft nicht gültig
+CD94C7	Botschaft (RQ_PWR_EL_EPS, 234.0.2, FX): Botschaft von EPS ausgefallen
+CD94C8	Botschaft (RQ_PWR_EL_PCU, 0x33F, A): Signal(e) in Botschaft nicht gültig
+CD94C9	Botschaft (RQ_PWR_EL_PCU, 0x33F, A): Botschaft von PCU ausgefallen
+CD94CA	Botschaft (ST_ENERG_GEN_BN2, 0x2AF, A): Signal(e) in Botschaft nicht gültig
+CD94CB	Botschaft (ST_ENERG_GEN_BN2, 0x2AF, A): Botschaft von PCU ausgefallen
+CD94CE	Botschaft (ST_VHSS, 263.1.4, FX): Signal(e) in Botschaft nicht gültig
+CD94CF	Botschaft (ST_VHSS, 263.1.4, FX): Botschaft von DSC ausgefallen
+CD94D0	Botschaft (ST_VHSS, 263.1.4, FX): Fehler in der Botschaft (Checksummenfehler)
+CD94D1	Botschaft (ST_VHSS, 263.1.4, FX): Botschaft von Sende-Steuergerät nicht aktuell (Alivecounter)
+CD94D2	Botschaft (ST_VEHSS_PBRK, 0x2DC, FA): Fehler in der Botschaft (Checksummenfehler)
+CD94D3	Botschaft (ST_VEHSS_PBRK, 0x2DC, FA): Botschaft von Sende-Steuergerät nicht aktuell (Alivecounter)
+CD94D4	Botschaft (ST_VEHSS_PBRK, 0x2DC, FA): Signal(e) in Botschaft nicht gültig
+CD94D5	Botschaft (ST_VEHSS_PBRK, 0x2DC, FA): Botschaft von EMF ausgefallen
+CD94D9	Botschaft (Dienste ID2=68, 0x580-0x5FF, FA), Signalfehler: Signal(e) in Botschaft (Elektrische Anforderung Verbraucher) von diversen Sende-Steuergeräten (DSC, ...) nicht gültig
+CD94DA	Botschaft (Dienste ID2=68, 0x580-0x5FF, FA), Timeout: Botschaft (Elektrische Anforderung Verbraucher) von diversen Sende-Steuergeräten (DSC, ...) ausgefallen
+CD94DB	Botschaft (FAHRGESTELLNUMMER, 0x380, FA): Signal(e) in Botschaft nicht gültig
+CD94DC	Getriebesteuergerät, Kommunikation: Getriebekommunikation über A-CAN und FA-CAN gestört
+CD94DD	Botschaft (Dienste ID2=140, 0x580-0x5FF, FA), Signalfehler: Signal(e) in Botschaft (OBD Sensor Diagnosestatus) von diversen Sende-Steuergeräten (Kombi, ...) nicht gültig
+CD94DE	Botschaft (Dienste ID2=140, 0x580-0x5FF, FA), Timeout: Botschaft (OBD Sensor Diagnosestatus) von diversen Sende-Steuergeräten (Kombi, ...) ausgefallen
+CD94DF	Botschaft (Dienste ID2=8, 0x580-0x5FF, FA), Signalfehler: Signal(e) in Botschaft (Powermanagement Standverbraucher) von diversen Sende-Steuergeräten (BDC, ...) nicht gültig
+CD94E0	Botschaft (Dienste ID2=8, 0x580-0x5FF, FA), Timeout: Botschaft (Powermanagement Standverbraucher) von diversen Sende-Steuergeräten (BDC, ...) ausgefallen
+CD94E1	Botschaft (Dienste ID2=21, 0x580-0x5FF, FA), Signalfehler: Signal(e) in Botschaft (Anforderung Wärmemanagement) von diversen Sende-Steuergeräten (EPS, ...) nicht gültig
+CD94E2	Botschaft (Dienste ID2=21, 0x580-0x5FF, FA), Timeout: Botschaft (Anforderung Wärmemanagement) von diversen Sende-Steuergeräten (EPS, ...) ausgefallen
+CD94E3	Botschaft (DIENSTE-ID2=19 Anforderung MSA Funktion, 0x580-0x5FF, FA): Signal(e) in Botschaft nicht gültig
+CD94E4	Botschaft (DIENSTE-ID2=19 Anforderung MSA Funktion, 0x580-0x5FF, FA): Botschaft von diversen Sende-Steuergeräten (DSC, CAS, EGS, SEC1, IHKA, ...) ausgefallen
+CD94E5	Botschaft (Dienste ID2=110, 0x580-0x5FF, FA), Signalfehler: Signal(e) in Botschaft (Verbraucherstatus) von diversen Sende-Steuergeräten (BDC, IHKA, ...) nicht gültig
+CD94E6	Botschaft (Dienste ID2=110, 0x580-0x5FF, FA), Timeout: Botschaft (Verbraucherstatus) von diversen Sende-Steuergeräten (BDC, IHKA, ...) ausgefallen
+CD94E7	Botschaft (AVL_STEA_FTAX, 57.1.2, FX): Fehler in der Botschaft (Checksummenfehler)
+CD94E8	Botschaft (AVL_STEA_FTAX, 57.1.2, FX): Botschaft von Sende-Steuergerät nicht aktuell (Alivecounter)
+CD94E9	Botschaft (AVL_STEA_FTAX, 57.1.2, FX): Signal(e) in Botschaft nicht gültig
+CD94EA	Botschaft (AVL_STEA_FTAX, 57.1.2, FX): Botschaft von ICM_QL ausgefallen
+CD94EB	Botschaft (SLRDI_GLB_FZM, 0x3A5, FA): Signal(e) in Botschaft nicht gültig
+CD94EC	Botschaft (DT_DISP_GRDT, 0x3FD, FA): Signal(e) in Botschaft nicht gültig
+CD94ED	Botschaft (DT_DISP_GRDT, 0x3FD, FA): Botschaft von Getriebesteuergerät ausgefallen
+CD94EE	Botschaft (AVL_RPM_WHL, 46.0.1, FX), Signalqualität: QU_AVL_RPM_WHL_FLH (Qualifier_Ist_Drehzahl_Rad_VL) von DSC unzureichend
+CD94EF	Botschaft (AVL_RPM_WHL, 46.0.1, FX), Signalqualität: QU_AVL_RPM_WHL_FRH (Qualifier_Ist_Drehzahl_Rad_VR) von DSC unzureichend
+CD94F0	Botschaft (AVL_RPM_WHL, 46.0.1, FX), Signalqualität: QU_AVL_RPM_WHL_RLH (Qualifier_Ist_Drehzahl_Rad_HL) von DSC unzureichend
+CD94F1	Botschaft (AVL_RPM_WHL, 46.0.1, FX), Signalqualität: QU_AVL_RPM_WHL_RRH (Qualifier_Ist_Drehzahl_Rad_HR) von DSC unzureichend
+CD94FC	Botschaft (ST_BLT_CT_SOCCU, 0x297, FA): Fehler in der Botschaft (Checksummenfehler)
+CD94FD	Botschaft (ST_BLT_CT_SOCCU, 0x297, FA): Botschaft von Sende-Steuergerät nicht aktuell (Alivecounter)
+CD9509	Botschaft (RQ_TORQ_CRSH_GRB_2, 0xA0, A): Fehler in der Botschaft (Checksummenfehler)
+CD950A	Botschaft (RQ_TORQ_CRSH_GRB_2, 0xA0, FA): Fehler in der Botschaft (Checksummenfehler)
+CD950B	Botschaft (RQ_TORQ_CRSH_GRB_2, 0xA0, A): Botschaft von Sende-Steuergerät nicht aktuell (Alivecounter)
+CD950C	Botschaft (RQ_TORQ_CRSH_GRB_2, 0xA0, FA): Botschaft von Sende-Steuergerät nicht aktuell (Alivecounter)
+CD950D	Botschaft (RQ_TORQ_CRSH_GRB_2, 0xA0, A): Signal(e) in Botschaft nicht gültig
+CD950E	Botschaft (RQ_TORQ_CRSH_GRB_2, 0xA0, FA): Signal(e) in Botschaft nicht gültig
+CD950F	Botschaft (RQ_TORQ_CRSH_GRB_2, 0xA0, A): Botschaft von Getriebesteuergerät ausgefallen
+CD9510	Botschaft (RQ_TORQ_CRSH_GRB_2, 0xA0, FA): Botschaft von Getriebesteuergerät ausgefallen
+CD9511	Botschaft (STAT_DS_VRFD, 256.3.4, FX): Fehler in der Botschaft (Checksummenfehler)
+CD9512	Botschaft (STAT_DS_VRFD, 256.3.4, FX): Botschaft von Sende-Steuergerät nicht aktuell (Alivecounter)
+CD9513	Botschaft (STAT_DS_VRFD, 256.3.4, FX): Signal(e) in Botschaft nicht gültig
+CD9514	Botschaft (STAT_DS_VRFD, 256.3.4, FX): Botschaft von FRMFA ausgefallen
+CD9515	Botschaft (DT_GRDT, 0x1AF, A, FA): Botschafts- oder Signalfehler von EGS während Unterspannung
+CD9516	Botschaft (TLT_RW_STEA_FTAX_EFFV, 56.1.2, FX): Fehler in der Botschaft (Checksummenfehler)
+CD9517	Botschaft (TLT_RW_STEA_FTAX_EFFV, 56.1.2, FX): Botschaft von Sende-Steuergerät nicht aktuell (Alivecounter)
+CD9518	Botschaft (TLT_RW_STEA_FTAX_EFFV, 56.1.2, FX): Signal(e) in Botschaft nicht gültig
+CD9519	Botschaft (TLT_RW_STEA_FTAX_EFFV, 56.1.2, FX): Botschaft von ICM_QL ausgefallen
+CD951A	Botschaft (ST_GRB_ECU, 0x39A, A, FA): Botschafts- oder Signalfehler von EGS während Unterspannung
+CD951B	Botschaft (AVL_STMOM_DV_ACT_AVL_FORC_GRD, 49.0.2, FX): Signal(e) in Botschaft nicht gültig
+CD951C	Botschaft (AVL_STMOM_DV_ACT_AVL_FORC_GRD, 49.0.2, FX): Botschaft von EPS ausgefallen
+CD951F	Botschaft (RQ_WMOM_PT_SUM_STAB, 43.1.4, FX): Signal(e) in Botschaft nicht gültig während Unterspannung
+CD9520	Botschaft (RQ_WMOM_PT_SUM_STAB, 43.1.4, FX): Botschaft von DSC ausgefallen während Unterspannung
+CD9522	Botschaft (SU_SW_DRDY_SU_SW_DRDY_2, 272.4.8, FX): Botschaft von ICM_QL ausgefallen
+CD9523	Botschaft (RQ_WMOM_PT_SUM_STAB_TAR_REPAT_XTRQ_FTAX_BAX, 43.1.4, FX): Fehler in der Botschaft (Checksummenfehler)
+CD9524	Botschaft (RQ_WMOM_PT_SUM_STAB_TAR_REPAT_XTRQ_FTAX_BAX, 43.1.4, FX): Botschaft von Sende-Steuergerät nicht aktuell (Alivecounter)
+CD9525	Botschaft (RQ_WMOM_PT_SUM_STAB_TAR_REPAT_XTRQ_FTAX_BAX, 43.1.4, FX): Signal(e) in Botschaft nicht gültig
+CD9526	Botschaft (RQ_WMOM_PT_SUM_STAB_TAR_REPAT_XTRQ_FTAX_BAX, 43.1.4, FX): Botschaft von DSC ausgefallen
+CD9527	Botschaft (ST_REPAT_XTRQ_FTAX_BAX, 19.3.4, FX): Fehler in der Botschaft (Checksummenfehler)
+CD9528	Botschaft (ST_REPAT_XTRQ_FTAX_BAX, 19.3.4, FX): Botschaft von Sende-Steuergerät nicht aktuell (Alivecounter)
+CD9529	Botschaft (ST_REPAT_XTRQ_FTAX_BAX, 19.3.4, FX): Signal(e) in Botschaft nicht gültig
+CD952A	Botschaft (ST_REPAT_XTRQ_FTAX_BAX, 19.3.4, FX): Botschaft von LMV (Längs Momenten Verteilung) ausgefallen
+CD952B	Botschaft (ST_REPAT_XTRQ_FTAX_BAX, 19.3.4, FX), Signalqualität: QU_AVL_REPAT_XTRQ_FTAX_BAX (Qualifier_Ist_Verteilung_Längsmoment_Vorderachse_Hinterachse) von LMV unzureichend
+CD952C	Botschaft (TAR_WMOM_PT_STAB, 64.1.2, FX), Signalqualität: QU_TAR_REPAT_XTRQ_FTAX_BAX_ACT (Qualifier_Soll_Verteilung_Längsmoment_Vorderachse_Hinterachse_Stellglied) von DSC unzureichend
+CD952D	Botschaft (SU_SW_DRDY_SU_SW_DRDY_2, 272.4.8, FX): Signal(e) in Botschaft nicht gültig
+CD952E	Botschaft (AVL_STMOM_DV_ACT_AVL_FORC_GRD, 49.0.2, FX): Signal(e) in Botschaft nicht gültig
+CD952F	Botschaft (AVL_STMOM_DV_ACT_AVL_FORC_GRD, 49.0.2, FX): Botschaft von EPS ausgefallen
+CD9530	Botschaft (BEDIENUNG_SONDERFUNKTION, 257.4.8, FX): Signal(e) in Botschaft nicht gültig
+CD9531	Botschaft (QU_SER_ECBA_BRTORQ_SUM_COOTD, 63.1.4, FX): Fehler in der Botschaft (Checksummenfehler)
+CD9532	Botschaft (QU_SER_ECBA_BRTORQ_SUM_COOTD, 63.1.4, FX): Botschaft von Sende-Steuergerät nicht aktuell (Alivecounter)
+CD9533	Botschaft (QU_SER_ECBA_BRTORQ_SUM_COOTD, 63.1.4, FX): Signal(e) in Botschaft nicht gültig
+CD9534	Botschaft (QU_SER_ECBA_BRTORQ_SUM_COOTD, 63.1.4, FX): Botschaft von DSC ausgefallen
+CD9535	Botschaft (DIAG_OBD_SCR, 0x3EE, FA): Signal(e) in Botschaft nicht gültig
+CD9536	Botschaft (DIAG_OBD_SCR, 0x3EE, FA): Botschaft von SCR-Steuergerät ausgefallen
+CD9539	Botschaft (ST_FFLV_SCRA, 0x40B, FA): Signal(e) in Botschaft nicht gültig
+CD953A	Botschaft (ST_FFLV_SCRA, 0x40B, FA): Botschaft von SCR-Steuergerät ausgefallen
+CD953B	Botschaft (ST_RESO_SCRA, 0x8A, FA): Signal(e) in Botschaft nicht gültig
+CD953C	Botschaft (ST_RESO_SCRA, 0x8A, FA): Botschaft von SCR-Steuergerät ausgefallen
+CD953E	Botschaft (STAT_EKP, 0x335, FA): Signal(e) in Botschaft nicht gültig
+CD953F	Botschaft (STAT_EKP, 0x335, FA): Botschaft von EKP ausgefallen
+CD9540	Botschaft (EINHEITEN_BN2020, 252.0.4, FX): Signal(e) in Botschaft nicht gültig
+CD9541	Botschaft (EINHEITEN_BN2020, 252.0.4, FX): Botschaft von Kombi ausgefallen
+CD9542	Botschaft (DIENSTE-ID2=246 Anforderung Kraftschluss Funktion Segeln, 0x580-0x5FF, FA): Signal(e) in Botschaft nicht gültig
+CD9543	Botschaft (DIENSTE-ID2=246 Anforderung Kraftschluss Funktion Segeln, 0x580-0x5FF, FA): Botschaft von diversen Sende-Steuergeräten (DSC, ICM, IHKA, ...) ausgefallen
+CD9544	Botschaft (RQ_2_WMOM_PT_SUM_DRS, 131.1.4, FX): Fehler in der Botschaft (Checksummenfehler)
+CD9545	Botschaft (RQ_2_WMOM_PT_SUM_DRS, 131.1.4, FX): Botschaft von Sende-Steuergerät nicht aktuell (Alivecounter)
+CD9546	Botschaft (RQ_2_WMOM_PT_SUM_DRS, 131.1.4, FX): Signal(e) in Botschaft nicht gültig
+CD9547	Botschaft (RQ_2_WMOM_PT_SUM_DRS, 131.1.4, FX): Botschaft von DSC ausgefallen
+CD9548	Botschaft (SLRDI_GLB_FZM, 0x3A5, FA): Signal (CTR_SLRDI_GLB) in Botschaft nicht gültig
+CD9549	Botschaft (DIENSTE-ID2=19 Anforderung MSA Funktion, 0x598, FA): Botschaft von Sende-Steuergerät (EGS_EL) ausgefallen
+CD954A	Botschaft (DIENSTE-ID2=19 Anforderung MSA Funktion, 0x5F8, FA): Botschaft von Sende-Steuergerät (IHKA) ausgefallen
+CD954B	Botschaft (ST_MUE_DRDY, 53.1.4, FX): Fehler in der Botschaft (Checksummenfehler)
+CD954C	Botschaft (ST_MUE_DRDY, 53.1.4, FX): Botschaft von Sende-Steuergerät nicht aktuell (Alivecounter)
+CD954D	Botschaft (ST_MUE_DRDY, 53.1.4, FX): Signal(e) in Botschaft nicht gültig
+CD954E	Botschaft (ST_MUE_DRDY, 53.1.4, FX): Botschaft von DSC ausgefallen
+CD954F	Botschaft (DT_DISP_GRDT, 0x3FD, FA): Fehler in der Botschaft (Checksummenfehler)
+CD9550	Botschaft (DT_DISP_GRDT, 0x3FD, FA): Botschaft von Sende-Steuergerät nicht aktuell (Alivecounter)
+CD9551	Botschaft (ST_DCDC, 125.0.2, FX): Botschaft von EME ausgefallen
+CD9552	Botschaft (ST_ENRG_U_I, 0x399, FA): Signal(e) in Botschaft nicht gültig
+CD9553	Botschaft (ST_ENRG_U_I, 0x399, FA): Botschaft von PCU ausgefallen
+CD9554	Botschaft (TS_TR_ST, 279.4.8, FX): Signal(e) in Botschaft nicht gültig
+CD9555	Botschaft (STAT_CT_HABR, 243.1.2, FX): Botschaft von FEM ausgefallen
+CD9556	Botschaft (DIAG_OBD_HYB_1, 263.3.4, FX): Botschaft von Sende-Steuergerät nicht aktuell (Alivecounter)
+CD9557	Botschaft (DIAG_OBD_HYB_1, 263.3.4, FX): Signal(e) in Botschaft nicht gültig
+CD9558	Botschaft (DIAG_OBD_HYB_1, 263.3.4, FX): Botschaft von DSC ausgefallen
+CD9559	Botschaft (ST_STAB_DSC_2, 47.1.2, FX), Signalfehler: Signal(e) in Botschaft (Status Stabilisierung DSC 2) von DSC nicht gültig
+CD955A	Botschaft (ST_STAB_DSC_2, 47.1.2, FX), Timeout: Botschaft (Status Stabilisierung DSC 2) von DSC ausgefallen
+CD955B	Botschaft (STAT_DRUCK_KAELTE, 131.0.2, FX), Signalfehler: Signal(e) in Botschaft (Status Druck Kältekreislauf) von BDC nicht gültig
+CD955C	Botschaft (STAT_DRUCK_KAELTE, 131.0.2, FX), Timeout: Botschaft (Status Druck Kältekreislauf) von BDC ausgefallen
+CD955D	Botschaft (MASS_VEH, 108.1.2, FX): Fehler in der Botschaft (Checksummenfehler)
+CD955E	Botschaft (MASS_VEH, 108.1.2, FX): Botschaft von Sende-Steuergerät nicht aktuell (Alivecounter)
+CD955F	Botschaft (MASS_VEH, 108.1.2, FX), Signalfehler: Signal(e) in Botschaft (Masse/Gewicht Fahrzeug) von DSC nicht gültig
+CD9560	Botschaft (MASS_VEH, 108.1.2, FX), Timeout: Botschaft (Masse/Gewicht Fahrzeug) von DSC ausgefallen
+CD9561	Botschaft (ST_MOT_TRCT_LT, 0x192, A): Fehler in der Botschaft (Checksummenfehler)
+CD9562	Botschaft (ST_MOT_TRCT_LT, 0x192, A): Botschaft von Sende-Steuergerät nicht aktuell (Alivecounter)
+CD9563	Botschaft (ST_MOT_TRCT_LT, 0x192, A): Signal(e) in Botschaft nicht gültig
+CD9564	Botschaft (ST_MOT_TRCT_LT, 0x192, A): Botschaft von EMETZ ausgefallen
+CD95EA	Botschaft (Dienste ID2=246, 216.6.16, FA), Timeout: Botschaft (Anforderung Kraftschluss Funktion Segeln) von DSC ausgefallen
+CD95EB	Botschaft (Dienste ID2=246, 0x580-0x5FF, FA), Timeout: Botschaft (Anforderung Kraftschluss Funktion Segeln) von HDC ausgefallen
+CD95EC	Botschaft (Dienste ID2=246, 0x580-0x5FF, FA), Timeout: Botschaft (Anforderung Kraftschluss Funktion Segeln) von LG ausgefallen
+CD95ED	DFC_Com_FX_Diagobddrdy_To: Timeout fault path
+CD95EE	DFC_Com_FX_ctrdiagobddrdySig: Signal fault path
+CD95EF	Botschaft (TEMP_BRK, 281.4.8, FX), Timeout: Botschaft (Temperatur_Bremse) von DSC ausgefallen
+CD95F0	Botschaft (TEMP_BRK, 281.4.8, FX), Signalfehler: Signal(e) in Botschaft (Temperatur_Bremse) von DSC nicht gültig
+CD95F1	Botschaft (Dienste ID2=19, 0x5C0, FA), Timeout: Botschaft (Anforderung MSA Funktion) von CAS ausgefallen
+CD95F2	Botschaft (Dienste ID2=19, 216.6.16, FA), Timeout: Botschaft (Anforderung MSA Funktion) von DSC ausgefallen
+CD95F3	Botschaft (Dienste ID2=19, 0x5B8, FA), Timeout: Botschaft (Anforderung MSA Funktion) von EHC ausgefallen
+CD95F4	Botschaft (Dienste ID2=19, 216.9.16, FA), Timeout: Botschaft (Anforderung MSA Funktion) von EPS ausgefallen
+CD95F5	Botschaft (Dienste ID2=19, 214.1.4, FA), Timeout: Botschaft (Anforderung MSA Funktion) von ICM ausgefallen
+CD95F6	Botschaft (Dienste ID2=19, 0x580, FA), Timeout: Botschaft (Anforderung MSA Funktion) von JBBF ausgefallen
+CD95F7	Botschaft (Dienste ID2=19, 0x580-0x5FF, FA), Timeout: Botschaft (Anforderung MSA Funktion) von LULI ausgefallen
+CD95F8	Botschaft (Dienste ID2=19, 216.10.16, FA), Timeout: Botschaft (Anforderung MSA Funktion) von PMA ausgefallen
+CD95F9	Botschaft (Dienste ID2=19, 216.15.16, FA), Timeout: Botschaft (Anforderung MSA Funktion) von SAS_35UP ausgefallen
+CD95FA	Botschaft (Dienste ID2=19, 0x5C9, FA), Timeout: Botschaft (Anforderung MSA Funktion) von SEC1 ausgefallen
+CD95FB	Botschaft (Dienste ID2=19, 0x580-0x5FF, FA), Timeout: Botschaft (Anforderung MSA Funktion) von VDP ausgefallen
+CD961C	Botschaft (Dienste ID2=246, 0x5F8, FA), Timeout: Botschaft (Anforderung Kraftschluss Funktion Segeln) von IHKA ausgefallen
+CD962D	Botschaft (Dienste ID2=19, 0x5ED, FA), Timeout: Botschaft (Anforderung MSA Funktion) von SM_FA ausgefallen
+CD9690	Botschaft (ST_BLT_CT_SOCCU, 275.6.8, FX), Timeout: Botschaft (Status Gurt Kontakt Sitzbelegung) von ACSM ausgefallen
+CD971A	Botschaft (ST_BLT_CT_SOCCU, 275.6.8, FX), Signalfehler: Signal(e) in Botschaft (Status Gurt Kontakt Sitzbelegung) von ACSM nicht gültig
+CD972B	Botschaft (ST_BLT_CT_SOCCU, 275.6.8, FX), Checksumme: Fehler in Botschaft (Status Gurt Kontakt Sitzbelegung) von ACSM
+CD972C	Botschaft (ST_BLT_CT_SOCCU, 275.6.8, FX), Alivecounter: Botschaft (Status Gurt Kontakt Sitzbelegung) von ACSM nicht aktuell
+FFFFFF	unbekannter Fehlerort

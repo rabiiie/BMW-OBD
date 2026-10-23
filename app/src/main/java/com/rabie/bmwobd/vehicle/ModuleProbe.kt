@@ -15,9 +15,9 @@ enum class ModuleProbe(val button: String) {
 
     /**
      * Un BMW diesel cuya centralita no es la del N47: se prueba como la de la serie F (F20 118d,
-     * B47), que habla UDS. Solo dice si el adaptador llega y si la tabla d70bx7a0 es la suya.
+     * B47), que habla UDS. Si el adaptador llega, lee de una vez lo de [com.rabie.bmwobd.obd.BmwUds].
      */
-    BMW_UDS("BMW serie F (B47): probar la centralita del motor (parado, solo lee)"),
+    BMW_UDS("BMW serie F (B47): km, horas, filtro, regeneraciones y averías (solo lee)"),
     ;
 
     companion object {
