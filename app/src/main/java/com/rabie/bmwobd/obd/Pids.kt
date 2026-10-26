@@ -572,6 +572,11 @@ object Pids {
         bmwDef(0x0BBD, "EGR: cero aprendido, el primero", "%", 2, PidGroup.AIR, Tier.ONCE) { it * 0.003052 - 100.0 },
         bmwDef(0x0BBE, "EGR: cero aprendido, el último", "%", 2, PidGroup.AIR, Tier.ONCE) { it * 0.003052 - 100.0 },
         bmwDef(0x0428, "Filtro: cero aprendido del sensor de presión", "hPa", 1, PidGroup.EXHAUST, Tier.ONCE) { it * 0.030518 - 1000.0 },
+        // El sensor antes de sus correcciones: la tension que entrega y el valor en bruto de la
+        // presion (Rohwert, segun BMW). Van en el turno lento y tambien en la primera lectura, que con el contacto
+        // puesto y el motor parado dice donde esta su cero.
+        bmwDef(0x041C, "Filtro: tensión del sensor de presión (en bruto)", "mV", 0, PidGroup.EXHAUST) { it * 0.076295 },
+        bmwDef(0x042A, "Filtro: presión diferencial (valor en bruto)", "hPa", 0, PidGroup.EXHAUST) { it * 0.045777 - 1000.0 },
     ) + (0 until BMW_REGEN_STEP_COUNTERS).map { step ->
         // Contadores de un byte de la tabla ("Regenerationszähler Typ 1" a 8). Que uno suba durante
         // un trayecto dice que se ha completado una regeneracion de ese tipo; los que estan en 255
