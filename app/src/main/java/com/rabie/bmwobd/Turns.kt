@@ -42,9 +42,15 @@ internal class Silence {
  * Que se pregunta en cada vuelta de lectura. Las rapidas, siempre; de las medias, una; de las
  * lentas, una cada varias vueltas. Con un caso puesto, las medidas que vigila salen del turno que
  * tuvieran y se lee una en cada vuelta. Las de [extras] solo existen dentro de los casos: fuera
- * de ellos no se piden, salvo las de [background], que el panel enseña siempre y van al turno lento.
+ * de ellos no se piden, salvo las de [background], que el panel enseña siempre y van al turno lento,
+ * y las de [everyTurn], que se leen en todas las vueltas, haya caso o no.
  */
-internal class Turns(defs: List<PidDef>, extras: List<PidDef>, background: Collection<Int> = emptyList()) {
+internal class Turns(
+    defs: List<PidDef>,
+    extras: List<PidDef>,
+    background: Collection<Int> = emptyList(),
+    everyTurn: Collection<Int> = emptyList(),
+) {
 
     /** Todo lo que se lee siempre, para la primera lectura al conectar. */
     val requests: List<Request> = defs.groupBy { it.pid }.map { Request(it.key, it.value) }
@@ -69,6 +75,7 @@ internal class Turns(defs: List<PidDef>, extras: List<PidDef>, background: Colle
     private var watchIndex = 0
     private var cycle = 0
     private val always = background.filter { it in extraIds }
+    private val eachTurn = everyTurn.filter { it in extraIds }.mapNotNull { requestOf[it] }.distinct()
 
     /** Las medidas a la vista ahora: las de siempre, las del panel y las propias del caso puesto. */
     var shown: Set<Int> = emptySet()
@@ -87,17 +94,17 @@ internal class Turns(defs: List<PidDef>, extras: List<PidDef>, background: Colle
         // Lo del caso va en su orden y con sus repeticiones: una medida puesta varias veces se
         // lee mas seguido. Lo que enseña la pantalla se añade detras, una vez y sin repetir.
         val ofCase = wanted.watch.mapNotNull { requestOf[it] }
-        watch = (ofCase + (focus.mapNotNull { requestOf[it] }.distinct() - ofCase.toSet())) - fast.toSet()
-        val also = (always + wanted.also).mapNotNull { requestOf[it] }.distinct()
+        watch = (ofCase + (focus.mapNotNull { requestOf[it] }.distinct() - ofCase.toSet())) - fast.toSet() - eachTurn.toSet()
+        val also = (always + wanted.also).mapNotNull { requestOf[it] }.distinct() - eachTurn.toSet()
         mediumNow = medium - watch.toSet()
         slowNow = (slow - watch.toSet()).let { kept -> kept + (also - kept.toSet() - watch.toSet()) }
-        shown = baseIds + (always + wanted.watch + wanted.also).filter { it in extraIds }
+        shown = baseIds + (always + wanted.watch + wanted.also + eachTurn.flatMap { r -> r.defs.map { it.id } }).filter { it in extraIds }
         return shown
     }
 
     /** Las peticiones de la vuelta siguiente. Durante un barrido el caso espera: el barrido ya ocupa su sitio. */
     fun next(scanning: Boolean = false): List<Request> {
-        val turn = fast.toMutableList()
+        val turn = (fast + eachTurn).toMutableList()
         if (mediumNow.isNotEmpty()) turn += mediumNow[mediumIndex++ % mediumNow.size]
         if (watch.isNotEmpty() && !scanning) turn += watch[watchIndex++ % watch.size]
         // Con muchas medidas lentas se lee una cada dos vueltas, para que no tarden en repetirse.

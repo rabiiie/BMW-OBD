@@ -879,7 +879,7 @@ class ObdController(
     private var istaValues: Map<Int, Double> = emptyMap()
 
     private suspend fun poll(session: ObdSession, defs: List<PidDef>, extras: List<PidDef>, recorder: TripRecorder, ownDiagnostics: Boolean) {
-        val turns = Turns(defs, extras, Dashboard.background)
+        val turns = Turns(defs, extras, Dashboard.background, Dashboard.everyTurn)
         silence = Silence()
         jumps = Jumps { id -> Pids.byId[id]?.name ?: "%X".format(id) }
         var jumpsSaved = 0

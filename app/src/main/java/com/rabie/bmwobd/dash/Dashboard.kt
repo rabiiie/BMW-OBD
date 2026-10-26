@@ -86,6 +86,12 @@ object Dashboard {
             listOf(CRUISE_STATE, CRUISE_SPEED) + Pids.BMW_CYLINDER_CORRECTIONS
 
     /**
+     * Las que se leen en todas las vueltas: la EGR pedida y la que recircula. Juntas en cada
+     * vuelta dicen si la EGR cierra tarde al acelerar.
+     */
+    val everyTurn: List<Int> = listOf(EGR_ASKED, EGR_RATE)
+
+    /**
      * Las medidas de [group] que cambian deprisa y no se leen ya en cada vuelta: mientras el
      * grupo esta en pantalla se piden mas seguido. Las correcciones de los inyectores no: son
      * valores aprendidos que apenas se mueven.

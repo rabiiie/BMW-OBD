@@ -46,6 +46,20 @@ class DashboardTest {
     }
 
     @Test
+    fun `la EGR pedida y la real se leen en todas las vueltas, con caso o sin el, y una sola vez`() {
+        assertTrue(Dashboard.everyTurn.all { it in extraIds })
+        val turns = Turns(base, Pids.bmwCases, Dashboard.background, Dashboard.everyTurn)
+        assertTrue(turns.shown.containsAll(Dashboard.everyTurn))
+        for (case in listOf(Case.NORMAL, Case.FILTER, Case.TURBO, Case.NORMAL)) {
+            turns.use(case, Dashboard.watched(DashGroup.AIR))
+            repeat(50) {
+                val ids = turns.next().flatMap { request -> request.defs.map { it.id } }
+                for (id in Dashboard.everyTurn) assertEquals("%X".format(id), 1, ids.count { it == id })
+            }
+        }
+    }
+
+    @Test
     fun `lo que esta en pantalla se lee una medida por vuelta y nada se pide dos veces`() {
         val turns = Turns(base, Pids.bmwCases, Dashboard.background)
         val looking = Dashboard.watched(DashGroup.ENGINE) + Dashboard.watched(DashGroup.ELECTRIC)
