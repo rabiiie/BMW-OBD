@@ -67,7 +67,19 @@ object Pids {
 
     fun bmw(address: Int) = BMW_BASE + address
 
+    /** Una medida propia de la centralita de BMW, por cualquiera de sus dos protocolos (2C del N47 o 22 del B47). */
     fun isBmw(pid: Int) = pid >= BMW_BASE
+
+    /**
+     * Medidas propias de la centralita del motor de un BMW de la serie F con motor B47. Hablan
+     * UDS: se piden con el servicio 22 y el identificador de dos bytes, y contestan 62 con el
+     * identificador y el valor. Lo que se pide al coche es UDS_BASE + identificador.
+     */
+    const val UDS_BASE = 0x30000
+
+    fun uds(did: Int) = UDS_BASE + did
+
+    fun isUds(pid: Int) = pid >= UDS_BASE
 
 
     /** Refrigerante por el protocolo de BMW: tambien sale por OBD, y sirve para saber si contesta. */
@@ -698,6 +710,78 @@ object Pids {
     /** Si a un coche merece la pena preguntarle por el protocolo propio de BMW. */
     fun hasBmwMeasures(make: String?, diesel: Boolean) = diesel && make != null && make.startsWith("BMW")
 
+    /** Una medida de la centralita del B47: identificador, tamaño en bytes y escala de su tabla. */
+    private fun udsDef(
+        did: Int,
+        name: String,
+        unit: String,
+        decimals: Int,
+        group: PidGroup,
+        tier: Tier = Tier.SLOW,
+        size: Int = 2,
+        scale: (Long) -> Double,
+    ) = PidDef(uds(did), name, unit, size, decimals, tier, group) { data ->
+        var raw = 0L
+        for (i in 0 until size) raw = raw * 256 + data[i]
+        scale(raw)
+    }
+
+    /**
+     * Medidas de la tabla del B47 que el coche da tambien por el OBD normal: refrigerante,
+     * revoluciones y tension. Sirven para comprobar que la tabla es la de la centralita que contesta.
+     */
+    val b47Checks: List<PidDef> = listOf(
+        udsDef(0x461B, "Refrigerante (BMW)", "°C", 0, PidGroup.ENGINE) { it * 0.01 - 100.0 },
+        udsDef(0x427F, "Revoluciones (BMW)", "rpm", 0, PidGroup.ENGINE) { it * 0.091554 },
+        udsDef(0x4200, "Tensión (BMW)", "V", 1, PidGroup.ELECTRIC) { it * 0.000389105 },
+    )
+
+    /**
+     * Medidas de la DDE 7.01 y 7.41 del motor B47 (F20, F30…), las mismas que se graban del N47.
+     * Identificador, tipo y formula salen de la tabla de la descripcion d70bx7a0 (docs/sgbd_d70bx7a0):
+     * el tamaño es el de su tipo (1 byte char, 2 int, 4 long). Se piden por la pasarela de BMW a la
+     * centralita 12, como hace ISTA. La resistencia va en Pa·h/m³, como la del N47.
+     */
+    val b47: List<PidDef> = listOf(
+        udsDef(0x44BE, "Filtro: hollín (el que usa la centralita)", "g", 1, PidGroup.EXHAUST) { it * 0.015259 },
+        udsDef(0x44C1, "Filtro: hollín calculado (modelo)", "g", 1, PidGroup.EXHAUST) { it * 0.01 },
+        udsDef(0x44B9, "Filtro: hollín medido (por la presión)", "g", 1, PidGroup.EXHAUST) { it * 0.01 },
+        udsDef(0x44BA, "Filtro: hollín calculado de forma continua (modelo)", "g", 1, PidGroup.EXHAUST) { it * 0.01 },
+        udsDef(0x44F8, "Filtro: presión diferencial", "hPa", 0, PidGroup.EXHAUST, Tier.MEDIUM) { it * 0.045777 - 1000.0 },
+        udsDef(0x4D57, "Filtro: caudal de gas", "m³/h", 0, PidGroup.EXHAUST, Tier.MEDIUM, size = 4) { it * 0.1 },
+        udsDef(0x44FA, "Filtro: presión diferencial filtrada", "hPa", 0, PidGroup.EXHAUST) { it * 0.045777 - 1000.0 },
+        udsDef(0x44FE, "Filtro: presión diferencial (valor en bruto)", "hPa", 0, PidGroup.EXHAUST) { it * 0.045777 - 1000.0 },
+        udsDef(0x44F0, "Filtro: tensión del sensor de presión (en bruto)", "mV", 0, PidGroup.EXHAUST) { it * 0.076295 },
+        udsDef(0x44EB, "Filtro: presión absoluta delante (sensor)", "hPa", 0, PidGroup.EXHAUST) { it * 0.038148 + 500.0 },
+        udsDef(0x44FC, "Filtro: cero aprendido del sensor de presión", "hPa", 1, PidGroup.EXHAUST, Tier.ONCE) { it * 0.030518 - 1000.0 },
+        udsDef(0x4510, "Escape antes del filtro (calculada)", "°C", 0, PidGroup.EXHAUST) { it * 0.031281 - 50.0 },
+        udsDef(0x44F2, "Escape antes del catalizador (corregida)", "°C", 0, PidGroup.EXHAUST) { it * 0.031281 - 50.0 },
+        udsDef(0x44BB, "Filtro: regeneración pedida (0 = no)", "", 0, PidGroup.EXHAUST, size = 1) { it.toDouble() },
+        udsDef(0x44C0, "Filtro: código de interrupción", "", 0, PidGroup.EXHAUST) { it.toDouble() },
+        udsDef(0x44C2, "Filtro: regeneración bloqueada (código)", "", 0, PidGroup.EXHAUST, size = 1) { it.toDouble() },
+        udsDef(0x44C5, "Filtro: resistencia al paso", "Pa·h/m³", 1, PidGroup.EXHAUST) { it * 0.01 },
+        udsDef(0x44BF, "Filtro: desde la última regeneración", "km", 1, PidGroup.EXHAUST, size = 4) { it / 1000.0 },
+        udsDef(0x44BC, "Filtro: gasóleo desde la última regeneración", "L", 1, PidGroup.EXHAUST) { it * 0.01 },
+        udsDef(0x44BD, "Filtro: ceniza calculada", "g", 0, PidGroup.EXHAUST, Tier.ONCE) { it * 0.015259 },
+        udsDef(0x44B8, "Filtro: regeneraciones hechas", "", 0, PidGroup.EXHAUST, Tier.ONCE) { it.toDouble() },
+        udsDef(0x44C7, "Filtro: intervalo medio entre regeneraciones", "km", 0, PidGroup.EXHAUST, Tier.ONCE) { it.toDouble() },
+        udsDef(0x4C79, "Filtro: km desde su cambio", "km", 0, PidGroup.EXHAUST, Tier.ONCE, size = 4) { it * 10.0 },
+        udsDef(0x467E, "Motor: modo de funcionamiento (código)", "", 0, PidGroup.ENGINE, size = 4) { it.toDouble() },
+        udsDef(0x487E, "EGR: gas que pide recircular", "%", 0, PidGroup.AIR) { it * 0.01 },
+        udsDef(0x4D88, "EGR: gas que recircula (calculado)", "%", 0, PidGroup.AIR) { it * 0.01 },
+        udsDef(0x4C97, "EGR: posición de la válvula", "%", 0, PidGroup.AIR) { it * 0.004578 - 100.0 },
+        udsDef(0x47DD, "Aire por cilindro", "mg/emb", 0, PidGroup.AIR) { it * 0.038911 },
+        udsDef(0x42C8, "Presión turbo pedida", "hPa", 0, PidGroup.AIR) { it * 0.091554 },
+        udsDef(0x4841, "Presión turbo real (BMW)", "hPa", 0, PidGroup.AIR) { it * 0.15259 },
+        udsDef(0x4CC4, "Actuador del turbo", "%", 0, PidGroup.AIR) { it * 0.004578 - 100.0 },
+        udsDef(0x4843, "Aire tras el intercooler", "°C", 0, PidGroup.AIR) { it * 0.01 - 100.0 },
+        udsDef(0x45D4, "Cantidad inyectada", "mg/emb", 1, PidGroup.FUEL) { it * 0.003052 - 100.0 },
+        udsDef(0x4748, "Presión del raíl (BMW)", "bar", 0, PidGroup.FUEL) { it * 0.045777 },
+        udsDef(0x4517, "Aceite: temperatura", "°C", 0, PidGroup.ENGINE) { it * 0.01 - 100.0 },
+        udsDef(0x46B1, "Cuentakilómetros", "km", 0, PidGroup.COUNTERS, Tier.ONCE, size = 4) { it.toDouble() },
+        udsDef(0x4BC4, "Horas de motor", "h", 0, PidGroup.COUNTERS, Tier.ONCE, size = 4) { it / 3600.0 },
+    )
+
     private fun List<PidDef>.inGroup(group: PidGroup) = map { it.copy(group = group) }
 
     /** En el orden en que se enseñan en el panel. */
@@ -709,7 +793,8 @@ object Pids {
             electric.inGroup(PidGroup.ELECTRIC) +
             counters.inGroup(PidGroup.COUNTERS) +
             bmwDiesel +
-            bmwCases
+            bmwCases +
+            b47
 
     val byId: Map<Int, PidDef> = all.associateBy { it.id }
 

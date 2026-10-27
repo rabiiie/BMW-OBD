@@ -34,10 +34,10 @@ class EngineProfileTest {
 
     @Test
     fun `solo se comprueba la centralita de un BMW diesel`() {
-        assertEquals(EngineProfile.BMW_N47, EngineProfile.candidate(bmw))
-        assertNull(EngineProfile.candidate(bmw.copy(diesel = false)))
-        assertNull(EngineProfile.candidate(bmw.copy(make = "Volkswagen")))
-        assertNull(EngineProfile.candidate(Vehicle.GENERIC))
+        assertEquals(EngineProfile.BMW_N47, EngineProfile.candidates(bmw).first())
+        assertTrue(EngineProfile.candidates(bmw.copy(diesel = false)).isEmpty())
+        assertTrue(EngineProfile.candidates(bmw.copy(make = "Volkswagen")).isEmpty())
+        assertTrue(EngineProfile.candidates(Vehicle.GENERIC).isEmpty())
     }
 
     @Test

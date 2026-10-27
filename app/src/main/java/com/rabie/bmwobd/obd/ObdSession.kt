@@ -134,7 +134,12 @@ class ObdSession(
      * repetir su direccion: por eso se pide siempre sin lectura rapida, que es donde hay desfases.
      */
     private fun dataOf(response: String, pid: Int): IntArray? =
-        if (Pids.isBmw(pid)) {
+        if (Pids.isUds(pid)) {
+            // La de UDS repite el identificador: 62, el identificador y el valor. Por si el adaptador
+            // deja a la vista el byte de direccion del equipo de diagnosis (F1), se acepta con el.
+            val answer = UDS_ANSWER + "%04X".format(pid - Pids.UDS_BASE)
+            (ObdParser.payloads(response, answer) + ObdParser.payloads(response, TESTER_BYTE + answer)).lastOrNull { it.isNotEmpty() }
+        } else if (Pids.isBmw(pid)) {
             // Si el adaptador traia pendiente la respuesta de una consulta anterior, la de esta es la ultima.
             ObdParser.payloads(response, BMW_ANSWER).lastOrNull { it.isNotEmpty() }
         } else {
@@ -142,7 +147,8 @@ class ObdSession(
         }
 
     private fun queryOf(pid: Int): String =
-        if (Pids.isBmw(pid)) BMW_QUERY + "%04X".format(pid - Pids.BMW_BASE) else "01%02X".format(pid)
+        if (Pids.isUds(pid)) UDS_QUERY + "%04X".format(pid - Pids.UDS_BASE)
+        else if (Pids.isBmw(pid)) BMW_QUERY + "%04X".format(pid - Pids.BMW_BASE) else "01%02X".format(pid)
 
     /**
      * Las medidas propias de BMW que contesta esta centralita, de entre [candidates]. Primero se
@@ -173,6 +179,54 @@ class ObdSession(
         attempt(BMW_IDENT)
         if (!bmwAnswers()) return null
         return defs.mapNotNull { def -> (readFirst(def.pid) ?: readFirst(def.pid))?.let(def::decodeOrNull)?.let { def.id to it } }.toMap()
+    }
+
+    /**
+     * Las medidas propias de un B47 que contestan, de entre [candidates]. Van por UDS y la pasarela
+     * de BMW. Primero se comprueba que la centralita contesta, con el refrigerante; si no, ninguna.
+     */
+    suspend fun discoverUds(candidates: List<PidDef>): List<PidDef> {
+        log("## BMW (UDS): se piden las medidas propias de la centralita del motor por la pasarela a la 12")
+        val check = Pids.b47Checks.first()
+        if ((readFirst(check.pid) ?: readFirst(check.pid)) == null) {
+            log("## BMW (UDS): la centralita no contesta por la pasarela")
+            return emptyList()
+        }
+        val found = mutableListOf<PidDef>()
+        for (def in candidates) {
+            val value = (readFirst(def.pid) ?: readFirst(def.pid))?.let(def::decodeOrNull) ?: continue
+            log("## BMW (UDS): %s = %.2f %s".format(java.util.Locale.US, def.name, value, def.unit))
+            found += def
+        }
+        log("## BMW (UDS): contestan ${found.size} de ${candidates.size} medidas")
+        return found
+    }
+
+    /** Lee una vez cada medida de [defs] por UDS. Null si la centralita no contesta a ninguna. */
+    suspend fun readUds(defs: List<PidDef>): Map<Int, Double>? {
+        val values = defs.mapNotNull { def -> (readFirst(def.pid) ?: readFirst(def.pid))?.let(def::decodeOrNull)?.let { def.id to it } }.toMap()
+        return values.ifEmpty { null }
+    }
+
+    // El adaptador tiene puesta la pasarela de BMW a la centralita 12, la de las medidas del B47.
+    private var udsLink = false
+
+    /**
+     * Las medidas del B47 van por la pasarela de BMW a la centralita 12 (cabecera 6F1, direccion
+     * extendida 12, respuestas en 612, como en ISTA) y las del OBD normal a todas (7DF). El
+     * adaptador se cambia de una forma a otra solo cuando hace falta, y sin dejarlo en el
+     * registro: en un trayecto pasa en cada vuelta. En los demas coches nunca se cambia.
+     */
+    private suspend fun link(uds: Boolean) {
+        if (udsLink == uds) return
+        udsLink = uds
+        for (command in if (uds) UDS_LINK else OBD_LINK) {
+            try {
+                elm.send(command, READ_TIMEOUT_MS, quiet = true)
+            } catch (e: SocketTimeoutException) {
+                log("!! Sin respuesta a $command")
+            }
+        }
     }
 
     /**
@@ -208,13 +262,16 @@ class ObdSession(
     private suspend fun restore() {
         elm.drain()
         elm.initialize()
+        udsLink = false
         attempt("0100", FIRST_QUERY_TIMEOUT_MS)
         applyWait()
     }
 
     /** Envia la consulta de una medida. Devuelve null si el adaptador no contesta a tiempo. */
     private suspend fun request(pid: Int, quickly: Boolean): String? {
-        val own = Pids.isBmw(pid)
+        link(Pids.isUds(pid))
+        // Las de UDS dicen en su respuesta de que medida son: no hace falta vaciar el adaptador.
+        val own = Pids.isBmw(pid) && !Pids.isUds(pid)
         if (own) flushLate()
         val response = try {
             elm.send(queryOf(pid) + if (quickly) QUICK_SUFFIX else "", READ_TIMEOUT_MS)
@@ -1061,6 +1118,13 @@ class ObdSession(
         const val SHORT_FUEL_TRIM = 0x06
         // En una prueba de pieza, la lectura de control tiene que recorrer al menos esta parte del camino hacia lo pedido.
         const val MOVED_SHARE = 1.0 / 3.0
+        const val UDS_QUERY = "22"
+        const val UDS_ANSWER = "62"
+        const val TESTER_BYTE = "F1"
+
+        // La pasarela de BMW a la centralita del motor (12) y la vuelta a la direccion OBD normal.
+        val UDS_LINK = listOf("ATSH6F1", "ATCEA12", "ATFCSH6F1", "ATFCSD123000", "ATFCSM1", "ATCRA612")
+        val OBD_LINK = listOf("ATSH7DF", "ATCEA", "ATFCSM0", "ATCRA")
         const val BMW_QUERY = "2C10"
         const val BMW_ANSWER = "6C10"
         const val BMW_IDENT = "1A80"

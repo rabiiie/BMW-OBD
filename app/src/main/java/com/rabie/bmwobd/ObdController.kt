@@ -51,7 +51,6 @@ import com.rabie.bmwobd.trips.TripRecorder
 import com.rabie.bmwobd.trips.TripStore
 import com.rabie.bmwobd.vehicle.EngineProfile
 import com.rabie.bmwobd.vehicle.ModuleProbe
-import com.rabie.bmwobd.vehicle.N47Fingerprint
 import com.rabie.bmwobd.vehicle.Vehicle
 import com.rabie.bmwobd.vehicle.VehicleStore
 import kotlinx.coroutines.CancellationException
@@ -208,7 +207,12 @@ class ObdController(
                 val profile = EngineProfile.of(vehicle)
                 val standard = Pids.all.filter { it.pid == Pids.ADAPTER_PID || it.pid in info.supportedPids }
                 val taken = standard.map { it.id }.toSet()
-                val own = if (profile.measures.isEmpty()) emptyList() else session.discoverBmw(profile.measures.filter { it.id !in taken })
+                val wanted = profile.measures.filter { it.id !in taken }
+                val own = when {
+                    wanted.isEmpty() -> emptyList()
+                    profile.uds -> session.discoverUds(wanted)
+                    else -> session.discoverBmw(wanted)
+                }
                 // Lo que una averia presente deja sin lectura de verdad no se enseña ni se graba.
                 val ownFaults = if (profile.ownDiagnostics) session.ownFaults() else null
                 val blind = BmwFault.unreadable(ownFaults)
@@ -335,26 +339,35 @@ class ObdController(
      */
     private suspend fun withProfile(session: ObdSession, vehicle: Vehicle): Vehicle {
         if (EngineProfile.of(vehicle) != EngineProfile.GENERIC) return vehicle
-        val candidate = EngineProfile.candidate(vehicle) ?: return vehicle
-        // Las dos lecturas no son del mismo instante: si no cuadran a la primera se repite una vez,
-        // para no dejar un trayecto sin perfil por un acelerón al conectar.
-        var fits = false
+        for (candidate in EngineProfile.candidates(vehicle)) {
+            if (fits(session, candidate)) {
+                appendLog("## Perfil: centralita reconocida como ${candidate.title}; queda guardado con el coche")
+                return vehicle.copy(profile = candidate.key).also(vehicles::save)
+            }
+            appendLog("## Perfil: la centralita no encaja con ${candidate.title}")
+        }
+        if (EngineProfile.candidates(vehicle).isNotEmpty()) appendLog("## Perfil: el coche se trata como genérico")
+        return vehicle
+    }
+
+    /**
+     * Si la centralita del coche es la de [candidate]: sus medidas de control, por su protocolo,
+     * tienen que dar lo mismo que el OBD normal. Las dos lecturas no son del mismo instante: si no
+     * cuadran a la primera se repite una vez, para no dejar un trayecto sin perfil por un acelerón.
+     */
+    private suspend fun fits(session: ObdSession, candidate: EngineProfile): Boolean {
+        val fingerprint = candidate.fingerprint ?: return false
+        val checks = fingerprint.checks.map { it.def }
         for (attempt in 1..PROFILE_ATTEMPTS) {
-            val own = session.readBmw(N47Fingerprint.checks.map { it.def }) ?: break
-            val obd = N47Fingerprint.checks.mapNotNull { check ->
+            val own = (if (candidate.uds) session.readUds(checks) else session.readBmw(checks)) ?: return false
+            val obd = fingerprint.checks.mapNotNull { check ->
                 val def = Pids.byId[check.obd] ?: return@mapNotNull null
                 session.read(check.obd)?.let(def::decodeOrNull)?.let { check.obd to it }
             }.toMap()
-            fits = N47Fingerprint.fits(own, obd)
-            if (fits) break
-            appendLog("## Perfil: intento $attempt sin coincidencia. Propias ${own.values.map { "%.1f".format(it) }}, OBD ${obd.values.map { "%.1f".format(it) }}")
+            if (fingerprint.fits(own, obd)) return true
+            appendLog("## Perfil: intento $attempt sin coincidencia con ${candidate.title}. Propias ${own.values.map { "%.1f".format(it) }}, OBD ${obd.values.map { "%.1f".format(it) }}")
         }
-        if (!fits) {
-            appendLog("## Perfil: la centralita no encaja con ${candidate.title}; el coche se trata como genérico")
-            return vehicle
-        }
-        appendLog("## Perfil: centralita reconocida como ${candidate.title}; queda guardado con el coche")
-        return vehicle.copy(profile = candidate.key).also(vehicles::save)
+        return false
     }
 
     /** El fichero con lo que ha contestado el coche conectado, o el ultimo que se conecto. */
@@ -935,7 +948,8 @@ class ObdController(
             }
 
             var answered = false
-            val turn = turns.next(scanning = scan != null)
+            // Las del B47 van al final y juntas: el adaptador cambia a la pasarela de BMW una vez por vuelta.
+            val turn = turns.next(scanning = scan != null).sortedBy { Pids.isUds(it.pid) }
             for (request in turn) {
                 if (read(session, request, values)) answered = true
             }
