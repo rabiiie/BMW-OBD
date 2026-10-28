@@ -74,6 +74,39 @@ class AdvisorTest {
     }
 
     @Test
+    fun `en marcha solo avisa lo importante y los analisis quedan para el repaso del trayecto`() {
+        val driving = mapOf(Pids.RPM to 1700.0, Pids.SPEED to 90.0, Pids.COOLANT to 91.0, Pids.LOAD to 40.0)
+        val apart = driving + (Pids.BMW_SOOT_USED to 25.0) + (Pids.BMW_SOOT_MODEL to 5.6)
+        assertNull(hold(apart, 320, Advisor(live = true)).find("soot_gap"))
+        assertNull(hold(warmIdle + (Pids.LOAD to 70.0), 30, Advisor(live = true)).find("idle_load"))
+        assertEquals(Severity.ALERT, hold(warmIdle + (Pids.COOLANT to 118.0), 10, Advisor(live = true)).find("coolant_hot")?.severity)
+        val regenerating = driving + (Pids.BMW_REGEN_REQUEST to 5.0)
+        assertTrue(hold(regenerating, 60, Advisor(live = true)).find("regeneration") != null)
+    }
+
+    @Test
+    fun `pedir EGR con la valvula cerrada rodando es que la centralita la ha cortado`() {
+        // Lo del 27 de octubre en modo de emergencia: pide un 34 % a 1800 rpm y la valvula esta en 0.
+        val limp = mapOf(
+            Pids.RPM to 1800.0, Pids.SPEED to 60.0, Pids.COOLANT to 85.0, Pids.LOAD to 40.0,
+            Pids.BMW_EGR_ASKED to 34.0, Pids.BMW_EGR_VALVE to 0.0, Pids.BMW_REGEN_REQUEST to 0.0,
+        )
+        assertEquals(Severity.ALERT, hold(limp, 35, Advisor(live = true)).find("egr_cut")?.severity)
+        assertNull(hold(limp, 20).find("egr_cut"))
+        assertNull(hold(limp + (Pids.BMW_EGR_VALVE to 35.0), 60).find("egr_cut"))
+        // En retencion, y al ralenti tras regenerar con la peticion aun puesta, la cierra a proposito.
+        assertNull(hold(limp + (Pids.LOAD to 0.0), 60).find("egr_cut"))
+        assertNull(hold(limp + (Pids.SPEED to 0.0) + (Pids.RPM to 840.0) + (Pids.BMW_REGEN_REQUEST to 1.0), 60).find("egr_cut"))
+    }
+
+    @Test
+    fun `un corte de la regulacion del turbo avisa en rojo`() {
+        val driving = mapOf(Pids.RPM to 1800.0, Pids.SPEED to 60.0, Pids.COOLANT to 85.0, Pids.LOAD to 40.0)
+        assertNull(hold(driving + (Pids.BMW_BOOST_WATCH_CUT to 0.0), 30).find("boost_cut"))
+        assertEquals(Severity.ALERT, hold(driving + (Pids.BMW_BOOST_WATCH_CUT to 4.0), 10, Advisor(live = true)).find("boost_cut")?.severity)
+    }
+
+    @Test
     fun `refrigerante muy alto va en rojo`() {
         assertEquals(Severity.WARN, hold(warmIdle + (Pids.COOLANT to 110.0), 10).find("coolant_hot")?.severity)
         assertEquals(Severity.ALERT, hold(warmIdle + (Pids.COOLANT to 118.0), 10).find("coolant_hot")?.severity)

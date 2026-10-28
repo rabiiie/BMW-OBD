@@ -46,8 +46,8 @@ class DashboardTest {
     }
 
     @Test
-    fun `la EGR pedida y la real se leen en todas las vueltas, con caso o sin el, y una sola vez`() {
-        assertTrue(Dashboard.everyTurn.all { it in extraIds })
+    fun `la EGR y la presion pedida al turbo se leen en todas las vueltas, con caso o sin el, y una sola vez`() {
+        assertTrue(Dashboard.everyTurn.all { id -> id in extraIds || base.any { it.id == id } })
         val turns = Turns(base, Pids.bmwCases, Dashboard.background, Dashboard.everyTurn)
         assertTrue(turns.shown.containsAll(Dashboard.everyTurn))
         for (case in listOf(Case.NORMAL, Case.FILTER, Case.TURBO, Case.NORMAL)) {

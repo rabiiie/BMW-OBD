@@ -16,6 +16,7 @@ import com.rabie.bmwobd.cases.ColdStartFaults
 import com.rabie.bmwobd.cases.FirstStart
 import com.rabie.bmwobd.dash.Dashboard
 import com.rabie.bmwobd.advice.Moment
+import com.rabie.bmwobd.advice.NewFaults
 import com.rabie.bmwobd.dash.GearGuess
 import com.rabie.bmwobd.dash.ShiftHint
 import com.rabie.bmwobd.obd.BmwFault
@@ -218,6 +219,7 @@ class ObdController(
                 val blind = BmwFault.unreadable(ownFaults)
                 if (blind.isNotEmpty()) appendLog("## Aceite: el sensor de nivel tiene una avería presente; no se enseñan su nivel ni su temperatura")
                 faultValues = BmwFault.appValues(ownFaults)
+                faultsAtStart = ownFaults
                 faultValues[Pids.BMW_FILTER_FAULTS]?.let { appendLog("## Filtro: " + BmwFault.filterLevelText(it)) }
                 istaValues = emptyMap()
                 if (profile.ownDiagnostics) {
@@ -888,6 +890,9 @@ class ObdController(
     // Lo que dicen ahora las averias que la app apunta en el trayecto (BmwFault.appValues).
     private var faultValues: Map<Int, Double> = emptyMap()
 
+    // La memoria de averias al conectar: lo que ya estaba presente no avisa como nuevo.
+    private var faultsAtStart: List<BmwFault>? = null
+
     // Los datos del filtro de ISTA de la ultima lectura, para el CSV.
     private var istaValues: Map<Int, Double> = emptyMap()
 
@@ -897,7 +902,18 @@ class ObdController(
         jumps = Jumps { id -> Pids.byId[id]?.name ?: "%X".format(id) }
         var jumpsSaved = 0
         val values = HashMap<Int, Double>()
-        val advisor = Advisor()
+        val advisor = Advisor(live = true)
+        val newFaults = NewFaults(faultsAtStart)
+        val noteFaults = { faults: List<BmwFault> ->
+            for (fault in newFaults.read(System.nanoTime() / 1_000_000, faults)) {
+                appendLog("## Avería nueva presente: ${fault.label}" + (fault.text?.let { " ($it)" } ?: ""))
+            }
+        }
+        var turnsTimed = 0
+        var turnsNanos = 0L
+        var slowestNanos = 0L
+        var slowestPid = 0
+        var lastTimingNanos = System.nanoTime()
         var soundedAlerts = emptySet<String>()
         var advice = emptyList<Advice>()
         var liters = 0.0
@@ -950,8 +966,19 @@ class ObdController(
             var answered = false
             // Las del B47 van al final y juntas: el adaptador cambia a la pasarela de BMW una vez por vuelta.
             val turn = turns.next(scanning = scan != null).sortedBy { Pids.isUds(it.pid) }
+            val turnStart = System.nanoTime()
             for (request in turn) {
+                val asked = System.nanoTime()
                 if (read(session, request, values)) answered = true
+                val took = System.nanoTime() - asked
+                if (took > slowestNanos) {
+                    slowestNanos = took
+                    slowestPid = request.pid
+                }
+            }
+            if (turn.isNotEmpty()) {
+                turnsTimed++
+                turnsNanos += System.nanoTime() - turnStart
             }
             if (turn.isEmpty()) delay(IDLE_DELAY_MS)
             scanStep(session, values)
@@ -962,7 +989,9 @@ class ObdController(
             // es conducir hasta que pasen a no presentes, y eso hay que verlo en el trayecto.
             if (ownDiagnostics && now - lastFaultCheckNanos >= FAULT_CHECK_NANOS) {
                 lastFaultCheckNanos = now
-                val read = BmwFault.appValues(session.ownFaults())
+                val faults = session.ownFaults()
+                faults?.let(noteFaults)
+                val read = BmwFault.appValues(faults)
                 if (read.isNotEmpty()) {
                     val level = read[Pids.BMW_FILTER_FAULTS]
                     if (level != null && level != faultValues[Pids.BMW_FILTER_FAULTS]) appendLog("## Filtro: " + BmwFault.filterLevelText(level))
@@ -985,9 +1014,23 @@ class ObdController(
             // Tras un arranque en frio, ademas, a los 60 y 120 s: es cuando el calentador se comprueba.
             if (ownDiagnostics) coldStart.due(now / 1_000_000, values[Pids.RPM], values[Pids.COOLANT])?.let { seconds ->
                 session.ownFaults()?.let { faults ->
+                    noteFaults(faults)
                     appendLog("## Calentadores a los $seconds s de arrancar en frío (motor a %.0f °C): ".format(coldStart.coolantAtStart) + BmwFault.glowText(faults))
                     faultValues = BmwFault.appValues(faults)
                 }
+            }
+            // Cuanto tarda cada vuelta y que consulta es la mas lenta, una vez por minuto en el registro.
+            if (now - lastTimingNanos >= TIMING_LOG_NANOS && turnsTimed > 0) {
+                val name = Pids.byId[slowestPid]?.name ?: "%X".format(slowestPid)
+                appendLog(
+                    "## Vueltas: %d en el último minuto, %.2f s de media; la consulta más lenta, %s, %.2f s".format(
+                        java.util.Locale.US, turnsTimed, turnsNanos / 1e9 / turnsTimed, name, slowestNanos / 1e9,
+                    ),
+                )
+                lastTimingNanos = now
+                turnsTimed = 0
+                turnsNanos = 0L
+                slowestNanos = 0L
             }
             if (now - lastAnswerNanos > SILENCE_LIMIT_NANOS) {
                 throw IOException("El coche ha dejado de responder. ¿Contacto quitado?")
@@ -1015,7 +1058,8 @@ class ObdController(
                     lastUnknownMode = mode
                 }
             }
-            advice = advisor.update(now / 1_000_000, snapshot, _state.value.vehicle)
+            advice = (advisor.update(now / 1_000_000, snapshot, _state.value.vehicle) + newFaults.advice(now / 1_000_000))
+                .sortedByDescending { it.severity }
             val hours = (now - lastSumNanos).coerceIn(0L, MAX_SUM_GAP_NANOS) / NANOS_PER_HOUR
             lastSumNanos = now
             km += (snapshot[Pids.SPEED] ?: 0.0) * hours
@@ -1164,6 +1208,7 @@ class ObdController(
         private const val BEEP_MS = 600
         private const val SILENCE_LIMIT_NANOS = 10_000_000_000L
         private const val RATE_WINDOW_NANOS = 2_000_000_000L
+        private const val TIMING_LOG_NANOS = 60_000_000_000L
         private const val MAX_SUM_GAP_NANOS = 5_000_000_000L
         private const val NANOS_PER_HOUR = 3.6e12
         private const val MIN_AVERAGE_KM = 2.0

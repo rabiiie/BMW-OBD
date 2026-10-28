@@ -364,6 +364,7 @@ object SimulatedDde {
         measure(0x0500) { s -> word((injectedMg(s) + 100) / 0.003052) },
         measure(0x0641) { s -> word((s.railBar + 8) / 0.045777) },
         measure(0x01F4) { s -> word((s.mapKpa + 3) / 0.0091554) },
+        measure(0x01FB) { _ -> byte(0.0) },
         measure(0x0BEB) { s -> word((90 - s.load * 0.25) / 0.001526) },
         measure(0x076F) { s -> word((s.intakeTemp + 100) / 0.01) },
         measure(0x0BB4) { s -> word(s.egr / 0.001526) },

@@ -42,8 +42,8 @@ internal class Silence {
  * Que se pregunta en cada vuelta de lectura. Las rapidas, siempre; de las medias, una; de las
  * lentas, una cada varias vueltas. Con un caso puesto, las medidas que vigila salen del turno que
  * tuvieran y se lee una en cada vuelta. Las de [extras] solo existen dentro de los casos: fuera
- * de ellos no se piden, salvo las de [background], que el panel enseña siempre y van al turno lento,
- * y las de [everyTurn], que se leen en todas las vueltas, haya caso o no.
+ * de ellos no se piden, salvo las de [background], que el panel enseña siempre y van al turno lento.
+ * Las de [everyTurn], sean de siempre o de los casos, se leen en todas las vueltas, haya caso o no.
  */
 internal class Turns(
     defs: List<PidDef>,
@@ -75,7 +75,7 @@ internal class Turns(
     private var watchIndex = 0
     private var cycle = 0
     private val always = background.filter { it in extraIds }
-    private val eachTurn = everyTurn.filter { it in extraIds }.mapNotNull { requestOf[it] }.distinct()
+    private val eachTurn = everyTurn.mapNotNull { requestOf[it] }.distinct()
 
     /** Las medidas a la vista ahora: las de siempre, las del panel y las propias del caso puesto. */
     var shown: Set<Int> = emptySet()
@@ -96,8 +96,8 @@ internal class Turns(
         val ofCase = wanted.watch.mapNotNull { requestOf[it] }
         watch = (ofCase + (focus.mapNotNull { requestOf[it] }.distinct() - ofCase.toSet())) - fast.toSet() - eachTurn.toSet()
         val also = (always + wanted.also).mapNotNull { requestOf[it] }.distinct() - eachTurn.toSet()
-        mediumNow = medium - watch.toSet()
-        slowNow = (slow - watch.toSet()).let { kept -> kept + (also - kept.toSet() - watch.toSet()) }
+        mediumNow = medium - watch.toSet() - eachTurn.toSet()
+        slowNow = (slow - watch.toSet() - eachTurn.toSet()).let { kept -> kept + (also - kept.toSet() - watch.toSet()) }
         shown = baseIds + (always + wanted.watch + wanted.also + eachTurn.flatMap { r -> r.defs.map { it.id } }).filter { it in extraIds }
         return shown
     }

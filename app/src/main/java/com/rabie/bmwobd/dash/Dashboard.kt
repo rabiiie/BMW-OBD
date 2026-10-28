@@ -86,10 +86,11 @@ object Dashboard {
             listOf(CRUISE_STATE, CRUISE_SPEED) + Pids.BMW_CYLINDER_CORRECTIONS
 
     /**
-     * Las que se leen en todas las vueltas: la EGR pedida y la que recircula. Juntas en cada
-     * vuelta dicen si la EGR cierra tarde al acelerar.
+     * Las que se leen en todas las vueltas. La EGR pedida, la que recircula y la posicion de la
+     * valvula dicen si la EGR cierra tarde al acelerar o si la centralita la ha cortado. La presion
+     * pedida al turbo va con la del MAP, que es rapida: leidas en vueltas distintas no se pueden comparar.
      */
-    val everyTurn: List<Int> = listOf(EGR_ASKED, EGR_RATE)
+    val everyTurn: List<Int> = listOf(EGR_ASKED, EGR_RATE, Pids.BMW_EGR_VALVE, BOOST_ASKED)
 
     /**
      * Las medidas de [group] que cambian deprisa y no se leen ya en cada vuelta: mientras el
@@ -209,10 +210,10 @@ object Dashboard {
     /** El grupo al que toca un aviso: es el que se queda fijo mientras dura. */
     fun group(advice: Advice): DashGroup? = when (advice.id) {
         "regeneration", "regen_stop", "regen_pending", "regen_cut", "regen_done", "rich_mix", "filter_faults", "soot_gap", "filter_idle", "filter_load", "exhaust_hot" -> DashGroup.FILTER
-        "boost_low", "boost_high", "boost_uncontrolled", "air_full" -> DashGroup.TURBO
+        "boost_low", "boost_high", "boost_uncontrolled", "boost_cut", "air_full" -> DashGroup.TURBO
         "rail", "rail_high", "idle_rail" -> DashGroup.INJECTORS
         "voltage" -> DashGroup.ELECTRIC
-        "egr", "air", "idle_air", "intake_hot", "intake_delta" -> DashGroup.AIR
+        "egr", "egr_cut", "air", "idle_air", "intake_hot", "intake_delta" -> DashGroup.AIR
         "coolant_hot", "oil_hot", "thermostat", "thermostat_drop", "idle_load", "idle_rpm",
         "lugging", "cold_push", "hot_stop", "long_idle",
         -> DashGroup.ENGINE

@@ -198,6 +198,12 @@ object Pids {
     val BMW_EGR_ZERO_LAST = bmw(0x0BBE)
     val BMW_FILTER_ZERO = bmw(0x0428)
     val BMW_EGR_COOLER = bmw(0x0C99)
+    val BMW_EGR_ASKED = bmw(0x0793)
+    val BMW_EGR_VALVE = bmw(0x0BB4)
+
+    // El corte activo de la vigilancia del turbo (PCR_stMon en la tabla del N47). Que significa cada
+    // valor no lo dice la tabla; en el escaneo del 11 de octubre, rodando normal, dio siempre 0.
+    val BMW_BOOST_WATCH_CUT = bmw(0x01FB)
 
     /** Lo que marcaba la distancia total en cada una de las cinco ultimas regeneraciones, de la mas reciente a la mas antigua. */
     val BMW_REGENERATION_ADDRESSES = listOf(0x03FD, 0x03FE, 0x03FF, 0x0400, 0x0401)
@@ -512,6 +518,7 @@ object Pids {
         bmwDef(0x10CE, "Tiempo aparcado antes de arrancar", "min", 0, PidGroup.ELECTRIC) { it.toDouble() },
         bmwDef(0x0500, "Cantidad inyectada", "mg/emb", 1, PidGroup.FUEL, Tier.MEDIUM) { it * 0.003052 - 100.0 },
         bmwDef(0x01F4, "Presión turbo pedida", "kPa", 0, PidGroup.AIR, Tier.MEDIUM) { it * 0.0091554 },
+        bmwDef(0x01FB, "Turbo: corte de su vigilancia (código)", "", 0, PidGroup.AIR, size = 1) { it.toDouble() },
         bmwDef(0x0641, "Presión raíl pedida", "bar", 0, PidGroup.FUEL, Tier.MEDIUM) { it * 0.045777 },
 
         bmwDef(0x0BEB, "Actuador del turbo", "%", 0, PidGroup.AIR) { it * 0.001526 },

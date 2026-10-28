@@ -153,6 +153,16 @@ object Limits {
 
     // El contador de km sin regenerar vuelve a cero al terminar bien; con esto basta para notarlo.
     const val REGEN_RESET_KM = 1.0
+
+    // EGR cortada: pide al menos un 15 % con la valvula cerrada, rodando y con carga, 30 s seguidos.
+    // En los trayectos grabados hasta el 28 de octubre solo pasa en el modo de emergencia del 27.
+    // Sin la carga y la velocidad saltaba tambien en retencion y al ralenti tras regenerar.
+    const val EGR_CUT_MIN_ASKED = 15.0
+    const val EGR_CUT_MAX_VALVE = 1.0
+    const val EGR_CUT_MIN_SPEED = 10.0
+    const val EGR_CUT_MIN_LOAD = 10.0
+    const val EGR_CUT_HOLD_MS = 30_000L
+    const val BOOST_CUT_HOLD_MS = 5_000L
 }
 
 /** Como acabo la ultima regeneracion vista en este trayecto. */
@@ -250,7 +260,7 @@ private class Rule(val id: String, val holdMs: Long, val check: (Moment) -> Advi
  * tiene que cumplirse un rato seguido para no saltar con un pico suelto. Hay que llamarlo con el
  * tiempo creciente; guarda memoria entre llamadas.
  */
-class Advisor {
+class Advisor(private val live: Boolean = false) {
 
     private val since = HashMap<String, Long>()
     private val loads = ArrayDeque<Pair<Long, Double>>()
@@ -273,7 +283,7 @@ class Advisor {
         val outcome = regenOutcome?.takeIf { tMs - regenOutcomeMs < Limits.REGEN_OUTCOME_SHOW_MS }
         val moment = Moment(values, drivingMs, recentLoad, vehicle, peakCoolant, outcome)
         val active = mutableListOf<Advice>()
-        for (rule in RULES) {
+        for (rule in if (live) LIVE_RULES else RULES) {
             val advice = rule.check(moment)
             val alertKey = rule.id + ALERT_SUFFIX
             if (advice == null) {
@@ -375,6 +385,17 @@ class Advisor {
             level(maxOf(range.start - value, value - range.endInclusive), warn, alert)
 
         private fun n(value: Double, decimals: Int = 0) = "%.${decimals}f".format(value)
+
+        /**
+         * Lo que sale como aviso en marcha: lo que protege el motor ahora, la emergencia, el filtro
+         * cuando regenera o se bloquea, y dejar enfriar el turbo. El resto son analisis: salen en el
+         * repaso del trayecto, no mientras se conduce.
+         */
+        private val LIVE = setOf(
+            "coolant_hot", "oil_hot", "exhaust_hot", "voltage", "rail_high",
+            "boost_uncontrolled", "boost_high", "boost_cut", "egr_cut",
+            "regeneration", "regen_stop", "regen_cut", "regen_done", "filter_faults", "hot_stop",
+        )
 
         private val RULES: List<Rule> = listOf(
             Rule("coolant_hot", 5_000) { m ->
@@ -818,6 +839,32 @@ class Advisor {
                     "Más de cinco minutos parado con el motor en marcha: gasta, ensucia la EGR y carga el filtro.",
                 )
             },
+            // La centralita pide EGR y tiene la valvula cerrada: la ha cortado. Paso el 27 de octubre
+            // los primeros 10 minutos con el sensor de presion del turbo midiendo de menos (41AB):
+            // pedia un 30-38 % y la valvula estaba en 0.
+            Rule("egr_cut", Limits.EGR_CUT_HOLD_MS) { m ->
+                val asked = m.values[Pids.BMW_EGR_ASKED] ?: return@Rule null
+                val valve = m.values[Pids.BMW_EGR_VALVE] ?: return@Rule null
+                // Tras regenerar la deja cerrada un rato con la peticion aun puesta: el 26 de octubre, 53 s al ralenti.
+                if ((m.values[Pids.BMW_REGEN_REQUEST] ?: 0.0) > 0 || Pids.regenerating(m.values)) return@Rule null
+                if (!m.warm || (m.speed ?: 0.0) < Limits.EGR_CUT_MIN_SPEED || (m.load ?: 0.0) < Limits.EGR_CUT_MIN_LOAD) return@Rule null
+                if (asked < Limits.EGR_CUT_MIN_ASKED || valve > Limits.EGR_CUT_MAX_VALVE) return@Rule null
+                Advice(
+                    "egr_cut", Severity.ALERT, "La centralita ha cortado la EGR",
+                    "Pide un ${n(asked)} % y la válvula está cerrada. Suele ser el modo de emergencia por una avería " +
+                        "del aire o del turbo: lee las averías.",
+                )
+            },
+            Rule("boost_cut", Limits.BOOST_CUT_HOLD_MS) { m ->
+                if (!m.running) return@Rule null
+                val watch = m.values[Pids.BMW_BOOST_WATCH_CUT] ?: return@Rule null
+                if (watch == 0.0) return@Rule null
+                Advice(
+                    "boost_cut", Severity.ALERT, "La centralita ha cortado la regulación del turbo",
+                    "Código de la vigilancia: %X. Con el turbo sin regular hay poca fuerza y se llena el filtro: ".format(watch.toLong()) +
+                        "no pises fuerte y lee las averías.",
+                )
+            },
             Rule("hot_stop", 0) { m ->
                 if (!m.idle) return@Rule null
                 // Con temperatura de escape se mira esa, que es lo que calienta el turbo; la carga
@@ -835,5 +882,7 @@ class Advisor {
                 )
             },
         )
+
+        private val LIVE_RULES: List<Rule> = RULES.filter { it.id in LIVE }
     }
 }
