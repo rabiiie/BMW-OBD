@@ -168,6 +168,12 @@ class ObdController(
     private val _diagnostics = MutableStateFlow(DiagnosticsState())
     val diagnostics: StateFlow<DiagnosticsState> = _diagnostics.asStateFlow()
 
+    private val _mapWatch = MutableStateFlow(com.rabie.bmwobd.obd.MapWatchState())
+    val mapWatch: StateFlow<com.rabie.bmwobd.obd.MapWatchState> = _mapWatch.asStateFlow()
+
+    @Volatile
+    private var mapWatchOn = false
+
     // Lo que se pide a mano (consola, averias) espera aqui y se atiende entre dos vueltas de lectura.
     private val tasks = Channel<suspend (ObdSession) -> Unit>(Channel.UNLIMITED)
 
@@ -626,6 +632,79 @@ class ObdController(
                 logBuffer.unpin()
             }
         }
+    }
+
+    /**
+     * La prueba del sensor MAP: mientras dura solo se pregunta el MAP, con alguna pregunta de
+     * revoluciones, para que lleguen todas las lecturas que de el adaptador y se vea un corte
+     * breve. La lectura normal espera hasta que se para. Cada lectura va a un CSV propio, sin
+     * repetir valores.
+     */
+    fun startMapWatch() {
+        if (!isLive() || _diagnostics.value.busy || mapWatchOn) return
+        mapWatchOn = true
+        _diagnostics.update { it.copy(busy = true, message = null, runningTest = MAP_WATCH_KEY) }
+        tasks.trySend { session ->
+            val stamp = java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.US).format(java.util.Date())
+            val file = java.io.File(java.io.File(context.filesDir, "logs").apply { mkdirs() }, "sensor_map_$stamp.csv")
+            val baro = session.read(Pids.BAROMETRIC, singleFrame = true)?.firstOrNull()?.toDouble()
+            if (baro == null) {
+                mapWatchOn = false
+                _mapWatch.value = com.rabie.bmwobd.obd.MapWatchState(message = "El coche no ha dado la presión atmosférica: no se puede comparar.")
+                _diagnostics.update { it.copy(busy = false, runningTest = null) }
+                return@trySend
+            }
+            val watch = com.rabie.bmwobd.obd.MapWatch(baro)
+            _mapWatch.value = watch.now
+            appendLog("## Prueba del sensor MAP: inicio; presión atmosférica %.0f kPa".format(baro))
+            val start = System.nanoTime()
+            var asked = 0
+            var silent = 0
+            val lines = StringBuilder("t_ms,map_kpa,rpm\n")
+            try {
+                while (mapWatchOn && currentCoroutineContext().isActive) {
+                    val tMs = (System.nanoTime() - start) / 1_000_000
+                    if (asked++ % com.rabie.bmwobd.obd.MapWatch.RPM_EVERY == 0) {
+                        val data = session.read(Pids.RPM, singleFrame = true)
+                        if (data != null && data.size >= 2) {
+                            val rpm = (data[0] * 256 + data[1]) / 4.0
+                            watch.rpm(rpm)
+                            lines.append(tMs).append(",,").append("%.0f".format(java.util.Locale.US, rpm)).append('\n')
+                        }
+                        continue
+                    }
+                    val kpa = session.read(Pids.MAP, singleFrame = true)?.firstOrNull()?.toDouble()
+                    if (kpa == null) {
+                        if (++silent >= MAP_WATCH_SILENT) {
+                            appendLog("## Prueba del sensor MAP: el coche ha dejado de contestar")
+                            break
+                        }
+                        continue
+                    }
+                    silent = 0
+                    lines.append(tMs).append(',').append("%.0f".format(java.util.Locale.US, kpa)).append(",\n")
+                    if (watch.sample(tMs, kpa)) {
+                        beep()
+                        appendLog("## Sensor MAP: caída a %.0f kPa al ralentí (calle a %.0f), a los %.1f s".format(java.util.Locale.US, kpa, baro, tMs / 1000.0))
+                    }
+                    _mapWatch.value = watch.now
+                }
+            } finally {
+                mapWatchOn = false
+                withContext(Dispatchers.IO) { runCatching { file.writeText(lines.toString()) } }
+                val end = watch.now
+                val text = "Sensor MAP: %d lecturas, %.1f por segundo; mínimo %.0f y máximo %.0f kPa con la calle a %.0f; %d caídas al ralentí.".format(
+                    java.util.Locale.US, end.samples, end.perSecond, end.min ?: 0.0, end.max ?: 0.0, baro, end.drops,
+                )
+                appendLog("## Prueba del sensor MAP: fin. $text")
+                _mapWatch.value = end.copy(running = false, message = text, file = file)
+                _diagnostics.update { it.copy(busy = false, runningTest = null) }
+            }
+        }
+    }
+
+    fun stopMapWatch() {
+        mapWatchOn = false
     }
 
     /**
@@ -1209,6 +1288,8 @@ class ObdController(
         private const val SILENCE_LIMIT_NANOS = 10_000_000_000L
         private const val RATE_WINDOW_NANOS = 2_000_000_000L
         private const val TIMING_LOG_NANOS = 60_000_000_000L
+        const val MAP_WATCH_KEY = "sensor_map"
+        private const val MAP_WATCH_SILENT = 20
         private const val MAX_SUM_GAP_NANOS = 5_000_000_000L
         private const val NANOS_PER_HOUR = 3.6e12
         private const val MIN_AVERAGE_KM = 2.0

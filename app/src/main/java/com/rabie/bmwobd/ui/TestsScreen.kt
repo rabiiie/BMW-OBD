@@ -25,11 +25,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rabie.bmwobd.DiagnosticsState
 import com.rabie.bmwobd.obd.Actuator
+import com.rabie.bmwobd.obd.MapWatchState
 import com.rabie.bmwobd.obd.BmwService
 import com.rabie.bmwobd.obd.Need
 import com.rabie.bmwobd.obd.ServiceRoutine
@@ -48,6 +50,9 @@ import java.util.Locale
 @Composable
 fun TestsScreen(
     state: DiagnosticsState,
+    mapWatch: MapWatchState,
+    onStartMapWatch: () -> Unit,
+    onStopMapWatch: () -> Unit,
     connected: Boolean,
     bmw: Boolean,
     records: Map<String, TestRecord>,
@@ -73,6 +78,14 @@ fun TestsScreen(
             !bmw -> Text("Las pruebas son de la centralita del N47: este coche no la tiene reconocida.", color = Bmw.TextDim, fontSize = 14.sp)
         }
         state.message?.takeIf { state.runningTest == null }?.let { Text(it, color = Bmw.Accent, fontSize = 14.sp) }
+
+        Label("Sensores", color = Bmw.Text)
+        MapWatchCard(
+            watch = mapWatch,
+            enabled = connected && (!state.busy || mapWatch.running),
+            onStart = onStartMapWatch,
+            onStop = onStopMapWatch,
+        )
 
         Label("Pruebas de piezas", color = Bmw.Text)
         for (actuator in listOf(BmwService.FAN) + BmwService.ACTUATORS) {
@@ -204,6 +217,61 @@ private fun TestCard(
         }
         OutlinedButton(onClick = onRun, enabled = enabled && !running, modifier = Modifier.fillMaxWidth()) {
             Text(if (record == null) "Probar" else "Probar otra vez", color = if (enabled) Bmw.Accent else Bmw.TextDim)
+        }
+    }
+}
+
+/**
+ * La prueba del sensor MAP: solo el MAP, todo lo rapido que de el adaptador. Al ralenti tiene que
+ * marcar lo mismo que la presion atmosferica; las caidas se cuentan y suenan.
+ */
+@Composable
+private fun MapWatchCard(watch: MapWatchState, enabled: Boolean, onStart: () -> Unit, onStop: () -> Unit) {
+    val context = LocalContext.current
+    fun kpa(value: Double?) = value?.let { "%.0f".format(Locale.US, it) } ?: "-"
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(Bmw.Surface)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Text("Sensor MAP", color = Bmw.Text, fontSize = 16.sp)
+        Text(
+            "Lee solo el MAP, sin nada más, para ver un corte breve. Al ralentí tiene que marcar lo mismo que la presión " +
+                "atmosférica. Mueve el conector y su cable: cada caída de más de 10 kPa suena.",
+            color = Bmw.Text,
+            fontSize = 14.sp,
+        )
+        Text("Parado, al ralentí y con el motor caliente. Mientras dura no se lee nada más.", color = Bmw.TextDim, fontSize = 12.sp)
+        if (watch.running || watch.samples > 0) {
+            val low = watch.kpa != null && watch.baro != null && watch.kpa < watch.baro - com.rabie.bmwobd.obd.MapWatch.DROP_KPA
+            Text("${kpa(watch.kpa)} kPa", color = if (low) Bmw.MRed else Bmw.Text, fontSize = 40.sp)
+            Text("Calle: ${kpa(watch.baro)} kPa · mínimo ${kpa(watch.min)} · máximo ${kpa(watch.max)}", color = Bmw.TextDim, fontSize = 13.sp)
+            Text(
+                "%.1f lecturas por segundo · %d lecturas · %s rpm".format(
+                    Locale.US, watch.perSecond, watch.samples, watch.rpm?.let { "%.0f".format(Locale.US, it) } ?: "-",
+                ),
+                color = Bmw.TextDim,
+                fontSize = 13.sp,
+            )
+            Text(
+                if (watch.drops == 0) "Sin caídas" else "Caídas al ralentí: ${watch.drops}",
+                color = if (watch.drops == 0) Color(0xFF4CAF50) else Bmw.MRed,
+                fontSize = 16.sp,
+            )
+        }
+        watch.message?.takeIf { !watch.running }?.let { Text(it, color = Bmw.Text, fontSize = 14.sp) }
+        if (watch.running) {
+            OutlinedButton(onClick = onStop, modifier = Modifier.fillMaxWidth()) { Text("Parar", color = Bmw.MRed) }
+        } else {
+            OutlinedButton(onClick = onStart, enabled = enabled, modifier = Modifier.fillMaxWidth()) {
+                Text("Empezar", color = if (enabled) Bmw.Accent else Bmw.TextDim)
+            }
+            watch.file?.takeIf { it.exists() }?.let { file ->
+                TextButton(onClick = { shareFile(context, file, "text/csv", file.name) }) { Text("Compartir el CSV", color = Bmw.Accent) }
+            }
         }
     }
 }

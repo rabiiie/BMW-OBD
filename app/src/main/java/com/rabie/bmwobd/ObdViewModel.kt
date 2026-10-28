@@ -137,6 +137,12 @@ class ObdViewModel(app: Application) : AndroidViewModel(app) {
 
     fun runRoutine(routine: com.rabie.bmwobd.obd.ServiceRoutine) = controller.runRoutine(routine)
 
+    val mapWatch: StateFlow<com.rabie.bmwobd.obd.MapWatchState> = controller.mapWatch
+
+    fun startMapWatch() = controller.startMapWatch()
+
+    fun stopMapWatch() = controller.stopMapWatch()
+
     /** La ultima vez de cada prueba, por su clave. */
     val testResults: StateFlow<Map<String, com.rabie.bmwobd.tests.TestRecord>> = controller.testResults.records
 
