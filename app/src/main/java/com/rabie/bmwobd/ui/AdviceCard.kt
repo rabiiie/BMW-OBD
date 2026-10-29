@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -27,9 +28,12 @@ fun severityColor(severity: Severity): Color = when (severity) {
     Severity.INFO -> Bmw.MBlueLight
 }
 
-/** Un indicio: titulo, explicacion y, en el repaso de un trayecto, cuanto duro. */
+/**
+ * Un indicio: titulo, explicacion y, en el repaso de un trayecto, cuanto duro. Con [onIgnore], un
+ * boton para que no vuelva a salir.
+ */
 @Composable
-fun AdviceCard(advice: Advice, modifier: Modifier = Modifier, note: String? = null) {
+fun AdviceCard(advice: Advice, modifier: Modifier = Modifier, note: String? = null, onIgnore: (() -> Unit)? = null) {
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -42,6 +46,7 @@ fun AdviceCard(advice: Advice, modifier: Modifier = Modifier, note: String? = nu
             Text(advice.title, color = Bmw.Text, fontSize = 16.sp)
             Text(advice.detail, color = Bmw.TextDim, fontSize = 13.sp)
             note?.let { Label(it, Modifier.padding(top = 4.dp)) }
+            onIgnore?.let { TextButton(onClick = it) { Text("Ignorar esta avería", color = Bmw.TextDim, fontSize = 13.sp) } }
         }
     }
 }

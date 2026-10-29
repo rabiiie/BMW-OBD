@@ -320,8 +320,10 @@ class Advisor(private val live: Boolean = false) {
         val mode = values[Pids.BMW_ENGINE_MODE]?.toLong()?.toInt()
         val request = values[Pids.BMW_REGEN_REQUEST]
         // La peticion se queda en 5 toda la regeneracion; el modo entra y sale de regenerar segun
-        // la carga (visto el 16 de octubre: veinte cambios en 22 minutos con la peticion en 5).
-        val active = if (request != null) request == Pids.BMW_REGEN_RUNNING else mode == Pids.MODE_REGENERATING
+        // la carga (visto el 16 de octubre: veinte cambios en 22 minutos con la peticion en 5). La
+        // del 27 de octubre fue con la peticion en 1 y su propio modo: vale tambien ese.
+        val active = request == Pids.BMW_REGEN_RUNNING || mode == Pids.MODE_REGENERATING_B ||
+            (request == null && mode == Pids.MODE_REGENERATING)
         val km = values[Pids.bmw(Pids.BMW_SINCE_REGEN_ADDRESS)]
         if (active) {
             if (regenSeenMs == null) {
@@ -704,7 +706,7 @@ class Advisor(private val live: Boolean = false) {
                 // calentar el escape) y el error del OBD no lo refleja: en los trayectos de octubre el
                 // error pasaba del 15 % el 4,8 % del tiempo en modo normal y el 13,4 % en proteccion.
                 val mode = m.values[Pids.BMW_ENGINE_MODE]?.toLong()?.toInt()
-                if (mode == Pids.MODE_REGENERATING || mode == Pids.MODE_PROTECTION) return@Rule null
+                if (Pids.heatingMode(mode) || mode == Pids.MODE_PROTECTION) return@Rule null
                 if ((m.values[Pids.BMW_REGEN_REQUEST] ?: 0.0) >= Pids.BMW_REGEN_RUNNING) return@Rule null
                 if (!m.warm || kotlin.math.abs(error) < Limits.EGR_ERROR_WARN) return@Rule null
                 Advice(

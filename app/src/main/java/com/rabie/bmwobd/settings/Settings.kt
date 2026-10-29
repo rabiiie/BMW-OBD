@@ -25,6 +25,8 @@ data class AppSettings(
     val fuelPrice: Double? = null,
     /** Mandar al conectar con el N47 que desactive el arranque y parada automaticos hasta quitar el contacto. */
     val disableMsa: Boolean = false,
+    /** Las averias, por su codigo (4A6E), que ya no salen como aviso en marcha. */
+    val ignoredFaults: Set<String> = emptySet(),
 )
 
 /** Los ajustes de la app, guardados en el movil. */
@@ -45,6 +47,7 @@ class SettingsStore(private val prefs: SharedPreferences) {
             .putString(KEY_CASE, next.case.name)
             .putString(KEY_FUEL_PRICE, next.fuelPrice?.toString())
             .putBoolean(KEY_DISABLE_MSA, next.disableMsa)
+            .putStringSet(KEY_IGNORED_FAULTS, next.ignoredFaults.toSet())
             .apply()
         _state.value = next
     }
@@ -61,6 +64,7 @@ class SettingsStore(private val prefs: SharedPreferences) {
             case = Case.entries.firstOrNull { it.name == prefs.getString(KEY_CASE, null) } ?: defaults.case,
             fuelPrice = prefs.getString(KEY_FUEL_PRICE, null)?.toDoubleOrNull()?.takeIf { it > 0 },
             disableMsa = prefs.getBoolean(KEY_DISABLE_MSA, defaults.disableMsa),
+            ignoredFaults = prefs.getStringSet(KEY_IGNORED_FAULTS, null)?.toSet() ?: defaults.ignoredFaults,
         )
     }
 
@@ -74,5 +78,6 @@ class SettingsStore(private val prefs: SharedPreferences) {
         const val KEY_CASE = "case"
         const val KEY_FUEL_PRICE = "fuel_price"
         const val KEY_DISABLE_MSA = "disable_msa"
+        const val KEY_IGNORED_FAULTS = "ignored_faults"
     }
 }

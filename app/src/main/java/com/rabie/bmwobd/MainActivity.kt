@@ -173,6 +173,7 @@ private fun MainScreen(vm: ObdViewModel = viewModel()) {
                         autoPaused = true
                         vm.disconnect()
                     },
+                    onIgnoreFault = { code -> vm.updateSettings { it.copy(ignoredFaults = it.ignoredFaults + code) } },
                     modifier = content,
                 )
             } else {

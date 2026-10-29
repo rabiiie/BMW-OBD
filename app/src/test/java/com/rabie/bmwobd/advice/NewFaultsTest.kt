@@ -16,7 +16,7 @@ class NewFaultsTest {
         val faults = NewFaults(listOf(oilLevel))
         assertTrue(faults.read(0, listOf(oilLevel)).isEmpty())
         assertEquals(listOf(boostSensor), faults.read(180_000, listOf(oilLevel, boostSensor)))
-        assertEquals(listOf("fault_41AB"), faults.advice(200_000).map { it.id })
+        assertEquals(listOf("41AB"), faults.advice(200_000).map { NewFaults.codeOf(it) })
         assertEquals(Severity.ALERT, faults.advice(200_000).single().severity)
         // Se quita a los cinco minutos y no vuelve a avisar en el mismo trayecto.
         assertTrue(faults.advice(500_000).isEmpty())

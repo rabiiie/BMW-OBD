@@ -80,6 +80,7 @@ fun LiveScreen(
     onSaveVehicle: (Vehicle) -> Unit,
     onCase: (Case) -> Unit,
     onDisconnect: () -> Unit,
+    onIgnoreFault: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     if (keepScreenOn) KeepScreenOn()
@@ -115,7 +116,12 @@ fun LiveScreen(
         }
         Label("Perfil: " + EngineProfile.of(vehicle).title)
         for (advice in state.advice) {
-            AdviceCard(advice, Modifier.clickable { searchWeb(context, "${vehicle.searchTerms} ${advice.title}") })
+            val code = com.rabie.bmwobd.advice.NewFaults.codeOf(advice)
+            AdviceCard(
+                advice,
+                Modifier.clickable { searchWeb(context, "${vehicle.searchTerms} ${advice.title}") },
+                onIgnore = code?.let { { onIgnoreFault(it) } },
+            )
         }
         if (state.cases) {
             Row(

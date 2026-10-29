@@ -34,12 +34,16 @@ class NewFaults(atStart: List<BmwFault>?) {
         .filter { (start, _) -> tMs - start < SHOW_MS }
         .map { (_, fault) ->
             Advice(
-                "fault_${fault.label}", Severity.ALERT, "Avería nueva: ${fault.label}",
+                PREFIX + fault.label, Severity.ALERT, "Avería nueva: ${fault.label}",
                 (fault.text ?: "La app no tiene su texto.") + ". Está presente ahora y no lo estaba al empezar el trayecto.",
             )
         }
 
-    private companion object {
-        const val SHOW_MS = 5 * 60_000L
+    companion object {
+        private const val SHOW_MS = 5 * 60_000L
+        private const val PREFIX = "fault_"
+
+        /** El codigo de la averia de un aviso de averia nueva (4A6E); null si el aviso es de otra cosa. */
+        fun codeOf(advice: Advice): String? = advice.id.takeIf { it.startsWith(PREFIX) }?.removePrefix(PREFIX)
     }
 }

@@ -76,6 +76,19 @@ fun SettingsScreen(
             detail = "Un pitido cuando aparece un aviso en rojo.",
             checked = settings.sound,
         ) { value -> onChange { it.copy(sound = value) } }
+        if (settings.ignoredFaults.isEmpty()) {
+            Text("Ninguna avería ignorada. Un aviso de avería nueva se puede ignorar desde su tarjeta.", color = Bmw.TextDim, fontSize = 13.sp)
+        } else {
+            Text("Averías que no avisan en marcha:", color = Bmw.Text, fontSize = 14.sp)
+            for (code in settings.ignoredFaults.sorted()) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(code + (com.rabie.bmwobd.obd.BmwFaultTexts.of(code.toIntOrNull(16) ?: -1)?.first?.let { " · $it" } ?: ""), color = Bmw.Text, fontSize = 14.sp, modifier = Modifier.weight(1f))
+                    androidx.compose.material3.TextButton(onClick = { onChange { it.copy(ignoredFaults = it.ignoredFaults - code) } }) {
+                        Text("Volver a avisar", color = Bmw.Accent, fontSize = 13.sp)
+                    }
+                }
+            }
+        }
 
         Label("Pantalla", Modifier.padding(top = 6.dp))
         Toggle(

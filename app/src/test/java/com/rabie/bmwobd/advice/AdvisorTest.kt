@@ -107,6 +107,20 @@ class AdvisorTest {
     }
 
     @Test
+    fun `la regeneracion del 27 de octubre, con la peticion en 1 y su propio modo, se sigue y se da por terminada`() {
+        val advisor = Advisor(live = true)
+        val driving = mapOf(Pids.RPM to 2050.0, Pids.SPEED to 110.0, Pids.COOLANT to 91.0, Pids.LOAD to 60.0, Pids.BMW_REGEN_REQUEST to 1.0)
+        val since = Pids.bmw(Pids.BMW_SINCE_REGEN_ADDRESS)
+        var last = emptyList<Advice>()
+        for (s in 0..480) last = advisor.update(s * 1000L, driving + (Pids.BMW_ENGINE_MODE to Pids.MODE_REGENERATING_B.toDouble()) + (since to 305.0 + s / 48.0))
+        assertTrue(Pids.regenerating(driving + (Pids.BMW_ENGINE_MODE to Pids.MODE_REGENERATING_B.toDouble())))
+        assertTrue(last.find("regeneration") != null)
+        val after = driving + (Pids.BMW_REGEN_REQUEST to 0.0) + (Pids.BMW_ENGINE_MODE to Pids.MODE_NORMAL.toDouble()) + (since to 0.8)
+        for (s in 481..560) last = advisor.update(s * 1000L, after)
+        assertEquals(Severity.INFO, last.find("regen_done")?.severity)
+    }
+
+    @Test
     fun `refrigerante muy alto va en rojo`() {
         assertEquals(Severity.WARN, hold(warmIdle + (Pids.COOLANT to 110.0), 10).find("coolant_hot")?.severity)
         assertEquals(Severity.ALERT, hold(warmIdle + (Pids.COOLANT to 118.0), 10).find("coolant_hot")?.severity)

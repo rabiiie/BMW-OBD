@@ -112,6 +112,13 @@ object Pids {
     const val MODE_REGENERATING = 0x02010002
 
     /**
+     * Otra regeneracion, vista el 27 de octubre: ocho minutos con el escape a 566-612 grados y la
+     * peticion en 1, no en 5, y al acabar el contador de km sin regenerar volvio a cero. Que la
+     * distingue de [MODE_REGENERATING] no lo dice la tabla.
+     */
+    const val MODE_REGENERATING_B = 0x00410002
+
+    /**
      * La regeneracion de proteccion: con el filtro muy cargado lo quema despacio, sin pasar de unos
      * 500 grados, para no dañarlo. Visto el 13 y el 14 de octubre, cuando la memoria de informacion
      * apunto 4CE0, "regeneracion de proteccion del motor activada".
@@ -121,7 +128,10 @@ object Pids {
     /** Con el contacto puesto y el motor parado. */
     const val MODE_STOPPED = 0x80100001.toInt()
 
-    val KNOWN_MODES = setOf(MODE_NORMAL, MODE_REGENERATING, MODE_PROTECTION, MODE_STOPPED)
+    val KNOWN_MODES = setOf(MODE_NORMAL, MODE_REGENERATING, MODE_REGENERATING_B, MODE_PROTECTION, MODE_STOPPED)
+
+    /** Los modos en que el motor calienta el escape para quemar el filtro, sin la proteccion. */
+    fun heatingMode(mode: Int?): Boolean = mode == MODE_REGENERATING || mode == MODE_REGENERATING_B
 
     fun protecting(values: Map<Int, Double>): Boolean = values[BMW_ENGINE_MODE]?.toLong()?.toInt() == MODE_PROTECTION
 
@@ -130,7 +140,7 @@ object Pids {
      * se conoce no cuenta. Sin modo, en grabaciones de antes de leerlo, vale la peticion.
      */
     fun regenerating(request: Double?, mode: Double?): Boolean = when {
-        mode != null && !mode.isNaN() -> mode.toLong().toInt().let { it == MODE_REGENERATING || it == MODE_PROTECTION }
+        mode != null && !mode.isNaN() -> mode.toLong().toInt().let { heatingMode(it) || it == MODE_PROTECTION }
         else -> request != null && request >= BMW_REGEN_ACTIVE
     }
 
@@ -272,7 +282,7 @@ object Pids {
         val request = values[BMW_REGEN_REQUEST] ?: return null
         if (request.toInt() != BMW_REGEN_RUNNING.toInt()) return regenRequestShort(request)
         val mode = values[BMW_ENGINE_MODE]?.toLong()?.toInt() ?: return "en marcha"
-        if (mode == MODE_REGENERATING) return "calentando"
+        if (heatingMode(mode)) return "calentando"
         val pause = values[BMW_REGEN_INTERRUPTION]?.toInt()
         return if (pause != null && pause and TEMPERATURE_REACHED != 0 && pause and OTHER_PAUSE == 0) "pausa · temp." else "en pausa"
     }

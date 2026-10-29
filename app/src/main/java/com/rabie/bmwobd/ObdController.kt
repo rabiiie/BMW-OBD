@@ -1137,8 +1137,9 @@ class ObdController(
                     lastUnknownMode = mode
                 }
             }
-            advice = (advisor.update(now / 1_000_000, snapshot, _state.value.vehicle) + newFaults.advice(now / 1_000_000))
-                .sortedByDescending { it.severity }
+            val ignored = settings.state.value.ignoredFaults
+            val faultAdvice = newFaults.advice(now / 1_000_000).filterNot { NewFaults.codeOf(it) in ignored }
+            advice = (advisor.update(now / 1_000_000, snapshot, _state.value.vehicle) + faultAdvice).sortedByDescending { it.severity }
             val hours = (now - lastSumNanos).coerceIn(0L, MAX_SUM_GAP_NANOS) / NANOS_PER_HOUR
             lastSumNanos = now
             km += (snapshot[Pids.SPEED] ?: 0.0) * hours
