@@ -89,8 +89,10 @@ object Dashboard {
      * Las que se leen en todas las vueltas. La EGR pedida, la que recircula y la posicion de la
      * valvula dicen si la EGR cierra tarde al acelerar o si la centralita la ha cortado. La presion
      * pedida al turbo va con la del MAP, que es rapida: leidas en vueltas distintas no se pueden comparar.
+     * La presion diferencial del filtro y su caudal van juntos por lo mismo: su cociente es la
+     * resistencia, y con cada uno de una vuelta distinta salia 100 m³/h al ralenti.
      */
-    val everyTurn: List<Int> = listOf(EGR_ASKED, EGR_RATE, Pids.BMW_EGR_VALVE, BOOST_ASKED)
+    val everyTurn: List<Int> = listOf(EGR_ASKED, EGR_RATE, Pids.BMW_EGR_VALVE, BOOST_ASKED, Pids.bmw(0x0424), Pids.bmw(0x0C83))
 
     /**
      * Las medidas de [group] que cambian deprisa y no se leen ya en cada vuelta: mientras el
