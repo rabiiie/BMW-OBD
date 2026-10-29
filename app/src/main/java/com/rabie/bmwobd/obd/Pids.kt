@@ -528,7 +528,7 @@ object Pids {
         bmwDef(0x10CE, "Tiempo aparcado antes de arrancar", "min", 0, PidGroup.ELECTRIC) { it.toDouble() },
         bmwDef(0x0500, "Cantidad inyectada", "mg/emb", 1, PidGroup.FUEL, Tier.MEDIUM) { it * 0.003052 - 100.0 },
         bmwDef(0x01F4, "Presión turbo pedida", "kPa", 0, PidGroup.AIR, Tier.MEDIUM) { it * 0.0091554 },
-        bmwDef(0x01FB, "Turbo: corte de su vigilancia (código)", "", 0, PidGroup.AIR, size = 1) { it.toDouble() },
+        bmwDef(0x01FB, "Turbo: corte de su vigilancia (código)", "", 0, PidGroup.AIR, Tier.MEDIUM, size = 1) { it.toDouble() },
         bmwDef(0x0641, "Presión raíl pedida", "bar", 0, PidGroup.FUEL, Tier.MEDIUM) { it * 0.045777 },
 
         bmwDef(0x0BEB, "Actuador del turbo", "%", 0, PidGroup.AIR) { it * 0.001526 },
