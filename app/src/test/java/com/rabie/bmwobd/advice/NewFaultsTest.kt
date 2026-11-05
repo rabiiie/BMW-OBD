@@ -33,6 +33,14 @@ class NewFaultsTest {
     }
 
     @Test
+    fun `la que estaba guardada al conectar no avisa al volver a presente`() {
+        // Lo del 5 de noviembre: 3EFC guardada al conectar y presente al rato.
+        val faults = NewFaults(listOf(BmwFault(0x3EFC, 0x21)))
+        assertTrue(faults.read(180_000, listOf(BmwFault(0x3EFC, 0x61))).isEmpty())
+        assertTrue(faults.advice(200_000).isEmpty())
+    }
+
+    @Test
     fun `sin la lectura al conectar la primera del trayecto hace de punto de partida`() {
         val faults = NewFaults(null)
         assertTrue(faults.read(0, listOf(oilLevel)).isEmpty())

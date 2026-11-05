@@ -100,13 +100,6 @@ class AdvisorTest {
     }
 
     @Test
-    fun `un corte de la regulacion del turbo avisa en rojo`() {
-        val driving = mapOf(Pids.RPM to 1800.0, Pids.SPEED to 60.0, Pids.COOLANT to 85.0, Pids.LOAD to 40.0)
-        assertNull(hold(driving + (Pids.BMW_BOOST_WATCH_CUT to 0.0), 30).find("boost_cut"))
-        assertEquals(Severity.ALERT, hold(driving + (Pids.BMW_BOOST_WATCH_CUT to 4.0), 10, Advisor(live = true)).find("boost_cut")?.severity)
-    }
-
-    @Test
     fun `la regeneracion del 27 de octubre, con la peticion en 1 y su propio modo, se sigue y se da por terminada`() {
         val advisor = Advisor(live = true)
         val driving = mapOf(Pids.RPM to 2050.0, Pids.SPEED to 110.0, Pids.COOLANT to 91.0, Pids.LOAD to 60.0, Pids.BMW_REGEN_REQUEST to 1.0)

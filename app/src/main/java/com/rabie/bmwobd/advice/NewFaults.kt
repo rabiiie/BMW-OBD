@@ -3,13 +3,14 @@ package com.rabie.bmwobd.advice
 import com.rabie.bmwobd.obd.BmwFault
 
 /**
- * Las averias que pasan a presentes durante el trayecto. Las que ya lo estaban al empezar no
- * avisan: se conocen y salen en cada lectura. Cada una avisa una vez por trayecto, hasta que deja
+ * Las averias que pasan a presentes durante el trayecto y no estaban en la memoria al empezar. Las
+ * que ya estaban, presentes o solo guardadas, no avisan: el sensor de aceite (3EFC) sale guardado al
+ * conectar y presente al rato en cada trayecto. Cada una avisa una vez por trayecto, hasta que deja
  * de estar presente o pasan [SHOW_MS].
  */
 class NewFaults(atStart: List<BmwFault>?) {
 
-    private var known: MutableSet<Int>? = atStart?.filter { it.active }?.map { it.code }?.toMutableSet()
+    private var known: MutableSet<Int>? = atStart?.map { it.code }?.toMutableSet()
     private val since = LinkedHashMap<Int, Pair<Long, BmwFault>>()
 
     /** Apunta una lectura de la memoria de averias. Devuelve las que acaban de aparecer. */
@@ -18,7 +19,7 @@ class NewFaults(atStart: List<BmwFault>?) {
         val codes = present.map { it.code }.toSet()
         // Si no se pudo leer al conectar, la primera lectura hace de punto de partida.
         val seen = known ?: run {
-            known = codes.toMutableSet()
+            known = faults.map { it.code }.toMutableSet()
             return emptyList()
         }
         since.keys.retainAll(codes)

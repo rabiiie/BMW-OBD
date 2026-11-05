@@ -19,7 +19,6 @@ import com.rabie.bmwobd.advice.Moment
 import com.rabie.bmwobd.advice.NewFaults
 import com.rabie.bmwobd.dash.GearGuess
 import com.rabie.bmwobd.dash.ShiftHint
-import com.rabie.bmwobd.obd.EngineOffReadings
 import com.rabie.bmwobd.obd.BmwFault
 import com.rabie.bmwobd.obd.BmwCarInfo
 import com.rabie.bmwobd.obd.Actuator
@@ -1008,8 +1007,6 @@ class ObdController(
         _state.update { it.copy(supported = turns.shown) }
 
         for (request in turns.requests) read(session, request, values, first = true)
-        val engineOff = EngineOffReadings()
-        engineOff.after(values, values.keys.toSet())
         var lastAnswerNanos = System.nanoTime()
         var lastFaultCheckNanos = lastAnswerNanos
         var lastIstaCheckNanos = lastAnswerNanos
@@ -1058,7 +1055,6 @@ class ObdController(
                     slowestPid = request.pid
                 }
             }
-            engineOff.after(values, turn.flatMap { request -> request.defs.map { it.id } }.toSet())
             if (turn.isNotEmpty()) {
                 turnsTimed++
                 turnsNanos += System.nanoTime() - turnStart
