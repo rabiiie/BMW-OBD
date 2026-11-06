@@ -3,7 +3,9 @@ package com.rabie.bmwobd.obd
 import java.io.IOException
 import java.net.SocketTimeoutException
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 
 data class SessionInfo(
@@ -186,12 +188,8 @@ class ObdSession(
      * de BMW. Primero se comprueba que la centralita contesta, con el refrigerante; si no, ninguna.
      */
     suspend fun discoverUds(candidates: List<PidDef>): List<PidDef> {
-        log("## BMW (UDS): se piden las medidas propias de la centralita del motor por la pasarela a la 12")
-        val check = Pids.b47Checks.first()
-        if ((readFirst(check.pid) ?: readFirst(check.pid)) == null) {
-            log("## BMW (UDS): la centralita no contesta por la pasarela")
-            return emptyList()
-        }
+        log("## BMW (UDS): se piden las medidas propias de la centralita del motor")
+        if (!findUdsWay(Pids.b47Checks.first())) return emptyList()
         val found = mutableListOf<PidDef>()
         for (def in candidates) {
             val value = (readFirst(def.pid) ?: readFirst(def.pid))?.let(def::decodeOrNull) ?: continue
@@ -204,23 +202,47 @@ class ObdSession(
 
     /** Lee una vez cada medida de [defs] por UDS. Null si la centralita no contesta a ninguna. */
     suspend fun readUds(defs: List<PidDef>): Map<Int, Double>? {
+        if (udsWay == null && !findUdsWay(defs.first())) return null
         val values = defs.mapNotNull { def -> (readFirst(def.pid) ?: readFirst(def.pid))?.let(def::decodeOrNull)?.let { def.id to it } }.toMap()
         return values.ifEmpty { null }
     }
 
-    // El adaptador tiene puesta la pasarela de BMW a la centralita 12, la de las medidas del B47.
+    // El adaptador tiene puesta la forma de llegar a la centralita del B47.
     private var udsLink = false
 
+    // Por cual de [UDS_LINKS] contesta la centralita del B47; null si aun no se ha encontrado.
+    private var udsWay: Int? = null
+
     /**
-     * Las medidas del B47 van por la pasarela de BMW a la centralita 12 (cabecera 6F1, direccion
-     * extendida 12, respuestas en 612, como en ISTA) y las del OBD normal a todas (7DF). El
+     * Busca por que forma contesta la centralita del B47 a [check] y se queda con la primera. La
+     * pasarela de BMW es la de ISTA, pero un ELM327 barato puede aceptar la direccion extendida y
+     * no usarla, como el del E87: por eso se prueban tambien las direcciones OBD del motor.
+     */
+    private suspend fun findUdsWay(check: PidDef): Boolean {
+        for ((index, way) in UDS_LINKS.withIndex()) {
+            udsWay = index
+            udsLink = false
+            if ((readFirst(check.pid) ?: readFirst(check.pid)) != null) {
+                log("## BMW (UDS): la centralita contesta por ${way.first}")
+                return true
+            }
+        }
+        udsWay = null
+        link(false)
+        log("## BMW (UDS): la centralita no contesta en ninguna forma")
+        return false
+    }
+
+    /**
+     * Las medidas del B47 van por la forma que se encontro (de [UDS_LINKS]) y las del OBD normal
+     * a todas (7DF). El
      * adaptador se cambia de una forma a otra solo cuando hace falta, y sin dejarlo en el
      * registro: en un trayecto pasa en cada vuelta. En los demas coches nunca se cambia.
      */
     private suspend fun link(uds: Boolean) {
         if (udsLink == uds) return
         udsLink = uds
-        for (command in if (uds) UDS_LINK else OBD_LINK) {
+        for (command in if (uds) UDS_LINKS[udsWay ?: 0].second else OBD_LINK) {
             try {
                 elm.send(command, READ_TIMEOUT_MS, quiet = true)
             } catch (e: SocketTimeoutException) {
@@ -512,10 +534,13 @@ class ObdSession(
 
     /**
      * Prueba con la centralita del motor de un BMW de la serie F (F20 118d, B47), que habla UDS.
-     * Antes lee por OBD refrigerante y revoluciones para comparar. Prueba tres formas de llegar a
-     * ella, de la mas sencilla a la de la pasarela de BMW, y se queda en la primera que contesta;
-     * si ninguna, la prueba en crudo. Solo lecturas (22 y 19). Todo queda en el registro y al acabar
-     * el adaptador vuelve a la lectura normal. Devuelve si contesto y en cuantas formas se probo.
+     * Antes lee por OBD refrigerante y revoluciones para comparar. Prueba siempre las tres formas de
+     * llegar a ella, con la identificacion y unas pocas medidas, y sigue por la que da medidas: que
+     * conteste la identificacion no basta, porque preguntando a todas (7DF) una centralita UDS calla
+     * ante una medida que no tiene. Si llega pero ninguna medida contesta, busca una a una las
+     * direcciones de medida. Si ninguna forma llega, la prueba en crudo. Solo lecturas (22 y 19).
+     * Todo queda en el registro y al acabar el adaptador vuelve a la lectura normal. Devuelve si
+     * contesto y en cuantas formas se probo.
      */
     suspend fun probeBmwUds(): Pair<Int, Int> {
         log("## BMW serie F: inicio")
@@ -523,15 +548,35 @@ class ObdSession(
         var heard = false
         try {
             for (command in listOf("ATH0", "0105", "010C")) attempt(command)
+            val ask: suspend (String) -> List<IntArray> = { query -> tryAsk(query)?.let { ObdParser.payloads(it, "") }.orEmpty() }
+            val results = mutableListOf<UdsWayCheck>()
             for ((name, setup) in UDS_WAYS) {
                 log("## Forma: $name")
                 tried++
                 for (command in setup) attempt(command)
-                heard = askUds { query -> tryAsk(query)?.let { ObdParser.payloads(it, "") }.orEmpty() }
-                if (heard) break
-                log("## Sin respuesta de la centralita en esta forma")
+                val check = checkUds(name, setup, ask)
+                results += check
+                log(
+                    "## Forma $name: identificación ${if (check.ident) "sí" else "no"}; " +
+                        "${check.measures} de ${BmwUds.CHECKS.size} medidas con dato, ${check.refused} rechazadas",
+                )
             }
-            if (!heard) {
+            val best = results.filter { it.reached }.maxByOrNull { it.measures * 100 + it.refused * 10 + if (it.ident) 1 else 0 }
+            if (best != null) {
+                heard = true
+                log("## BMW serie F: se sigue por ${best.name}")
+                for (command in best.setup) attempt(command)
+                if (best.measures > 0) {
+                    askUds(ask)
+                } else {
+                    log("## BMW serie F: la centralita contesta pero no tiene las medidas de la tabla d70bx7a0: se buscan las suyas")
+                    sweepUds(ask)
+                    tryAsk(BmwUds.FAULTS)?.let { response ->
+                        val text = ObdParser.payloads(response, "").firstNotNullOfOrNull { BmwUds.describe(BmwUds.FAULTS, it) }
+                        log("## Averías presentes y guardadas (${BmwUds.FAULTS}): ${text ?: "sin respuesta"}")
+                    }
+                }
+            } else {
                 log("## Forma: tramas crudas a la centralita 12")
                 tried++
                 for (command in RAW_MODULE_SETUP) attempt(command)
@@ -545,6 +590,68 @@ class ObdSession(
         }
         log("## BMW serie F: " + if (heard) "la centralita del motor contesta" else "la centralita del motor no ha contestado en ninguna forma")
         return (if (heard) 1 else 0) to tried
+    }
+
+    /** Lo que dio una forma de llegar a la centralita del B47 con la identificacion y [BmwUds.CHECKS]. */
+    private class UdsWayCheck(val name: String, val setup: List<String>, val ident: Boolean, val measures: Int, val refused: Int) {
+        val reached: Boolean get() = ident || measures > 0 || refused > 0
+    }
+
+    private suspend fun checkUds(name: String, setup: List<String>, ask: suspend (String) -> List<IntArray>): UdsWayCheck {
+        var ident = false
+        var measures = 0
+        var refused = 0
+        for (query in listOf(BmwUds.Query(BmwUds.IDENT, "Identificación (índice de la descripción)")) + BmwUds.CHECKS) {
+            val text = ask(query.request).firstNotNullOfOrNull { BmwUds.describe(query.request, it) }
+            log("## ${query.name} (${query.request}): ${text ?: "sin respuesta"}")
+            when {
+                text == null -> Unit
+                BmwUds.refused(text) -> refused++
+                query.request == BmwUds.IDENT -> ident = true
+                else -> measures++
+            }
+        }
+        return UdsWayCheck(name, setup, ident, measures, refused)
+    }
+
+    /**
+     * Pregunta una a una las direcciones de medida de [BmwUds.SWEEP] con una espera corta y deja en
+     * el registro las que contestan, con sus bytes, y los rechazos que no son "no existe". Solo
+     * lee. Con la direccion del motor la centralita dice enseguida que no tiene una medida; a
+     * todas, calla y hay que esperar: de 7 a 20 minutos.
+     */
+    private suspend fun sweepUds(ask: suspend (String) -> List<IntArray>) {
+        val total = BmwUds.SWEEP.last - BmwUds.SWEEP.first + 1
+        log("## Búsqueda de medidas: 22%04X a 22%04X, %d consultas; puede tardar de 7 a 20 minutos".format(BmwUds.SWEEP.first, BmwUds.SWEEP.last, total))
+        attempt(SWEEP_WAIT)
+        var found = 0
+        var refused = 0
+        var silent = 0
+        for ((done, id) in BmwUds.SWEEP.withIndex()) {
+            if (!currentCoroutineContext().isActive) break
+            val query = "22%04X".format(id)
+            val response = try {
+                elm.send(query, RAW_TIMEOUT_MS, quiet = true)
+            } catch (e: SocketTimeoutException) {
+                null
+            }
+            if (response == null) {
+                if (++silent >= SWEEP_SILENT) {
+                    log("## Búsqueda: el adaptador ha dejado de contestar en $query")
+                    break
+                }
+                continue
+            }
+            silent = 0
+            val text = ObdParser.payloads(response, "").firstNotNullOfOrNull { BmwUds.describe(query, it) }
+            if (text != null && !BmwUds.notFound(text)) {
+                if (BmwUds.refused(text)) refused++ else found++
+                log("## Búsqueda: $query -> $text")
+            }
+            if ((done + 1) % SWEEP_PROGRESS == 0) log("## Búsqueda: van ${done + 1} de $total; $found con dato, $refused rechazadas")
+        }
+        log("## Búsqueda: fin; $found con dato, $refused rechazadas")
+        if (ask(BmwUds.IDENT).isEmpty()) log("## Búsqueda: al acabar la centralita ya no contesta a la identificación")
     }
 
     /** Hace las consultas de [BmwUds.QUERIES] y dice si alguna tuvo respuesta de la centralita. */
@@ -1124,6 +1231,18 @@ class ObdSession(
 
         // La pasarela de BMW a la centralita del motor (12) y la vuelta a la direccion OBD normal.
         val UDS_LINK = listOf("ATSH6F1", "ATCEA12", "ATFCSH6F1", "ATFCSD123000", "ATFCSM1", "ATCRA612")
+
+        /** Las formas de llegar a la centralita del B47 en la lectura normal, en el orden en que se prueban. */
+        val UDS_LINKS = listOf(
+            "la pasarela de BMW a la centralita 12" to UDS_LINK,
+            "la dirección OBD del motor (7E0)" to listOf("ATSH7E0", "ATCEA", "ATFCSM0", "ATCRA7E8"),
+            "la dirección OBD a todas (7DF)" to listOf("ATSH7DF", "ATCEA", "ATFCSM0", "ATCRA"),
+        )
+
+        // La busqueda de medidas: unos 100 ms de espera por consulta, y se deja si el adaptador calla tantas seguidas.
+        const val SWEEP_WAIT = "ATST19"
+        const val SWEEP_SILENT = 30
+        const val SWEEP_PROGRESS = 512
         val OBD_LINK = listOf("ATSH7DF", "ATCEA", "ATFCSM0", "ATCRA")
         const val BMW_QUERY = "2C10"
         const val BMW_ANSWER = "6C10"
@@ -1162,8 +1281,8 @@ class ObdSession(
 
         /** Las formas de llegar a ella con el adaptador poniendo el formato, de la mas sencilla a la mas especifica. */
         val UDS_WAYS = listOf(
-            "dirección OBD normal, a todas (7DF)" to listOf("ATSP6", "ATSH7DF", "ATAR", "ATAT0", "ATSTFF"),
-            "dirección OBD del motor (7E0, contesta 7E8)" to listOf("ATSP6", "ATSH7E0", "ATCRA7E8", "ATAT0", "ATSTFF"),
+            "dirección OBD normal, a todas (7DF)" to listOf("ATSP6", "ATSH7DF", "ATCEA", "ATFCSM0", "ATAR", "ATAT0", "ATSTFF"),
+            "dirección OBD del motor (7E0, contesta 7E8)" to listOf("ATSP6", "ATSH7E0", "ATCEA", "ATFCSM0", "ATCRA7E8", "ATAT0", "ATSTFF"),
             "pasarela de BMW a la centralita 12" to listOf(
                 "ATSP6", "ATSH6F1", "ATCEA12", "ATFCSH6F1", "ATFCSD123000", "ATFCSM1", "ATCRA612", "ATAT0", "ATSTFF",
             ),

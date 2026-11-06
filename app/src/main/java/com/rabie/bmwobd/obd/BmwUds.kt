@@ -73,6 +73,18 @@ object BmwUds {
     const val IDENT = "22F150"
     const val FAULTS = "19020C"
 
+    /** Las pocas medidas con que se mira si una forma de llegar a la centralita da medidas: refrigerante, revoluciones, km y hollin. */
+    val CHECKS = listOf(0x461B, 0x427F, 0x46B1, 0x44BE).map { id -> Query("22%04X".format(id), BY_ID.getValue(id).name) }
+
+    /** Las direcciones de medida que se buscan una a una si las de la tabla no contestan. */
+    val SWEEP = 0x4000..0x5FFF
+
+    /** Si [describe] dio un rechazo. */
+    fun refused(text: String) = text.startsWith(REFUSED)
+
+    /** Si es el rechazo de "esa medida no existe", que en una busqueda es lo normal. */
+    fun notFound(text: String) = text.startsWith(REFUSED + "%02X".format(OUT_OF_RANGE))
+
     /**
      * Lo que dice una respuesta, en una linea, a partir de sus bytes desde el servicio. Null si no
      * es respuesta a esa consulta.
@@ -80,7 +92,7 @@ object BmwUds {
     fun describe(request: String, payload: IntArray): String? {
         val service = request.take(2).toInt(16)
         if (payload.size >= 3 && payload[0] == NEGATIVE && payload[1] == service) {
-            return "rechazada, código %02X (%s)".format(payload[2], NRC[payload[2]] ?: "sin texto")
+            return REFUSED + "%02X (%s)".format(payload[2], NRC[payload[2]] ?: "sin texto")
         }
         if (payload.isEmpty() || payload[0] != service + POSITIVE_OFFSET) return null
         return when (service) {
@@ -130,6 +142,8 @@ object BmwUds {
     private fun ascii(bytes: List<Int>) = bytes.joinToString("") { if (it in 0x20..0x7E) it.toChar().toString() else "." }
 
     private const val READ = 0x22
+    private const val REFUSED = "rechazada, código "
+    private const val OUT_OF_RANGE = 0x31
     private const val DTC = 0x19
     private const val NEGATIVE = 0x7F
     private const val POSITIVE_OFFSET = 0x40
