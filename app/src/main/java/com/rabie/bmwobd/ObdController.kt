@@ -174,6 +174,12 @@ class ObdController(
     @Volatile
     private var mapWatchOn = false
 
+    private val _leakWatch = MutableStateFlow(com.rabie.bmwobd.obd.LeakWatchState())
+    val leakWatch: StateFlow<com.rabie.bmwobd.obd.LeakWatchState> = _leakWatch.asStateFlow()
+
+    @Volatile
+    private var leakWatchOn = false
+
     // Lo que se pide a mano (consola, averias) espera aqui y se atiende entre dos vueltas de lectura.
     private val tasks = Channel<suspend (ObdSession) -> Unit>(Channel.UNLIMITED)
 
@@ -705,6 +711,74 @@ class ObdController(
 
     fun stopMapWatch() {
         mapWatchOn = false
+    }
+
+    /**
+     * La prueba de fuga de admision: revoluciones, MAP, caudalimetro, lambda, gasoleo inyectado y EGR
+     * leidos seguidos en cada vuelta, para que sean del mismo momento. Mientras dura no se lee nada mas.
+     */
+    fun startLeakWatch() {
+        if (!isLive() || _diagnostics.value.busy || leakWatchOn) return
+        leakWatchOn = true
+        _diagnostics.update { it.copy(busy = true, message = null, runningTest = LEAK_WATCH_KEY) }
+        tasks.trySend { session ->
+            val stamp = java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.US).format(java.util.Date())
+            val file = java.io.File(java.io.File(context.filesDir, "logs").apply { mkdirs() }, "fuga_admision_$stamp.csv")
+            val watch = com.rabie.bmwobd.obd.LeakWatch()
+            _leakWatch.value = watch.now
+            appendLog("## Prueba de fuga de admisión: inicio")
+            suspend fun value(id: Int): Double? {
+                val def = Pids.byId[id] ?: return null
+                val data = session.read(def.pid, singleFrame = !Pids.isBmw(def.pid)) ?: return null
+                return def.decodeOrNull(data)
+            }
+            val start = System.nanoTime()
+            var turn = 0
+            var silent = 0
+            var coolant: Double? = null
+            val lines = StringBuilder("t_ms,rpm,map_kpa,maf_gs,lambda,mg,egr,coolant,ratio\n")
+            try {
+                while (leakWatchOn && currentCoroutineContext().isActive) {
+                    if (turn++ % com.rabie.bmwobd.obd.LeakWatch.COOLANT_EVERY == 0) value(Pids.COOLANT)?.let { coolant = it }
+                    val tMs = (System.nanoTime() - start) / 1_000_000
+                    val rpm = value(Pids.RPM)
+                    if (rpm == null) {
+                        if (++silent >= MAP_WATCH_SILENT) {
+                            appendLog("## Prueba de fuga de admisión: el coche ha dejado de contestar")
+                            break
+                        }
+                        continue
+                    }
+                    silent = 0
+                    val sample = com.rabie.bmwobd.obd.LeakSample(
+                        tMs, rpm, value(Pids.MAP), value(Pids.MAF), value(LEAK_LAMBDA), value(Pids.BMW_INJECTION), value(Pids.BMW_EGR_VALVE), coolant,
+                    )
+                    val ratio = watch.sample(sample)
+                    val cells = listOf(sample.rpm, sample.mapKpa, sample.mafGs, sample.lambda, sample.mg, sample.egr, sample.coolant, ratio)
+                    lines.append(tMs).append(',')
+                        .append(cells.joinToString(",") { v -> v?.let { "%.3f".format(java.util.Locale.US, it) } ?: "" }).append('\n')
+                    _leakWatch.value = watch.now
+                }
+            } finally {
+                leakWatchOn = false
+                withContext(Dispatchers.IO) { runCatching { file.writeText(lines.toString()) } }
+                val end = watch.now
+                val text = "Fuga de admisión: %d lecturas, %d válidas, %.1f por segundo. %s".format(
+                    java.util.Locale.US, end.rows, end.valid, end.perSecond, end.verdict ?: "",
+                )
+                appendLog("## Prueba de fuga de admisión: fin. $text")
+                appendLog("## Fuga de admisión por presión: " + end.bands.joinToString(" · ") { b ->
+                    "%.0f-%s kPa %s (%d)".format(java.util.Locale.US, b.fromKpa, b.toKpa?.let { "%.0f".format(java.util.Locale.US, it) } ?: "", b.ratio?.let { "%.2f".format(java.util.Locale.US, it) } ?: "-", b.samples)
+                })
+                watch.stopped(text, file)
+                _leakWatch.value = watch.now
+                _diagnostics.update { it.copy(busy = false, runningTest = null) }
+            }
+        }
+    }
+
+    fun stopLeakWatch() {
+        leakWatchOn = false
     }
 
     /**
@@ -1290,6 +1364,8 @@ class ObdController(
         private const val RATE_WINDOW_NANOS = 2_000_000_000L
         private const val TIMING_LOG_NANOS = 60_000_000_000L
         const val MAP_WATCH_KEY = "sensor_map"
+        const val LEAK_WATCH_KEY = "fuga_admision"
+        private val LEAK_LAMBDA = Pids.bmw(0x0A29)
         private const val MAP_WATCH_SILENT = 20
         private const val MAX_SUM_GAP_NANOS = 5_000_000_000L
         private const val NANOS_PER_HOUR = 3.6e12

@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rabie.bmwobd.DiagnosticsState
 import com.rabie.bmwobd.obd.Actuator
+import com.rabie.bmwobd.obd.LeakWatchState
 import com.rabie.bmwobd.obd.MapWatchState
 import com.rabie.bmwobd.obd.BmwService
 import com.rabie.bmwobd.obd.Need
@@ -53,6 +54,9 @@ fun TestsScreen(
     mapWatch: MapWatchState,
     onStartMapWatch: () -> Unit,
     onStopMapWatch: () -> Unit,
+    leakWatch: LeakWatchState,
+    onStartLeakWatch: () -> Unit,
+    onStopLeakWatch: () -> Unit,
     connected: Boolean,
     bmw: Boolean,
     records: Map<String, TestRecord>,
@@ -85,6 +89,12 @@ fun TestsScreen(
             enabled = connected && (!state.busy || mapWatch.running),
             onStart = onStartMapWatch,
             onStop = onStopMapWatch,
+        )
+        LeakWatchCard(
+            watch = leakWatch,
+            enabled = connected && bmw && (!state.busy || leakWatch.running),
+            onStart = onStartLeakWatch,
+            onStop = onStopLeakWatch,
         )
 
         Label("Pruebas de piezas", color = Bmw.Text)
@@ -263,6 +273,67 @@ private fun MapWatchCard(watch: MapWatchState, enabled: Boolean, onStart: () -> 
             )
         }
         watch.message?.takeIf { !watch.running }?.let { Text(it, color = Bmw.Text, fontSize = 14.sp) }
+        if (watch.running) {
+            OutlinedButton(onClick = onStop, modifier = Modifier.fillMaxWidth()) { Text("Parar", color = Bmw.MRed) }
+        } else {
+            OutlinedButton(onClick = onStart, enabled = enabled, modifier = Modifier.fillMaxWidth()) {
+                Text("Empezar", color = if (enabled) Bmw.Accent else Bmw.TextDim)
+            }
+            watch.file?.takeIf { it.exists() }?.let { file ->
+                TextButton(onClick = { shareFile(context, file, "text/csv", file.name) }) { Text("Compartir el CSV", color = Bmw.Accent) }
+            }
+        }
+    }
+}
+
+/**
+ * La prueba de fuga de admision: la lambda que sale del caudalimetro frente a la de la sonda, por
+ * franjas de presion del turbo. Vale para comparar antes y despues de un cambio en el mismo tramo.
+ */
+@Composable
+private fun LeakWatchCard(watch: LeakWatchState, enabled: Boolean, onStart: () -> Unit, onStop: () -> Unit) {
+    val context = LocalContext.current
+    fun num(value: Double?, decimals: Int = 0) = value?.let { "%.${decimals}f".format(Locale.US, it) } ?: "-"
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(Bmw.Surface)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Text("Fuga de admisión", color = Bmw.Text, fontSize = 16.sp)
+        Text(
+            "Compara la lambda que sale del caudalímetro con la que mide la sonda. Si el tubo del intercooler pierde " +
+                "con presión, la del caudalímetro sube más que la de la sonda al soplar el turbo.",
+            color = Bmw.Text,
+            fontSize = 14.sp,
+        )
+        Text(
+            "Con el motor caliente, en marcha: varias aceleraciones fuertes en 3ª o 4ª de 1.500 a 3.500 rpm, unos diez minutos. " +
+                "Hazla antes y después del cambio en el mismo tramo. Mientras dura no se lee nada más.",
+            color = Bmw.TextDim,
+            fontSize = 12.sp,
+        )
+        if (watch.running || watch.rows > 0) {
+            Text(
+                "${num(watch.kpa)} kPa · ${num(watch.rpm)} rpm · λ sonda ${num(watch.lambda, 2)} · λ caudalímetro ${num(watch.lambdaFromAir, 2)}",
+                color = Bmw.Text,
+                fontSize = 14.sp,
+            )
+            Text(
+                "%.1f lecturas por segundo · %d lecturas · %d válidas".format(Locale.US, watch.perSecond, watch.rows, watch.valid),
+                color = Bmw.TextDim,
+                fontSize = 13.sp,
+            )
+            for (band in watch.bands) {
+                val range = "${num(band.fromKpa)}–${band.toKpa?.let { num(it) } ?: "más"} kPa"
+                Text("$range: ${num(band.ratio, 2)} (${band.samples})", color = Bmw.Text, fontSize = 14.sp)
+            }
+            watch.verdict?.let {
+                Text(it, color = if (it.startsWith("Posible")) Bmw.Amber else Bmw.Text, fontSize = 14.sp)
+            }
+        }
         if (watch.running) {
             OutlinedButton(onClick = onStop, modifier = Modifier.fillMaxWidth()) { Text("Parar", color = Bmw.MRed) }
         } else {

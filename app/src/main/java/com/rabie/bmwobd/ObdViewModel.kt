@@ -143,6 +143,12 @@ class ObdViewModel(app: Application) : AndroidViewModel(app) {
 
     fun stopMapWatch() = controller.stopMapWatch()
 
+    val leakWatch: StateFlow<com.rabie.bmwobd.obd.LeakWatchState> = controller.leakWatch
+
+    fun startLeakWatch() = controller.startLeakWatch()
+
+    fun stopLeakWatch() = controller.stopLeakWatch()
+
     /** La ultima vez de cada prueba, por su clave. */
     val testResults: StateFlow<Map<String, com.rabie.bmwobd.tests.TestRecord>> = controller.testResults.records
 

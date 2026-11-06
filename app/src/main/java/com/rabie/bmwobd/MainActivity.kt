@@ -223,11 +223,15 @@ private fun MainScreen(vm: ObdViewModel = viewModel()) {
                 val diagnostics by vm.diagnostics.collectAsStateWithLifecycle()
                 val records by vm.testResults.collectAsStateWithLifecycle()
                 val mapWatch by vm.mapWatch.collectAsStateWithLifecycle()
+                val leakWatch by vm.leakWatch.collectAsStateWithLifecycle()
                 TestsScreen(
                     state = diagnostics,
                     mapWatch = mapWatch,
                     onStartMapWatch = vm::startMapWatch,
                     onStopMapWatch = vm::stopMapWatch,
+                    leakWatch = leakWatch,
+                    onStartLeakWatch = vm::startLeakWatch,
+                    onStopLeakWatch = vm::stopLeakWatch,
                     connected = state.phase == Phase.LIVE,
                     bmw = vm.canScan(state.vehicle),
                     records = records,
