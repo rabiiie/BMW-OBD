@@ -310,8 +310,8 @@ private fun LeakWatchCard(watch: LeakWatchState, enabled: Boolean, onStart: () -
             fontSize = 14.sp,
         )
         Text(
-            "Con el motor caliente, en marcha: varias aceleraciones fuertes en 3ª o 4ª de 1.500 a 3.500 rpm, unos diez minutos. " +
-                "Hazla antes y después del cambio en el mismo tramo. Mientras dura no se lee nada más.",
+            "Con el motor caliente, conduce normal unos quince minutos: cuentan los ratos a ritmo constante, sobre todo las subidas " +
+                "con el turbo por encima de 140 kPa. Hazla antes y después del cambio en el mismo tramo. Mientras dura no se lee nada más.",
             color = Bmw.TextDim,
             fontSize = 12.sp,
         )

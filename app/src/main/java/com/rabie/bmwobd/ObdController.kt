@@ -714,8 +714,9 @@ class ObdController(
     }
 
     /**
-     * La prueba de fuga de admision: revoluciones, MAP, caudalimetro, lambda, gasoleo inyectado y EGR
-     * leidos seguidos en cada vuelta, para que sean del mismo momento. Mientras dura no se lee nada mas.
+     * La prueba de fuga de admision: revoluciones, MAP, caudalimetro, lambda del OBD, gasoleo
+     * inyectado y EGR leidos seguidos en cada vuelta, para que sean del mismo momento; el refrigerante
+     * y el modo del motor, de vez en cuando. Mientras dura no se lee nada mas.
      */
     fun startLeakWatch() {
         if (!isLive() || _diagnostics.value.busy || leakWatchOn) return
@@ -736,10 +737,14 @@ class ObdController(
             var turn = 0
             var silent = 0
             var coolant: Double? = null
-            val lines = StringBuilder("t_ms,rpm,map_kpa,maf_gs,lambda,mg,egr,coolant,ratio\n")
+            var mode: Int? = null
+            val lines = StringBuilder("t_ms,rpm,map_kpa,maf_gs,lambda,mg,egr,coolant,mode,ratio\n")
             try {
                 while (leakWatchOn && currentCoroutineContext().isActive) {
-                    if (turn++ % com.rabie.bmwobd.obd.LeakWatch.COOLANT_EVERY == 0) value(Pids.COOLANT)?.let { coolant = it }
+                    if (turn++ % com.rabie.bmwobd.obd.LeakWatch.SLOW_EVERY == 0) {
+                        value(Pids.COOLANT)?.let { coolant = it }
+                        value(Pids.BMW_ENGINE_MODE)?.let { mode = it.toInt() }
+                    }
                     val tMs = (System.nanoTime() - start) / 1_000_000
                     val rpm = value(Pids.RPM)
                     if (rpm == null) {
@@ -751,10 +756,10 @@ class ObdController(
                     }
                     silent = 0
                     val sample = com.rabie.bmwobd.obd.LeakSample(
-                        tMs, rpm, value(Pids.MAP), value(Pids.MAF), value(LEAK_LAMBDA), value(Pids.BMW_INJECTION), value(Pids.BMW_EGR_VALVE), coolant,
+                        tMs, rpm, value(Pids.MAP), value(Pids.MAF), value(Pids.LAMBDA), value(Pids.BMW_INJECTION), value(Pids.BMW_EGR_VALVE), coolant, mode,
                     )
                     val ratio = watch.sample(sample)
-                    val cells = listOf(sample.rpm, sample.mapKpa, sample.mafGs, sample.lambda, sample.mg, sample.egr, sample.coolant, ratio)
+                    val cells = listOf(sample.rpm, sample.mapKpa, sample.mafGs, sample.lambda, sample.mg, sample.egr, sample.coolant, mode?.toDouble(), ratio)
                     lines.append(tMs).append(',')
                         .append(cells.joinToString(",") { v -> v?.let { "%.3f".format(java.util.Locale.US, it) } ?: "" }).append('\n')
                     _leakWatch.value = watch.now
@@ -1365,7 +1370,6 @@ class ObdController(
         private const val TIMING_LOG_NANOS = 60_000_000_000L
         const val MAP_WATCH_KEY = "sensor_map"
         const val LEAK_WATCH_KEY = "fuga_admision"
-        private val LEAK_LAMBDA = Pids.bmw(0x0A29)
         private const val MAP_WATCH_SILENT = 20
         private const val MAX_SUM_GAP_NANOS = 5_000_000_000L
         private const val NANOS_PER_HOUR = 3.6e12
