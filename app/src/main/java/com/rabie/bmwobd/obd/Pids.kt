@@ -611,6 +611,16 @@ object Pids {
         // puesto y el motor parado dice donde esta su cero.
         bmwDef(0x041C, "Filtro: tensión del sensor de presión (en bruto)", "mV", 0, PidGroup.EXHAUST) { it * 0.076295 },
         bmwDef(0x042A, "Filtro: presión diferencial (valor en bruto)", "hPa", 0, PidGroup.EXHAUST) { it * 0.045777 - 1000.0 },
+        // Lo que la centralita usa para vigilarse a si misma. Turbo: su desviacion (averias 4521 y
+        // 4530). Aire y EGR: la desviacion del aire, el caudalimetro frente al aire de su modelo
+        // (4878, 4932 y 4933), su cociente y la desviacion de la regulacion de la EGR (4501 y 4507).
+        // Caudalimetro y modelo van seguidos para que se lean en vueltas contiguas.
+        bmwDef(0x01F9, "Turbo: desviación que ve la centralita", "hPa", 0, PidGroup.AIR, Tier.MEDIUM) { it.toDouble() },
+        bmwDef(0x07A2, "Aire: desviación", "mg", 1, PidGroup.AIR, Tier.MEDIUM) { it * 0.1 },
+        bmwDef(0x0708, "Aire: caudalímetro (centralita)", "kg/h", 1, PidGroup.AIR, Tier.MEDIUM) { it * 0.1 },
+        bmwDef(0x0C80, "Aire: el de su modelo", "kg/h", 1, PidGroup.AIR, Tier.MEDIUM) { it * 0.048829 - 1600.0 },
+        bmwDef(0x070A, "Aire: cociente normalizado del caudalímetro", "", 3, PidGroup.AIR, Tier.MEDIUM) { it * 0.000122 },
+        bmwDef(0x07A6, "EGR: desviación de su regulación", "%", 1, PidGroup.AIR, Tier.MEDIUM) { it * 0.012207 },
     ) + (0 until BMW_REGEN_STEP_COUNTERS).map { step ->
         // Contadores de un byte de la tabla ("Regenerationszähler Typ 1" a 8). Que uno suba durante
         // un trayecto dice que se ha completado una regeneracion de ese tipo; los que estan en 255
@@ -665,11 +675,9 @@ object Pids {
     ) + (0..2).map { point ->
         bmwDef(0x145E + point, "Calibración de inyectores: ciclos (${BMW_CALIBRATION_BAR[point]} bar)", "", 0, PidGroup.FUEL) { it.toDouble() }
     } + listOf(
-        bmwDef(0x01F9, "Turbo: desviación que ve la centralita", "hPa", 0, PidGroup.AIR) { it.toDouble() },
         bmwDef(0x0C86, "Turbo: giro calculado", "rpm", 0, PidGroup.AIR) { it * 3.814755 },
         bmwDef(0x0709, "Aire por cilindro", "mg", 0, PidGroup.AIR) { it * 0.024414 },
         bmwDef(0x079E, "Aire por cilindro pedido", "mg", 0, PidGroup.AIR) { it * 0.030518 },
-        bmwDef(0x07A2, "Aire: desviación", "mg", 1, PidGroup.AIR) { it * 0.1 },
         bmwDef(0x07AD, "EGR: gas que recircula (calculado)", "%", 0, PidGroup.AIR) { it * 0.012207 },
         bmwDef(0x0793, "EGR: gas que pide recircular", "%", 0, PidGroup.AIR) { it * 0.01 },
         bmwDef(0x0B1F, "Mariposa: posición", "%", 0, PidGroup.AIR) { it * 0.001526 },
