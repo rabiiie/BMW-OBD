@@ -19,6 +19,33 @@ data class SessionInfo(
 data class MsaResult(val accepted: Boolean?, val refusal: Int?, val state: Int?)
 
 /** Una conexion con el coche: abre el canal, configura el adaptador, descubre los PIDs y los lee. */
+/**
+ * Por donde va la busqueda de medidas de la centralita del B47 y lo que ha encontrado: la
+ * direccion siguiente por mirar y una linea por cada respuesta. [save] lo guarda; se llama cada
+ * pocas direcciones, en cada hallazgo y al pararse.
+ */
+class UdsSweep(
+    var next: Int = BmwUds.SWEEP.first,
+    val hits: MutableList<String> = mutableListOf(),
+    val save: suspend (UdsSweep) -> Unit = {},
+) {
+    val done: Boolean get() = next > BmwUds.SWEEP.last
+    val refused: Int get() = hits.count { BmwUds.refused(it.substringAfter(" -> ")) }
+    val found: Int get() = hits.size - refused
+
+    /** El fichero: la primera linea es la direccion siguiente en hexadecimal; las demas, lo encontrado. */
+    fun text(): String = (listOf("%04X".format(next)) + hits).joinToString("\n")
+
+    companion object {
+        fun parse(text: String?, save: suspend (UdsSweep) -> Unit = {}): UdsSweep {
+            val lines = text?.lines()?.filter { it.isNotBlank() }.orEmpty()
+            val next = lines.firstOrNull()?.trim()?.toIntOrNull(16)?.coerceIn(BmwUds.SWEEP.first, BmwUds.SWEEP.last + 1)
+                ?: return UdsSweep(save = save)
+            return UdsSweep(next, lines.drop(1).toMutableList(), save)
+        }
+    }
+}
+
 class ObdSession(
     private val transport: ObdTransport,
     private val log: (String) -> Unit,
@@ -542,7 +569,7 @@ class ObdSession(
      * Todo queda en el registro y al acabar el adaptador vuelve a la lectura normal. Devuelve si
      * contesto y en cuantas formas se probo.
      */
-    suspend fun probeBmwUds(): Pair<Int, Int> {
+    suspend fun probeBmwUds(sweep: UdsSweep = UdsSweep()): Pair<Int, Int> {
         log("## BMW serie F: inicio")
         var tried = 0
         var heard = false
@@ -569,8 +596,12 @@ class ObdSession(
                 if (best.measures > 0) {
                     askUds(ask)
                 } else {
+                    for (query in BmwUds.DDE8_QUERIES) {
+                        val text = ask(query.request).firstNotNullOfOrNull { BmwUds.describe(query.request, it) }
+                        log("## ${query.name} (${query.request}): ${text ?: "sin respuesta"}")
+                    }
                     log("## BMW serie F: la centralita contesta pero no tiene las medidas de la tabla d70bx7a0: se buscan las suyas")
-                    sweepUds(ask)
+                    sweepUds(ask, sweep)
                     tryAsk(BmwUds.FAULTS)?.let { response ->
                         val text = ObdParser.payloads(response, "").firstNotNullOfOrNull { BmwUds.describe(BmwUds.FAULTS, it) }
                         log("## Averías presentes y guardadas (${BmwUds.FAULTS}): ${text ?: "sin respuesta"}")
@@ -618,39 +649,61 @@ class ObdSession(
      * Pregunta una a una las direcciones de medida de [BmwUds.SWEEP] con una espera corta y deja en
      * el registro las que contestan, con sus bytes, y los rechazos que no son "no existe". Solo
      * lee. Con la direccion del motor la centralita dice enseguida que no tiene una medida; a
-     * todas, calla y hay que esperar: de 7 a 20 minutos.
+     * todas, calla y hay que esperar: de 7 a 20 minutos. Lo hecho se va guardando con
+     * [UdsSweep.save]: si se corta, la vez siguiente sigue donde se quedo.
      */
-    private suspend fun sweepUds(ask: suspend (String) -> List<IntArray>) {
+    private suspend fun sweepUds(ask: suspend (String) -> List<IntArray>, sweep: UdsSweep) {
         val total = BmwUds.SWEEP.last - BmwUds.SWEEP.first + 1
-        log("## Búsqueda de medidas: 22%04X a 22%04X, %d consultas; puede tardar de 7 a 20 minutos".format(BmwUds.SWEEP.first, BmwUds.SWEEP.last, total))
-        attempt(SWEEP_WAIT)
-        var found = 0
-        var refused = 0
-        var silent = 0
-        for ((done, id) in BmwUds.SWEEP.withIndex()) {
-            if (!currentCoroutineContext().isActive) break
-            val query = "22%04X".format(id)
-            val response = try {
-                elm.send(query, RAW_TIMEOUT_MS, quiet = true)
-            } catch (e: SocketTimeoutException) {
-                null
-            }
-            if (response == null) {
-                if (++silent >= SWEEP_SILENT) {
-                    log("## Búsqueda: el adaptador ha dejado de contestar en $query")
-                    break
-                }
-                continue
-            }
-            silent = 0
-            val text = ObdParser.payloads(response, "").firstNotNullOfOrNull { BmwUds.describe(query, it) }
-            if (text != null && !BmwUds.notFound(text)) {
-                if (BmwUds.refused(text)) refused++ else found++
-                log("## Búsqueda: $query -> $text")
-            }
-            if ((done + 1) % SWEEP_PROGRESS == 0) log("## Búsqueda: van ${done + 1} de $total; $found con dato, $refused rechazadas")
+        if (sweep.done) {
+            log("## Búsqueda: ya se hizo entera; lo encontrado (${sweep.hits.size}):")
+            for (hit in sweep.hits) log("## Búsqueda: $hit")
+            return
         }
-        log("## Búsqueda: fin; $found con dato, $refused rechazadas")
+        if (sweep.next > BmwUds.SWEEP.first) {
+            log("## Búsqueda: se sigue desde 22%04X; van %d de %d y %d encontradas".format(sweep.next, sweep.next - BmwUds.SWEEP.first, total, sweep.hits.size))
+        } else {
+            log("## Búsqueda de medidas: 22%04X a 22%04X, %d consultas; puede tardar de 7 a 20 minutos".format(BmwUds.SWEEP.first, BmwUds.SWEEP.last, total))
+        }
+        attempt(SWEEP_WAIT)
+        var silent = 0
+        try {
+            while (!sweep.done) {
+                if (!currentCoroutineContext().isActive) break
+                val query = "22%04X".format(sweep.next)
+                val response = try {
+                    elm.send(query, RAW_TIMEOUT_MS, quiet = true)
+                } catch (e: SocketTimeoutException) {
+                    null
+                }
+                // Sin respuesta del adaptador esa direccion no se da por mirada: se repite.
+                if (response == null) {
+                    if (++silent >= SWEEP_SILENT) {
+                        log("## Búsqueda: el adaptador ha dejado de contestar en $query")
+                        break
+                    }
+                    continue
+                }
+                silent = 0
+                val text = ObdParser.payloads(response, "").firstNotNullOfOrNull { BmwUds.describe(query, it) }
+                sweep.next++
+                val hit = text != null && !BmwUds.notFound(text)
+                if (hit) {
+                    sweep.hits += "$query -> $text"
+                    log("## Búsqueda: $query -> $text")
+                }
+                val done = sweep.next - BmwUds.SWEEP.first
+                if (hit || done % SWEEP_SAVE_EVERY == 0) sweep.save(sweep)
+                if (done % SWEEP_PROGRESS == 0) log("## Búsqueda: van $done de $total; ${sweep.found} con dato, ${sweep.refused} rechazadas")
+            }
+        } finally {
+            withContext(NonCancellable) { runCatching { sweep.save(sweep) } }
+        }
+        if (!sweep.done) {
+            log("## Búsqueda: se para en 22%04X; la próxima vez sigue desde ahí".format(sweep.next))
+            return
+        }
+        log("## Búsqueda: fin; ${sweep.found} con dato, ${sweep.refused} rechazadas. Todas las encontradas:")
+        for (hit in sweep.hits) log("## Búsqueda: $hit")
         if (ask(BmwUds.IDENT).isEmpty()) log("## Búsqueda: al acabar la centralita ya no contesta a la identificación")
     }
 
@@ -1243,6 +1296,7 @@ class ObdSession(
         const val SWEEP_WAIT = "ATST19"
         const val SWEEP_SILENT = 30
         const val SWEEP_PROGRESS = 512
+        const val SWEEP_SAVE_EVERY = 64
         val OBD_LINK = listOf("ATSH7DF", "ATCEA", "ATFCSM0", "ATCRA")
         const val BMW_QUERY = "2C10"
         const val BMW_ANSWER = "6C10"

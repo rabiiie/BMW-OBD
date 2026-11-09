@@ -106,11 +106,44 @@ class F20WaysTest {
         assertEquals(1, heard)
         assertTrue(log.any { it.startsWith("## Búsqueda: 224A10 -> 0102") })
         assertTrue(log.any { it.startsWith("## Búsqueda: 225123 -> 33") })
-        assertTrue(log.any { it == "## Búsqueda: fin; 2 con dato, 0 rechazadas" })
-        // Los "no existe" de las 8.190 restantes no llenan el registro.
-        assertTrue(log.count { it.startsWith("## Búsqueda: 22") } == 2)
+        assertTrue(log.any { it.startsWith("## Búsqueda: fin; 2 con dato, 0 rechazadas") })
+        // Los "no existe" de las 8.190 restantes no llenan el registro: cada una sale al encontrarla y en la lista final.
+        assertEquals(4, log.count { it.startsWith("## Búsqueda: 22") })
         assertTrue(log.any { it.startsWith("## Averías presentes y guardadas (19020C): 1: 283400") })
         assertTrue(session.raw("010C").contains("41"))
+    }
+
+    @Test
+    fun `si la busqueda se corta, la siguiente sigue donde se quedo y no repite lo encontrado`() = runBlocking {
+        val other = mapOf(0x4A10 to listOf(0x01, 0x02), 0x5123 to listOf(0x33))
+        var saved: String? = null
+        val save: suspend (UdsSweep) -> Unit = { saved = it.text() }
+        // Como el F20 el 7 de noviembre: se corto hacia la 4AB4, con la 4A10 ya encontrada.
+        val first = UdsSweep(0x4AB5, mutableListOf("224A10 -> 0102  [..]"), save)
+        val session = ObdSession(F20Car(F20Car.PHYSICAL, other)) { log += it }
+        session.connect()
+        session.probeBmwUds(first)
+        assertTrue(log.any { it.startsWith("## Búsqueda: se sigue desde 224AB5") })
+        assertEquals(1, log.count { it.startsWith("## Búsqueda: 224A10") })
+        assertTrue(log.any { it.startsWith("## Búsqueda: 225123 -> 33") })
+        assertTrue(first.done)
+        // Lo guardado se lee igual, y entera ya no se repite: solo enseña lo encontrado.
+        val again = UdsSweep.parse(saved)
+        assertTrue(again.done)
+        assertEquals(listOf("224A10 -> 0102  [..]", "225123 -> 33  [3]"), again.hits)
+        log.clear()
+        session.probeBmwUds(again)
+        assertTrue(log.any { it == "## Búsqueda: ya se hizo entera; lo encontrado (2):" })
+        assertFalse(log.any { it.startsWith("## Búsqueda de medidas") })
+    }
+
+    @Test
+    fun `lo guardado a medias se recupera, y un fichero roto empieza de cero`() {
+        val half = UdsSweep.parse("4AB5\n224A10 -> 0102  [..]\n")
+        assertEquals(0x4AB5, half.next)
+        assertEquals(1, half.found)
+        assertEquals(BmwUds.SWEEP.first, UdsSweep.parse("basura").next)
+        assertEquals(BmwUds.SWEEP.first, UdsSweep.parse(null).next)
     }
 
     @Test

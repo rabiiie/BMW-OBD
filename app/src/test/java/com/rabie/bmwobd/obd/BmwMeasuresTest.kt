@@ -157,6 +157,11 @@ class BmwMeasuresTest {
         val status = intArrayOf(0x41, 0x01, 0x00, 0x00, 0x00, 0x02, 0x05)
         assertEquals(1.0, Pids.byId.getValue(Pids.OBD_REGENERATING).decodeOrNull(status)!!, 0.0)
         assertEquals(517.0, Pids.byId.getValue(Pids.part(0x8B, 1)).decodeOrNull(status)!!, 0.0)
+        // El F20 con el motor parado: anuncia estado y carga (1F), no la distancia media.
+        val f20 = intArrayOf(0x1F, 0x00, 0xFF, 0x00, 0x00, 0x00, 0x00)
+        assertEquals(100.0, Pids.byId.getValue(Pids.part(0x8B, 2)).decodeOrNull(f20)!!, 0.01)
+        assertNull(Pids.byId.getValue(Pids.part(0x8B, 1)).decodeOrNull(f20))
+        assertNull(Pids.byId.getValue(Pids.part(0x8B, 2)).decodeOrNull(status))
         assertTrue(Pids.regenerating(mapOf(Pids.OBD_REGENERATING to 1.0)))
         assertFalse(Pids.regenerating(mapOf(Pids.OBD_REGENERATING to 0.0)))
         // Sin ese dato, un coche que no publica nada no regenera para la app.

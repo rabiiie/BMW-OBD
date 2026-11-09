@@ -445,6 +445,11 @@ object Pids {
         PidDef(part(0x8B, 1), "Filtro: km medios entre regeneraciones (OBD)", "km", 7, 0, pid = 0x8B) {
             if (has(it, 6)) word(it, 5).toDouble() else null
         },
+        // El tercer byte, si el bit 4 del primero lo anuncia: lo cargado que esta el filtro respecto a
+        // donde la centralita pide regenerar. El F20 lo anuncia (1F); con el motor parado da FF.
+        PidDef(part(0x8B, 2), "Filtro: carga para regenerar (OBD)", "%", 3, 0, pid = 0x8B) {
+            if (has(it, 4)) it[2] * 100.0 / 255 else null
+        },
         PidDef(part(0x83, 0), "NOx", "ppm", 3, 0, pid = 0x83) {
             if (has(it, 0)) word(it, 1).toDouble() else null
         },

@@ -37,6 +37,14 @@ class BmwUdsTest {
     }
 
     @Test
+    fun `los km del bloque de servicio de la DDE 8, con la respuesta del F20`() {
+        val f20 = "62405026" + "50070B07EA050C1C00030DDB00030DDB0000E464300C1C4E2F00030DDB05787864643B0000C2C3004624F7004624F70110070B07EA01008D0002013600000000"
+        assertTrue(BmwUds.describe("224050", bytes(f20))!!.endsWith(" -> 200155.00 km"))
+        // Fuera de la busqueda normal: no se pide con las medidas de la DDE 7.
+        assertTrue(BmwUds.QUERIES.none { it.request == "224050" })
+    }
+
+    @Test
     fun `una averia con texto en la tabla lo lleva`() {
         val text = BmwUds.describe("19020C", bytes("59020C" + "24530009"))
         assertEquals("1: 245300 presente (Abgasdifferenzdrucksensor Dieselpartikelfilter, Plausibilität: Schlauchleitung abgefallen oder undicht)", text)

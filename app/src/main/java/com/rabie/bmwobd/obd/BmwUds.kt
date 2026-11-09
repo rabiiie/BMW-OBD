@@ -18,7 +18,16 @@ object BmwUds {
      * Una medida de la tabla: identificador, nombre, unidad y formula (valor x [factor] + [offset]),
      * con [size] bytes, el mayor primero. Las de metros o segundos van pasadas a km u horas en el factor.
      */
-    private class Measure(val id: Int, val name: String, val unit: String, val factor: Double, val offset: Double = 0.0, val size: Int = 2)
+    private class Measure(
+        val id: Int,
+        val name: String,
+        val unit: String,
+        val factor: Double,
+        val offset: Double = 0.0,
+        val size: Int = 2,
+        /** Donde empieza el valor dentro de la respuesta, para los bloques con varios datos. */
+        val at: Int = 0,
+    )
 
     private const val METERS_TO_KM = 0.001
     private const val SECONDS_TO_HOURS = 1.0 / 3600.0
@@ -61,14 +70,21 @@ object BmwUds {
         Measure(0x4C97, "EGR: posición", "%", 0.004578, -100.0),
         Measure(0x45D4, "Gasóleo inyectado", "mg", 0.003052, -100.0),
         Measure(0x4748, "Presión del raíl", "bar", 0.045777),
+        // Bloque de servicio (CBS) de la DDE 8, como en la descripcion D83BX7C0: en el F20 el 7 de
+        // noviembre de 2026 empezaba por 26 50, la fecha (07 0B 07EA) y 05 0C 1C, y en el byte 9
+        // traia 00 03 0D DB = 200.155 km, los del cuadro segun el dueño.
+        Measure(DDE8_SERVICE, "Cuentakilómetros (bloque de servicio, DDE 8)", "km", 1.0, size = 4, at = 9),
     )
 
     private val BY_ID = MEASURES.associateBy { it.id }
 
     /** Primero la identificacion; si no contesta, esa forma de llegar no sirve. Las averias al final. */
     val QUERIES = listOf(Query(IDENT, "Identificación (índice de la descripción)")) +
-        MEASURES.map { Query("22%04X".format(it.id), it.name) } +
+        MEASURES.filter { it.id != DDE8_SERVICE }.map { Query("22%04X".format(it.id), it.name) } +
         Query(FAULTS, "Averías presentes y guardadas")
+
+    /** Lo que se sabe leer de una DDE 8, que no tiene las medidas de la tabla d70bx7a0. */
+    val DDE8_QUERIES = listOf(Query("22%04X".format(DDE8_SERVICE), "Cuentakilómetros (bloque de servicio, DDE 8)"))
 
     const val IDENT = "22F150"
     const val FAULTS = "19020C"
@@ -107,8 +123,8 @@ object BmwUds {
         if (payload.size < 3 || payload[1] * 256 + payload[2] != id) return null
         val data = payload.drop(3)
         val measure = BY_ID[id] ?: return hex(data) + "  [" + ascii(data) + "]"
-        if (data.size < measure.size) return "sin dato: " + hex(data)
-        val raw = data.take(measure.size).fold(0L) { acc, byte -> acc * 256 + byte }
+        if (data.size < measure.at + measure.size) return "sin dato: " + hex(data)
+        val raw = data.drop(measure.at).take(measure.size).fold(0L) { acc, byte -> acc * 256 + byte }
         val value = String.format(Locale.US, "%.2f", raw * measure.factor + measure.offset)
         return "%s -> %s".format(hex(data), if (measure.unit.isEmpty()) value else "$value ${measure.unit}")
     }
@@ -142,6 +158,7 @@ object BmwUds {
     private fun ascii(bytes: List<Int>) = bytes.joinToString("") { if (it in 0x20..0x7E) it.toChar().toString() else "." }
 
     private const val READ = 0x22
+    private const val DDE8_SERVICE = 0x4050
     private const val REFUSED = "rechazada, código "
     private const val OUT_OF_RANGE = 0x31
     private const val DTC = 0x19

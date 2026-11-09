@@ -504,7 +504,7 @@ class ObdController(
                     // Si ni la del motor contesta con la direccion por centralita, en crudo.
                     ModuleProbe.BMW -> session.probeModules().let { tried -> if (tried.first == 0) session.probeModulesRaw() else tried }
                     ModuleProbe.FORD -> session.probeFordModules()
-                    ModuleProbe.BMW_UDS -> session.probeBmwUds()
+                    ModuleProbe.BMW_UDS -> session.probeBmwUds(udsSweep())
                 }
             } catch (e: IOException) {
                 appendLog("!! Centralitas: interrumpido: ${e.message}")
@@ -534,6 +534,20 @@ class ObdController(
                     }
                 }
             }
+        }
+    }
+
+    /**
+     * La busqueda de medidas del B47 de este coche, como quedo la ultima vez. Se guarda en el movil
+     * mientras avanza, asi que si se corta la conexion la siguiente sigue donde se quedo.
+     */
+    private suspend fun udsSweep(): com.rabie.bmwobd.obd.UdsSweep {
+        val name = _state.value.vehicle.name.replace(Regex("[^A-Za-z0-9]"), "_")
+        val file = java.io.File(java.io.File(context.filesDir, "logs").apply { mkdirs() }, "busqueda_uds_$name.txt")
+        val saved = withContext(Dispatchers.IO) { runCatching { file.readText() }.getOrNull() }
+        return com.rabie.bmwobd.obd.UdsSweep.parse(saved) { sweep ->
+            val text = sweep.text()
+            withContext(Dispatchers.IO) { runCatching { file.writeText(text) } }
         }
     }
 
