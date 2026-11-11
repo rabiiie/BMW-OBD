@@ -767,6 +767,58 @@ object Pids {
     )
 
     /**
+     * La identificacion de la centralita por UDS (22 F150): el indice de su descripcion. Es lo que
+     * usa ISTA para elegir la descripcion. En el fichero de grupo G_MOTOR, 0F1F90 es d70bx7a0 y
+     * 0F1F80 es d75bx7a0 (comprobado ejecutando el grupo con EdiabasLib).
+     */
+    val B47_IDENT = udsDef(0xF150, "Índice de la descripción de la centralita", "", 0, PidGroup.ENGINE, Tier.ONCE, size = 3) { it.toDouble() }
+    val B47_INDEXES = setOf(0x0F1F90, 0x0F1F80)
+
+    /** Las medidas que salen de un bloque de UDS: cada una tiene su posicion dentro de la respuesta. */
+    private const val UDS_BLOCK_BASE = 0x1000000
+
+    /**
+     * Una medida dentro del bloque [did] de [length] bytes, en [offset]. El bloque entero tiene que
+     * traer justo [length] bytes: con otro tamaño las posiciones no serian las mismas.
+     */
+    private fun udsBlockDef(
+        did: Int,
+        length: Int,
+        offset: Int,
+        name: String,
+        unit: String,
+        decimals: Int,
+        group: PidGroup,
+        tier: Tier,
+        size: Int,
+        signed: Boolean = false,
+        scale: (Long) -> Double,
+    ) = PidDef(UDS_BLOCK_BASE + did * 0x100 + offset, name, unit, length, decimals, tier, group, pid = uds(did)) { data ->
+        var raw = 0L
+        for (i in offset until offset + size) raw = raw * 256 + data[i]
+        if (signed && raw >= 1L shl (8 * size - 1)) raw -= 1L shl (8 * size)
+        scale(raw)
+    }
+
+    /**
+     * Bloques de la DDE del B47 que contestan por la direccion OBD aunque las medidas sueltas no:
+     * los vio la busqueda en el F20 (7-11-2026) y son trabajos de su descripcion d70bx7a0.
+     * 4050 CBS_RESET_DATEN_LESEN (65 bytes), 402B STATUS_MESSWERTE_IBS (28) y 404F
+     * STATUS_CBSMOTOROELHIST (12). Las posiciones salen del orden de los resultados de cada trabajo;
+     * sin el .prg no estan comprobadas, y lo que solo cuadra por el rango del resultado lo dice el nombre.
+     */
+    val b47Blocks: List<PidDef> = listOf(
+        udsBlockDef(0x4050, 65, 9, "Cuentakilómetros (cuadro)", "km", 0, PidGroup.COUNTERS, Tier.ONCE, 4) { it.toDouble() },
+        udsBlockDef(0x4050, 65, 18, "Horas de motor (escala sin confirmar)", "h", 0, PidGroup.COUNTERS, Tier.ONCE, 4) { it / 3600.0 },
+        udsBlockDef(0x4050, 65, 7, "Depósito (escala sin confirmar)", "L", 0, PidGroup.FUEL, Tier.ONCE, 2) { it * 0.01 },
+        udsBlockDef(0x402B, 28, 0, "Batería: temperatura (sensor)", "°C", 1, PidGroup.ELECTRIC, Tier.SLOW, 2, signed = true) { it * 0.1 },
+        udsBlockDef(0x402B, 28, 2, "Batería: tensión (sensor)", "V", 2, PidGroup.ELECTRIC, Tier.SLOW, 2) { 6.0 + it * 0.00025 },
+        udsBlockDef(0x402B, 28, 4, "Batería: corriente (signo sin confirmar)", "A", 1, PidGroup.ELECTRIC, Tier.SLOW, 2) { it * 0.08 - 200.0 },
+        udsBlockDef(0x404F, 12, 4, "Consumo: km que cuenta la centralita", "km", 0, PidGroup.COUNTERS, Tier.ONCE, 4) { it.toDouble() },
+        udsBlockDef(0x404F, 12, 8, "Consumo: gasóleo que cuenta la centralita", "L", 0, PidGroup.COUNTERS, Tier.ONCE, 4) { it * 0.01 },
+    )
+
+    /**
      * Medidas de la DDE 7.01 y 7.41 del motor B47 (F20, F30…), las mismas que se graban del N47.
      * Identificador, tipo y formula salen de la tabla de la descripcion d70bx7a0 (docs/sgbd_d70bx7a0):
      * el tamaño es el de su tipo (1 byte char, 2 int, 4 long). Se piden por la pasarela de BMW a la
@@ -810,7 +862,7 @@ object Pids {
         udsDef(0x4517, "Aceite: temperatura", "°C", 0, PidGroup.ENGINE) { it * 0.01 - 100.0 },
         udsDef(0x46B1, "Cuentakilómetros", "km", 0, PidGroup.COUNTERS, Tier.ONCE, size = 4) { it.toDouble() },
         udsDef(0x4BC4, "Horas de motor", "h", 0, PidGroup.COUNTERS, Tier.ONCE, size = 4) { it / 3600.0 },
-    )
+    ) + b47Blocks
 
     private fun List<PidDef>.inGroup(group: PidGroup) = map { it.copy(group = group) }
 

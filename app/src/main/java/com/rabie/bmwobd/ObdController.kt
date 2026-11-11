@@ -371,6 +371,13 @@ class ObdController(
      */
     private suspend fun fits(session: ObdSession, candidate: EngineProfile): Boolean {
         val fingerprint = candidate.fingerprint ?: return false
+        // La del B47 se reconoce como lo hace ISTA: por el indice de su descripcion. La del F20 da
+        // su identificacion y bloques por la direccion OBD, pero no las medidas sueltas.
+        if (candidate == EngineProfile.BMW_B47) {
+            val index = session.readUds(listOf(Pids.B47_IDENT))?.get(Pids.B47_IDENT.id)?.toInt()
+            if (index != null) appendLog("## Perfil: índice de la descripción de la centralita %06X".format(index))
+            if (index != null && index in Pids.B47_INDEXES) return true
+        }
         val checks = fingerprint.checks.map { it.def }
         for (attempt in 1..PROFILE_ATTEMPTS) {
             val own = (if (candidate.uds) session.readUds(checks) else session.readBmw(checks)) ?: return false

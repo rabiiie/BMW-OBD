@@ -216,7 +216,7 @@ class ObdSession(
      */
     suspend fun discoverUds(candidates: List<PidDef>): List<PidDef> {
         log("## BMW (UDS): se piden las medidas propias de la centralita del motor")
-        if (!findUdsWay(Pids.b47Checks.first())) return emptyList()
+        if (!findUdsWay(listOf(Pids.b47Checks.first(), Pids.b47Blocks.first()))) return emptyList()
         val found = mutableListOf<PidDef>()
         for (def in candidates) {
             val value = (readFirst(def.pid) ?: readFirst(def.pid))?.let(def::decodeOrNull) ?: continue
@@ -229,7 +229,7 @@ class ObdSession(
 
     /** Lee una vez cada medida de [defs] por UDS. Null si la centralita no contesta a ninguna. */
     suspend fun readUds(defs: List<PidDef>): Map<Int, Double>? {
-        if (udsWay == null && !findUdsWay(defs.first())) return null
+        if (udsWay == null && !findUdsWay(listOf(defs.first()))) return null
         val values = defs.mapNotNull { def -> (readFirst(def.pid) ?: readFirst(def.pid))?.let(def::decodeOrNull)?.let { def.id to it } }.toMap()
         return values.ifEmpty { null }
     }
@@ -241,15 +241,17 @@ class ObdSession(
     private var udsWay: Int? = null
 
     /**
-     * Busca por que forma contesta la centralita del B47 a [check] y se queda con la primera. La
-     * pasarela de BMW es la de ISTA, pero un ELM327 barato puede aceptar la direccion extendida y
-     * no usarla, como el del E87: por eso se prueban tambien las direcciones OBD del motor.
+     * Busca por que forma contesta la centralita del B47 a alguna de [checks] y se queda con la
+     * primera. La pasarela de BMW es la de ISTA, pero un ELM327 barato puede aceptar la direccion
+     * extendida y no usarla, como el del E87: por eso se prueban tambien las direcciones OBD del
+     * motor. Hay centralitas que por la direccion OBD solo dan bloques, como la del F20: por eso
+     * vale cualquiera de las comprobaciones.
      */
-    private suspend fun findUdsWay(check: PidDef): Boolean {
+    private suspend fun findUdsWay(checks: List<PidDef>): Boolean {
         for ((index, way) in UDS_LINKS.withIndex()) {
             udsWay = index
             udsLink = false
-            if ((readFirst(check.pid) ?: readFirst(check.pid)) != null) {
+            if (checks.any { check -> (readFirst(check.pid) ?: readFirst(check.pid)) != null }) {
                 log("## BMW (UDS): la centralita contesta por ${way.first}")
                 return true
             }
