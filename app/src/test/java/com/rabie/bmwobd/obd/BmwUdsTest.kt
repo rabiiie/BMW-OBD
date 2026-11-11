@@ -73,7 +73,8 @@ class BmwUdsTest {
         session.connect()
         val (heard, tried) = session.probeBmwUds()
         assertEquals(0, heard)
-        assertEquals(4, tried)
+        // Cuatro formas con el adaptador poniendo el formato y dos en crudo (longitud variable y 8 bytes).
+        assertEquals(6, tried)
         assertTrue(log.any { it.contains("no ha contestado en ninguna forma") })
         // El adaptador vuelve a leer el OBD normal.
         assertTrue(session.raw("010C").contains("41"))

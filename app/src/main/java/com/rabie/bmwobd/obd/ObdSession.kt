@@ -248,34 +248,61 @@ class ObdSession(
      * vale cualquiera de las comprobaciones.
      */
     private suspend fun findUdsWay(checks: List<PidDef>): Boolean {
+        suspend fun answered() = checks.any { check -> (readFirst(check.pid) ?: readFirst(check.pid)) != null }
         for ((index, way) in UDS_LINKS.withIndex()) {
-            udsWay = index
-            udsLink = false
-            if (checks.any { check -> (readFirst(check.pid) ?: readFirst(check.pid)) != null }) {
-                log("## BMW (UDS): la centralita contesta por ${way.first}")
+            switchUdsWay(index, extended = false)
+            if (answered()) {
+                log("## BMW (UDS): la centralita contesta por ${way.name}")
+                return true
+            }
+            // Si la forma llega (acepta la sesion ampliada) se prueba otra vez dentro de ella.
+            switchUdsWay(index, extended = true)
+            link(true)
+            if (udsSessionAccepted && answered()) {
+                log("## BMW (UDS): la centralita contesta por ${way.name}, en sesión de diagnóstico ampliada")
                 return true
             }
         }
-        udsWay = null
-        link(false)
+        switchUdsWay(null, extended = false)
         log("## BMW (UDS): la centralita no contesta en ninguna forma")
         return false
     }
 
+    // La forma encontrada pide la sesion de diagnostico ampliada, y si la ultima peticion se acepto.
+    private var udsExtended = false
+    private var udsSessionAccepted = false
+
+    /** Deja el adaptador en el OBD normal y apunta la forma [index] de [UDS_LINKS] para lo siguiente. */
+    private suspend fun switchUdsWay(index: Int?, extended: Boolean) {
+        link(false)
+        udsWay = index
+        udsExtended = extended
+        udsSessionAccepted = false
+    }
+
     /**
      * Las medidas del B47 van por la forma que se encontro (de [UDS_LINKS]) y las del OBD normal
-     * a todas (7DF). El
-     * adaptador se cambia de una forma a otra solo cuando hace falta, y sin dejarlo en el
-     * registro: en un trayecto pasa en cada vuelta. En los demas coches nunca se cambia.
+     * a todas (7DF). El adaptador se cambia de una forma a otra solo cuando hace falta, y sin
+     * dejarlo en el registro: en un trayecto pasa en cada vuelta. En los demas coches nunca se
+     * cambia. Si la forma va en sesion ampliada, se pide cada vez que se entra: la centralita la
+     * cierra sola a los pocos segundos sin preguntas suyas, y entre medias van las del OBD.
      */
     private suspend fun link(uds: Boolean) {
         if (udsLink == uds) return
+        val way = UDS_LINKS[udsWay ?: 0]
         udsLink = uds
-        for (command in if (uds) UDS_LINKS[udsWay ?: 0].second else OBD_LINK) {
+        for (command in if (uds) way.to else way.back) {
             try {
                 elm.send(command, READ_TIMEOUT_MS, quiet = true)
             } catch (e: SocketTimeoutException) {
                 log("!! Sin respuesta a $command")
+            }
+        }
+        if (uds && udsExtended) {
+            udsSessionAccepted = try {
+                elm.send(UDS_EXTENDED, READ_TIMEOUT_MS, quiet = true).replace(" ", "").contains(UDS_EXTENDED_OK)
+            } catch (e: SocketTimeoutException) {
+                false
             }
         }
     }
@@ -450,12 +477,19 @@ class ObdSession(
      * para hablar con ella de la forma en que contesto la del motor en el primer sondeo. Lo que
      * contesten queda en el registro tal cual. Al acabar el adaptador vuelve a la lectura normal.
      */
-    suspend fun probeModules(): Pair<Int, Int> = askModules("## Centralitas: inicio", MODULES.map { (address, name) ->
-        Triple("%02X".format(address), name, listOf(
-            "ATSP6", "ATSH6F1", "ATCEA%02X".format(address), "ATFCSH6F1", "ATFCSD%02X3000".format(address),
-            "ATFCSM1", "ATCRA6%02X".format(address), "ATAT0", "ATSTFF",
-        ))
-    }, MODULE_QUERIES)
+    suspend fun probeModules(): Pair<Int, Int> {
+        // Primero como Deep OBD y live-obd (tramas de longitud variable); si ni el motor contesta, con ATSP6.
+        val variable = askModules("## Centralitas, tramas de longitud variable: inicio", MODULES.map { (address, name) ->
+            Triple("%02X".format(address), name, gatewayVariable(address) + listOf("ATAT1", "ATST32"))
+        }, MODULE_QUERIES)
+        if (variable.first > 0) return variable
+        return askModules("## Centralitas: inicio", MODULES.map { (address, name) ->
+            Triple("%02X".format(address), name, listOf(
+                "ATSP6", "ATSH6F1", "ATCEA%02X".format(address), "ATFCSH6F1", "ATFCSD%02X3000".format(address),
+                "ATFCSM1", "ATCRA6%02X".format(address), "ATAT0", "ATSTFF",
+            ))
+        }, MODULE_QUERIES)
+    }
 
     /**
      * Prepara el adaptador para cada centralita y le hace las consultas. La primera es siempre la
@@ -494,11 +528,16 @@ class ObdSession(
      * sirve con adaptadores que no admiten la direccion por centralita. Solo consultas.
      */
     suspend fun probeModulesRaw(): Pair<Int, Int> {
-        log("## Centralitas, con tramas en crudo: inicio")
+        val variable = probeModulesRaw("## Centralitas, con tramas en crudo de longitud variable: inicio", GATEWAY_VARIABLE_RAW)
+        return if (variable.first > 0) variable else probeModulesRaw("## Centralitas, con tramas en crudo: inicio", RAW_MODULE_SETUP)
+    }
+
+    private suspend fun probeModulesRaw(title: String, setup: List<String>): Pair<Int, Int> {
+        log(title)
         var answered = 0
         var asked = 0
         try {
-            for (command in RAW_MODULE_SETUP) attempt(command)
+            for (command in setup) attempt(command)
             for ((index, module) in MODULES.withIndex()) {
                 val (address, name) = module
                 log("## Centralita %02X: %s".format(address, name))
@@ -577,7 +616,12 @@ class ObdSession(
         var heard = false
         try {
             for (command in listOf("ATH0", "0105", "010C")) attempt(command)
-            val ask: suspend (String) -> List<IntArray> = { query -> tryAsk(query)?.let { ObdParser.payloads(it, "") }.orEmpty() }
+            // Por la pasarela la respuesta lleva delante la direccion del equipo de diagnosis (F1): se
+            // quita. Ninguna respuesta de UDS empieza por F1.
+            val ask: suspend (String) -> List<IntArray> = { query ->
+                tryAsk(query)?.let { ObdParser.payloads(it, "") }.orEmpty()
+                    .map { if (it.size > 1 && it[0] == TESTER) it.copyOfRange(1, it.size) else it }
+            }
             val results = mutableListOf<UdsWayCheck>()
             for ((name, setup) in UDS_WAYS) {
                 log("## Forma: $name")
@@ -602,6 +646,13 @@ class ObdSession(
                         val text = ask(query.request).firstNotNullOfOrNull { BmwUds.describe(query.request, it) }
                         log("## ${query.name} (${query.request}): ${text ?: "sin respuesta"}")
                     }
+                    for ((name, queries) in UDS_OTHER_WAYS) {
+                        log("## BMW serie F: medidas de la tabla por $name")
+                        for (query in queries) {
+                            val text = ask(query).firstNotNullOfOrNull { BmwUds.describe(query, it) }
+                            log("## $query: ${text ?: "sin respuesta"}")
+                        }
+                    }
                     log("## BMW serie F: la centralita contesta pero no tiene las medidas de la tabla d70bx7a0: se buscan las suyas")
                     sweepUds(ask, sweep)
                     tryAsk(BmwUds.FAULTS)?.let { response ->
@@ -610,12 +661,15 @@ class ObdSession(
                     }
                 }
             } else {
-                log("## Forma: tramas crudas a la centralita 12")
-                tried++
-                for (command in RAW_MODULE_SETUP) attempt(command)
-                heard = askUds { query ->
-                    val bytes = IntArray(query.length / 2) { query.substring(it * 2, it * 2 + 2).toInt(16) }
-                    listOfNotNull(rawExchange(UDS_ENGINE, bytes))
+                for ((name, setup) in listOf("tramas de longitud variable" to GATEWAY_VARIABLE_RAW, "tramas de 8 bytes" to RAW_MODULE_SETUP)) {
+                    log("## Forma: tramas crudas a la centralita 12, $name")
+                    tried++
+                    for (command in setup) attempt(command)
+                    heard = askUds { query ->
+                        val bytes = IntArray(query.length / 2) { query.substring(it * 2, it * 2 + 2).toInt(16) }
+                        listOfNotNull(rawExchange(UDS_ENGINE, bytes))
+                    }
+                    if (heard) break
                 }
             }
         } finally {
@@ -1287,12 +1341,38 @@ class ObdSession(
         // La pasarela de BMW a la centralita del motor (12) y la vuelta a la direccion OBD normal.
         val UDS_LINK = listOf("ATSH6F1", "ATCEA12", "ATFCSH6F1", "ATFCSD123000", "ATFCSM1", "ATCRA612")
 
-        /** Las formas de llegar a la centralita del B47 en la lectura normal, en el orden en que se prueban. */
-        val UDS_LINKS = listOf(
-            "la pasarela de BMW a la centralita 12" to UDS_LINK,
-            "la dirección OBD del motor (7E0)" to listOf("ATSH7E0", "ATCEA", "ATFCSM0", "ATCRA7E8"),
-            "la dirección OBD a todas (7DF)" to listOf("ATSH7DF", "ATCEA", "ATFCSM0", "ATCRA"),
+        /**
+         * La pasarela de BMW como la usan Deep OBD (EdiabasLib) y live-obd (github.com/bociasan/live-obd):
+         * protocolo de usuario B con tramas de longitud variable (PB C1 01: 11 bits, longitud
+         * variable, ISO 15765, 500 kbit/s), sin la comprobacion de arranque del bus (BI) y con 2 ms
+         * entre tramas en el control de flujo. ATSP6 manda siempre tramas de 8 bytes.
+         */
+        fun gatewayVariable(target: Int) = listOf(
+            "ATPBC101", "ATSPB", "ATBI", "ATAL", "ATSH6F1", "ATFCSH6F1", "ATFCSD%02X300002".format(target), "ATFCSM1",
+            "ATCEA%02X".format(target), "ATCRA6%02X".format(target),
         )
+
+        /** Lo mismo en crudo, para clones que no admiten la direccion extendida: la app pone direccion, longitud y control de flujo. */
+        val GATEWAY_VARIABLE_RAW = listOf("ATPBC001", "ATSPB", "ATBI", "ATCAF0", "ATSH6F1", "ATCF600", "ATCM700", "ATH1", "ATS0", "ATAL", "ATAT1", "ATST32")
+
+        /** Una forma de llegar a la centralita del B47: como se pone el adaptador y como se vuelve al OBD normal. */
+        class UdsLink(val name: String, val to: List<String>, val back: List<String>)
+
+        /**
+         * Las formas de llegar a la centralita del B47 en la lectura normal, en el orden en que se
+         * prueban. Desde el protocolo de usuario B se vuelve al OBD normal con ATSP6. Va en lazy
+         * porque OBD_LINK esta mas abajo.
+         */
+        val UDS_LINKS: List<UdsLink> by lazy { listOf(
+            UdsLink("la pasarela de BMW a la centralita 12", UDS_LINK, OBD_LINK),
+            UdsLink("la pasarela de BMW a la centralita 12, tramas de longitud variable", gatewayVariable(0x12), listOf("ATSP6") + OBD_LINK),
+            UdsLink("la dirección OBD del motor (7E0)", listOf("ATSH7E0", "ATCEA", "ATFCSM0", "ATCRA7E8"), OBD_LINK),
+            UdsLink("la dirección OBD a todas (7DF)", listOf("ATSH7DF", "ATCEA", "ATFCSM0", "ATCRA"), OBD_LINK),
+        ) }
+
+        // Sesion de diagnostico ampliada de UDS: algunas centralitas solo dan sus medidas propias en ella.
+        const val UDS_EXTENDED = "1003"
+        const val UDS_EXTENDED_OK = "5003"
 
         // La busqueda de medidas: unos 100 ms de espera por consulta, y se deja si el adaptador calla tantas seguidas.
         const val SWEEP_WAIT = "ATST19"
@@ -1342,6 +1422,20 @@ class ObdSession(
             "pasarela de BMW a la centralita 12" to listOf(
                 "ATSP6", "ATSH6F1", "ATCEA12", "ATFCSH6F1", "ATFCSD123000", "ATFCSM1", "ATCRA612", "ATAT0", "ATSTFF",
             ),
+            "pasarela de BMW a la centralita 12, tramas de longitud variable" to gatewayVariable(UDS_ENGINE) + listOf("ATAT1", "ATST32"),
+        )
+
+        /**
+         * Las otras formas de pedir las medidas de la tabla cuando la centralita contesta pero no a
+         * ellas, en orden: dentro de la sesion de diagnostico ampliada, y con un identificador
+         * dinamico (2C 01 F300: el refrigerante en la posicion 1 con 2 bytes, leido con 22 F300, y
+         * borrado al acabar con 2C 03 F300). La sesion vuelve a la normal con 10 01. El
+         * identificador dinamico vive en la memoria de trabajo de la centralita: no se guarda.
+         */
+        val UDS_OTHER_WAYS = listOf(
+            "sesión de diagnóstico ampliada (10 03)" to listOf(UDS_EXTENDED, "22461B", "22427F", "224200", "2246B1", "1001"),
+            "identificador dinámico (2C 01 F300)" to listOf("2C03F300", "2C01F300461B0102", "22F300", "2C03F300"),
+            "identificador dinámico en sesión ampliada" to listOf(UDS_EXTENDED, "2C03F300", "2C01F300461B0102", "22F300", "2C03F300", "1001"),
         )
 
         val RAW_MODULE_SETUP = listOf("ATSP6", "ATCAF0", "ATSH6F1", "ATCF600", "ATCM700", "ATH1", "ATS0", "ATAL", "ATAT0", "ATSTFF")

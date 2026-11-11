@@ -89,7 +89,7 @@ class F20WaysTest {
         session.connect()
         val (heard, tried) = session.probeBmwUds()
         assertEquals(1, heard)
-        assertEquals(3, tried)
+        assertEquals(4, tried)
         assertTrue(log.any { it == "## BMW serie F: se sigue por dirección OBD del motor (7E0, contesta 7E8)" })
         assertTrue(log.any { it.startsWith("## Refrigerante (22461B): 4814 -> 84.52 °C") })
         assertTrue(log.any { it.startsWith("## Cuentakilómetros (2246B1): 0002E62F -> 189999.00 km") })
