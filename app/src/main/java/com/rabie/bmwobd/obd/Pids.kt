@@ -533,6 +533,10 @@ object Pids {
         bmwDef(0x10CE, "Tiempo aparcado antes de arrancar", "min", 0, PidGroup.ELECTRIC) { it.toDouble() },
         bmwDef(0x0500, "Cantidad inyectada", "mg/emb", 1, PidGroup.FUEL, Tier.MEDIUM) { it * 0.003052 - 100.0 },
         bmwDef(0x01F4, "Presión turbo pedida", "kPa", 0, PidGroup.AIR, Tier.MEDIUM) { it * 0.0091554 },
+        // La presion de admision ya corregida, la que compara el regulador con la pedida. El PID 0B
+        // del OBD es el valor del sensor antes de la correccion (tabla d70n47b0). Va detras de la
+        // pedida para leerse en la vuelta siguiente.
+        bmwDef(0x076D, "Presión turbo real (la que usa la centralita)", "kPa", 0, PidGroup.AIR, Tier.MEDIUM) { it * 0.0091554 },
         bmwDef(0x01FB, "Turbo: corte de su vigilancia (código)", "", 0, PidGroup.AIR, Tier.MEDIUM, size = 1) { it.toDouble() },
         bmwDef(0x0641, "Presión raíl pedida", "bar", 0, PidGroup.FUEL, Tier.MEDIUM) { it * 0.045777 },
 
