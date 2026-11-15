@@ -116,6 +116,13 @@ fun SettingsScreen(
                 "Apagado, la consola solo acepta consultas.",
             checked = settings.expertConsole,
         ) { value -> onChange { it.copy(expertConsole = value) } }
+
+        Label("Versión", Modifier.padding(top = 6.dp))
+        Text(
+            "Commit ${com.rabie.bmwobd.BuildConfig.GIT_COMMIT} del ${com.rabie.bmwobd.BuildConfig.GIT_COMMIT_DATE}",
+            color = Bmw.TextDim,
+            fontSize = 13.sp,
+        )
     }
 }
 

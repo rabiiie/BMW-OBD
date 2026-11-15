@@ -3,6 +3,15 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
+// El commit con que se compila y su fecha: la app los enseña en Ajustes y al principio del registro.
+fun git(vararg args: String): String = providers.exec {
+    commandLine("git", *args)
+    isIgnoreExitValue = true
+}.standardOutput.asText.get().trim().ifEmpty { "desconocido" }
+
+val gitCommit = git("rev-parse", "--short", "HEAD")
+val gitCommitDate = git("log", "-1", "--format=%cd", "--date=format:%Y-%m-%d %H:%M")
+
 android {
     namespace = "com.rabie.bmwobd"
     compileSdk = 37
@@ -13,6 +22,8 @@ android {
         targetSdk = 37
         versionCode = 1
         versionName = "0.1.0"
+        buildConfigField("String", "GIT_COMMIT", "\"$gitCommit\"")
+        buildConfigField("String", "GIT_COMMIT_DATE", "\"$gitCommitDate\"")
     }
 
     buildTypes {
@@ -28,6 +39,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     testOptions {

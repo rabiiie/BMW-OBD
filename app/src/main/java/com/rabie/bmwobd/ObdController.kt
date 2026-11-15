@@ -214,6 +214,7 @@ class ObdController(
             val session = ObdSession(transport, ::appendLog)
             var recorder: TripRecorder? = null
             try {
+                appendLog("## App: commit ${BuildConfig.GIT_COMMIT} del ${BuildConfig.GIT_COMMIT_DATE}")
                 val info = session.connect()
                 carVin = info.vin
                 val vehicle = withProfile(session, vehicles.resolve(info.vin, info.diesel))

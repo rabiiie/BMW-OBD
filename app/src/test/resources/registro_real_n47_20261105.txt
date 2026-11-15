@@ -1,0 +1,1546 @@
+>> ATZ
+<< ATZ | ELM327 v1.5
+>> ATE0
+<< ATE0 | OK
+>> ATL0
+<< OK
+>> ATS0
+<< OK
+>> ATH0
+<< OK
+>> ATAT1
+<< OK
+>> ATSP0
+<< OK
+>> 0100
+<< SEARCHING... | 4100983B801B
+>> 0120
+<< 4120B0192011
+>> 0140
+<< 4140CCD00000
+## El coche anuncia: 01 04 05 0B 0C 0D 0F 10 11 1C 1D 1F 21 23 24 2C 2D 30 33 3C 41 42 45 46 49 4A 4C
+## Sin fórmula en la app: 01 1C 1D 41 4A
+>> 010C1
+<< 410C0000
+## Lectura rápida: sí
+>> ATDP
+<< AUTO, ISO 15765-4 (CAN 11/500)
+>> 0902
+<< (bastidor oculto)
+## BMW: se piden las medidas propias de la centralita del motor
+>> 1A80
+<< 03C | 0: 5A8000000851 | 1: 24990007002057 | 2: 41201008170808 | 3: 02303353370303 | 4: 01000000000004 | 5: 72388030405361 | 6: 30303839535930 | 7: 30303839535930 | 8: 4133533742AAAA
+>> 2C100547
+<< 6C102FF4
+>> 2C101461
+<< 6C1080C0
+## BMW: Cilindro 1: tiempo aprendido del inyector (400 bar) = 29.37 µs
+>> 2C101462
+<< 6C108190
+## BMW: Cilindro 3: tiempo aprendido del inyector (400 bar) = 61.11 µs
+>> 2C101463
+<< 6C10815E
+## BMW: Cilindro 4: tiempo aprendido del inyector (400 bar) = 53.48 µs
+>> 2C101464
+<< 6C1081D9
+## BMW: Cilindro 2: tiempo aprendido del inyector (400 bar) = 72.24 µs
+>> 2C101467
+<< 6C108091
+## BMW: Cilindro 1: tiempo aprendido del inyector (700 bar) = 22.19 µs
+>> 2C101468
+<< 6C1080CB
+## BMW: Cilindro 3: tiempo aprendido del inyector (700 bar) = 31.04 µs
+>> 2C101469
+<< 6C108099
+## BMW: Cilindro 4: tiempo aprendido del inyector (700 bar) = 23.42 µs
+>> 2C10146A
+<< 6C108072
+## BMW: Cilindro 2: tiempo aprendido del inyector (700 bar) = 17.46 µs
+>> 2C10146D
+<< 6C10805D
+## BMW: Cilindro 1: tiempo aprendido del inyector (1000 bar) = 14.26 µs
+>> 2C10146E
+<< 6C10806D
+## BMW: Cilindro 3: tiempo aprendido del inyector (1000 bar) = 16.70 µs
+>> 2C10146F
+<< 6C108067
+## BMW: Cilindro 4: tiempo aprendido del inyector (1000 bar) = 15.79 µs
+>> 2C101470
+<< 6C108030
+## BMW: Cilindro 2: tiempo aprendido del inyector (1000 bar) = 7.39 µs
+>> 2C1005AA
+<< 6C1080100001
+## BMW: Motor: modo de funcionamiento (código) = 2148532225.00 
+>> 2C1010CE
+<< 6C100207
+## BMW: Tiempo aparcado antes de arrancar = 519.00 min
+>> 2C100500
+<< 6C107FFF
+## BMW: Cantidad inyectada = 0.00 mg/emb
+>> 2C1001F4
+<< 6C102A32
+## BMW: Presión turbo pedida = 98.90 kPa
+>> 2C1001FB
+<< 6C1003
+## BMW: Turbo: corte de su vigilancia (código) = 3.00 
+>> 2C100641
+<< 6C101999
+## BMW: Presión raíl pedida = 299.98 bar
+>> 2C100BEB
+<< 6C101999
+## BMW: Actuador del turbo = 10.00 %
+>> 2C10076F
+<< 6C10308A
+## BMW: Aire tras el intercooler = 24.26 °C
+>> 2C100BB4
+<< 6C100000
+## BMW: EGR: posición de la válvula = 0.00 %
+>> 2C100A29
+<< 6C100000
+## BMW: Lambda real = 0.00 λ
+>> 2C100385
+<< 6C101C80
+## BMW: Temp. gasóleo = 22.96 °C
+>> 2C100384
+<< 6C101EB8
+## BMW: Depósito = 15.00 L
+>> 2C1003EA
+<< 6C100160
+## BMW: Filtro: hollín (el que usa la centralita) = 5.37 g
+>> 2C1003ED
+<< 6C10021A
+## BMW: Filtro: hollín calculado (modelo) = 5.38 g
+>> 2C1003EB
+<< 6C100001212C
+## BMW: Filtro: desde la última regeneración = 74.03 km
+>> 2C1003E8
+<< 6C100151
+## BMW: Filtro: gasóleo desde la última regeneración = 3.37 L
+>> 2C100424
+<< 6C105529
+## BMW: Filtro: presión diferencial = -2.02 hPa
+>> 2C100404
+<< 6C1000
+## BMW: Filtro: regeneración pedida (0 = no) = 0.00 
+>> 2C100405
+<< 6C100000
+## BMW: Filtro: hollín medido (por la presión) = 0.00 g
+>> 2C100C83
+<< 6C1000000000
+## BMW: Filtro: caudal de gas = 0.00 m³/h
+>> 2C100426
+<< 6C105529
+## BMW: Filtro: presión diferencial filtrada = -2.02 hPa
+>> 2C1003E0
+<< 6C102F69
+## BMW: Escape: presión antes del turbo = 963.00 hPa
+>> 2C10057A
+<< 6C100080
+## BMW: Par: límite que actúa (código) = 128.00 
+>> 2C1005D4
+<< 6C107776
+## BMW: Par: límite por lo que pide el motor = 999.90 Nm
+>> 2C101329
+<< 6C10C52C
+## BMW: Par: límite de la vigilancia = 3276.62 Nm
+>> 2C1006C2
+<< 6C1009F3
+## BMW: Inyección: límite de humo = 25.47 mg/emb
+>> 2C100406
+<< 6C10021A
+## BMW: Filtro: hollín calculado de forma continua (modelo) = 5.38 g
+>> 2C1001B2
+<< 6C100A70
+## BMW: Corriente de batería = 13.76 A
+>> 2C1009C4
+<< 6C100000
+## BMW: Ventilador = 0.00 %
+>> 2C100839
+<< 6C1000
+## BMW: Control de crucero (1 = puesto) = 0.00 
+>> 2C1007C6
+<< 6C1000
+## BMW: Aire acondicionado (1 = puesto) = 0.00 
+>> 2C1015E5
+<< 6C107FFF
+## BMW: Distribución: desfase del árbol de levas = 0.00 °
+>> 2C100C99
+<< 6C102000
+## BMW: EGR: rendimiento del enfriador = 1.00 
+>> 2C1005DD
+<< 6C100005D411
+## BMW: Cuentakilómetros = 381969.00 km
+>> 2C100AF0
+<< 6C1001907EEE
+## BMW: Horas de motor = 7290.80 h
+>> 2C100939
+<< 6C104AC4
+## BMW: Gasóleo inyectado en total = 19140.00 L
+>> 2C1004A7
+<< 6C1004
+## BMW: Averías guardadas en la centralita = 4.00 
+>> 2C10044C
+<< 6C1000CF
+## BMW: Aceite: km desde el cambio = 2070.00 km
+>> 2C10044D
+<< 6C10BF
+## BMW: Aceite: nivel = 55.96 mm
+>> 2C1003F3
+<< 6C100207
+## BMW: Filtro: intervalo medio entre regeneraciones = 519.00 km
+>> 2C100407
+<< 6C100181
+## BMW: Filtro: regeneraciones hechas = 385.00 
+>> 2C100BA5
+<< 6C1000007049
+## BMW: Filtro: km desde su cambio = 287450.00 km
+>> 2C1003E9
+<< 6C100599
+## BMW: Filtro: ceniza calculada = 21.87 g
+>> 2C100409
+<< 6C100000
+## BMW: Filtro: corrección de ceniza del ciclo anterior = 0.00 g
+>> 2C10042E
+<< 6C10013E
+## BMW: Escape antes del filtro (sensor) = -40.05 °C
+>> 2C1003DF
+<< 6C10CF46
+## BMW: Filtro: horas regenerando en total = 339.05 h
+>> 2C100BA4
+<< 6C103F78
+## BMW: Filtro: vida restante (mantenimiento) = 162480.00 km
+>> 2C100258
+<< 6C108023
+## BMW: Raíl: corrección aprendida de la válvula de presión = 1.69 %
+>> 2C100A40
+<< 6C108289
+## BMW: Sonda lambda: corrección aprendida = -0.57 %
+>> 2C100BBD
+<< 6C107FFF
+## BMW: EGR: cero aprendido, el primero = 0.00 %
+>> 2C100BBE
+<< 6C107FFF
+## BMW: EGR: cero aprendido, el último = 0.00 %
+>> 2C100428
+<< 6C107F19
+## BMW: Filtro: cero aprendido del sensor de presión = -7.04 hPa
+>> 2C10041C
+<< 6C1080DE
+## BMW: Filtro: tensión del sensor de presión (en bruto) = 2516.97 mV
+>> 2C10042A
+<< 6C10544E
+## BMW: Filtro: presión diferencial (valor en bruto) = -12.04 hPa
+>> 2C1003F5
+<< 6C10DD
+## BMW: Filtro: regeneraciones de tipo 1 = 221.00 
+>> 2C1003F6
+<< 6C1000
+## BMW: Filtro: regeneraciones de tipo 2 = 0.00 
+>> 2C1003F7
+<< 6C1000
+## BMW: Filtro: regeneraciones de tipo 3 = 0.00 
+>> 2C1003F8
+<< 6C10FF
+## BMW: Filtro: regeneraciones de tipo 4 = 255.00 
+>> 2C1003F9
+<< 6C10FF
+## BMW: Filtro: regeneraciones de tipo 5 = 255.00 
+>> 2C1003FA
+<< 6C1000
+## BMW: Filtro: regeneraciones de tipo 6 = 0.00 
+>> 2C1003FB
+<< 6C1000
+## BMW: Filtro: regeneraciones de tipo 7 = 0.00 
+>> 2C1003FC
+<< 6C1000
+## BMW: Filtro: regeneraciones de tipo 8 = 0.00 
+>> 2C1003FD
+<< 6C1016A2B114
+## BMW: Filtro: km en la regeneración 1 hacia atrás = 379760.92 km
+>> 2C1003FE
+<< 6C10169FD45B
+## BMW: Filtro: km en la regeneración 2 hacia atrás = 379573.34 km
+>> 2C1003FF
+<< 6C10169A64CA
+## BMW: Filtro: km en la regeneración 3 hacia atrás = 379217.10 km
+>> 2C100400
+<< 6C1016984C6D
+## BMW: Filtro: km en la regeneración 4 hacia atrás = 379079.79 km
+>> 2C100401
+<< 6C10169470C0
+## BMW: Filtro: km en la regeneración 5 hacia atrás = 378826.94 km
+## BMW: contestan 79 de 79 medidas
+>> 1802FFFF
+<< 00B | 0: 5803498E614A | 1: 6E613EFC21AAAA
+## Aceite: el sensor de nivel tiene una avería presente; no se enseñan su nivel ni su temperatura
+## Filtro: 480A y 481A no presentes
+## Lecturas al conectar: inicio
+>> 224022
+<< 04D | 0: 624022AAD58C | 1: ED000C138922AB | 2: B4C9323E000948 | 3: 7567B00A260024 | 4: 95349533953395 | 5: 0994F1FFFF3EFD | 6: 0000000000002E | 7: 43000000000000 | 8: 00000000000040 | 9: 000000FFFF0005 | A: 7BFF0102009600 | B: 00AAAAAAAAAAAA
+>> 224023
+<< 020 | 0: 62402351359B | 1: 0E120000000000 | 2: FF4D4C4C4C4CFF | 3: 9BA6AFABA6FFFF | 4: 055A000000AAAA
+>> 30BB01
+<< 023 | 0: 70BB01FFFF5F | 1: 60F80000000632 | 2: 1F90100000000C | 3: 21BF9018000000 | 4: 12422160200000 | 5: 00AAAAAAAAAAAA
+>> 010C
+<< 410C0000
+## BMW: una consulta quedó sin respuesta; se vacía el adaptador antes de la siguiente (1 veces)
+>> 2C10043B
+<< 6C102D28
+>> 2C100432
+<< 6C1024CC
+>> 0133
+<< 41335F
+## BMW: batería al 77.5 % (días anteriores 83.0 / 87.5 / 85.5 / 83.0 / 127.5), mínimo para arrancar 38.5 %, último cambio registrado a los 161250 km
+## BMW: códigos de los inyectores: FF FF 5F 60 F8 00 00 00 | 06 32 1F 90 10 00 00 00 | 0C 21 BF 90 18 00 00 00 | 12 42 21 60 20 00 00 00
+## BMW: sensor de presión del filtro con el motor parado: 941 hPa; aire 950 hPa
+>> ATAT0
+<< OK
+>> ATST64
+<< OK
+>> 305001
+<< 063 | 0: 705001070000 | 1: 000000000016A2 | 2: B1140000000000 | 3: 00000000000000 | 4: 01906DC4000000 | 5: 00000000000000 | 6: 0000034C021A01 | 7: 5101811D770000 | 8: 00080BAD231B23 | 9: AF2366245E0000 | A: 00000000000000 | B: 00000000000000 | C: 00000000000000 | D: 00000000000000 | E: 0000AAAAAAAAAA
+## BMW: una consulta quedó sin respuesta; se vacía el adaptador antes de la siguiente (2 veces)
+>> 2C10041B
+<< 6C10013E
+>> 220107
+<< 620107FFF9FFFA
+>> 223900
+<< 00B | 0: 623900010101 | 1: 0000000000AAAA
+>> 223901
+<< 020 | 0: 623901786400 | 1: 00000000000000 | 2: 01000101000001 | 3: 00000000000000 | 4: 0000000000AAAA
+>> 305B01
+<< 00B | 0: 705B01000000 | 1: 0000000000AAAA
+>> 305A01
+<< 00F | 0: 705A01000000 | 1: 00000000000000 | 2: 0000AAAAAAAAAA
+>> 30A401
+<< 70A4010000
+>> 30E401
+<< 70E4012000
+>> 30AE01
+<< 70AE010000
+>> 30AF01
+<< 70AF010000
+>> 30A301
+<< 70A3010000
+>> 30A201
+<< NO DATA
+>> 30B001
+<< 70B0012000
+>> 307901
+<< 7079012000
+>> 30E601
+<< 70E6012000
+>> 30E501
+<< 70E5012000
+>> 30F701
+<< 70F7010767175C
+>> 305701
+<< 031 | 0: 705701060000 | 1: 0F0B400B3F0B40 | 2: 004A00B5009900 | 3: 860038002C004E | 4: 003B0024001300 | 5: 2A002800000000 | 6: 0000034C021A01 | 7: 51AAAAAAAAAAAA
+>> 307A01
+<< 04B | 0: 707A010030FF | 1: B6014A00000000 | 2: 000000A4FFAE00 | 3: F0004B00000000 | 4: 002C003A001F00 | 5: 07000000000000 | 6: 0009000C000000 | 7: 00000000000000 | 8: 00000000000000 | 9: 00000000000000 | A: 000000000000AA
+>> 30E301
+<< NO DATA
+## BMW: una consulta quedó sin respuesta; se vacía el adaptador antes de la siguiente (3 veces)
+>> 2C101496
+<< 6C100000
+## BMW: una consulta quedó sin respuesta; se vacía el adaptador antes de la siguiente (4 veces)
+>> 2C101497
+<< 6C100000
+## BMW: una consulta quedó sin respuesta; se vacía el adaptador antes de la siguiente (5 veces)
+>> 2C101498
+<< 6C100000
+>> 2C101499
+<< 6C100000
+>> 2C10149C
+<< 6C107FFF
+>> 2C10149D
+<< 6C107FFF
+>> 2C10149E
+<< 6C107FFF
+>> 2C10149F
+<< 6C107FFF
+>> 2C100458
+<< 6C102FF8
+>> 2C100454
+<< 6C1079
+>> 305C01
+<< 00B | 0: 705C01000000 | 1: 00F7D8FD18AAAA
+>> 2C10070C
+<< 6C100000
+>> 2C10070D
+<< 6C100000
+>> 2C100794
+<< 6C100000
+>> 2C10079B
+<< 6C100000
+>> 2C1007A6
+<< 6C100000
+>> 2C1007A0
+<< 6C1008062080
+>> 2C100201
+<< 6C1000000008
+>> 2C1001FF
+<< 6C1000
+>> 2C10025C
+<< 6C100064
+>> 2C100265
+<< 6C100676
+>> 2C1001CB
+<< 6C10003C
+>> 2C100504
+<< 6C107FFF
+>> 2C100505
+<< 6C109998
+>> 2C100506
+<< 6C107FFF
+>> 2C100411
+<< 6C107F7B
+>> 2C100410
+<< 6C107FFF
+>> 2C100412
+<< 6C107F9C
+>> 2C100514
+<< 6C1001
+>> 2C100516
+<< 6C1000000000
+>> 2C100517
+<< 6C1000000000
+>> 2C100BBC
+<< 6C100023
+>> 2C100B2C
+<< 6C1004
+>> 2C10044D
+<< 6C10BF
+>> 2C101607
+<< 6C10FF
+>> 2C101608
+<< 6C1001
+>> 2C10160D
+<< 6C107FFF
+>> 2C1016A8
+<< 6C100000
+>> 2C1016AA
+<< 6C10AD76
+>> 2C1016AF
+<< 6C104F
+>> 2C1016B0
+<< 6C1075
+>> ATST32
+<< OK
+>> ATAT1
+<< OK
+>> 2C100404
+<< 6C1000
+>> 2C1005AA
+<< 6C1080100001
+>> 2C1003EE
+<< 6C1000
+## Servicio: Datos del filtro (los de ISTA) (305001): 07 00 00 00 00 00 00 00 16 A2 B1 14 00 00 00 00 00 00 00 00 00 00 00 00 01 90 6D C4 00 00 00 00 00 00 00 00 00 00 00 00 03 4C 02 1A 01 51 01 81 1D 77 00 00 00 08 0B AD 23 1B 23 AF 23 66 24 5E 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+## Servicio: Datos del filtro (los de ISTA), traducido: Km desde el último cambio de filtro = 0 km; Cuentakilómetros en la última regeneración completa = 379760,92 km; Tiempo para pedir regeneración por contador = 0 s; Tiempo para pedir regeneración por protección del motor = 0 s; Regeneración que faltó en el último ciclo = 0 s; Momento de la última regeneración completa = 26242500 s; Tiempo de bloqueo que queda = 0 s; Hollín (cálculo por tramos) = 8,44 g; Hollín (cálculo continuo) = 5,38 g; Gasóleo desde la última regeneración = 3,37 l; Regeneraciones completas = 385; Regeneraciones pedidas = 7543; Regeneración sin terminar (código) = 0; Gasóleo desde el cambio de filtro = 5272,77 l; Máxima antes del catalizador = 625,6 °C; Máxima antes del filtro = 640,4 °C; Máxima antes del catalizador en regeneración = 633,1 °C; Máxima antes del filtro en regeneración = 657,9 °C
+## Servicio: Filtro: temperatura antes del filtro (corregida) (2C10041B): 01 3E
+## Servicio: Filtro: temperatura antes del filtro (corregida), traducido: Temperatura = -40,05 °C
+## Servicio: Filtro: corrección del sensor de presión (220107): FF F9 FF FA
+## Servicio: Filtro: corrección del sensor de presión, traducido: Valor 1 = -7 hPa; Valor 2 = -6 hPa
+## Servicio: Codificación (con límite de tiempo) (223900): 01 01 01 00 00 00 00 00
+## Servicio: Codificación (con límite de tiempo), traducido: Lámpara de avería = 1; Par en el embrague = 1; Par interno = 1; Velocidad máxima = 0; Clase de potencia = 0
+## Servicio: Codificación (sin límite de tiempo) (223901): 78 64 00 00 00 00 00 00 00 00 01 00 01 01 00 00 01 00 00 00 00 00 00 00 00 00 00 00 00
+## Servicio: Codificación (sin límite de tiempo), traducido: Factor del intervalo de aceite = 30820; Regulación del alternador = 1; Indicador de cambio de marcha = 1; Arranque y parada = 1; Corte con el contacto = 0; Tipo de alternador = 0; Ayuda de arranque en cuesta = 1
+## Servicio: Aprendizaje de la EGR (305B01): 00 00 00 00 00 00 00 00
+## Servicio: Aprendizaje de la EGR, traducido: Valor aprendido, primero = 0 %; Valor aprendido, último = 0 %; Arranques desde el último aprendizaje = 0; Estado del aprendizaje (código) = 0
+## Servicio: Aprendizaje de las mariposas de turbulencia (305A01): 00 00 00 00 00 00 00 00 00 00 00 00
+## Servicio: Aprendizaje de las mariposas de turbulencia, traducido: Valor aprendido, primero = 0 %; Valor aprendido, último = 0 %; Arranques desde el último aprendizaje = 0; Estado del aprendizaje (código) = 0
+## Servicio: Corrección de la EGR (normal) (30A401): 00 00
+## Servicio: Corrección de la EGR (en regeneración) (30E401): 20 00
+## Servicio: Corrección del caudalímetro al ralentí (30AE01): 00 00
+## Servicio: Corrección del caudalímetro en carga (30AF01): 00 00
+## Servicio: Corrección del ralentí (30A301): 00 00
+## Servicio: Corrección del par máximo (30A201): Sin respuesta
+## Servicio: Corrección del consumo (30B001): 20 00
+## Servicio: Filtro: corrección de la vida restante (307901): 20 00
+## Servicio: Filtro: corrección de la distancia máxima entre regeneraciones (30E601): 20 00
+## Servicio: Filtro: corrección del gasóleo entre regeneraciones (30E501): 20 00
+## Servicio: Filtro: tiempo total de regeneración (30F701): 07 67 17 5C
+## Servicio: Corrección de cada inyector (NMK) (305701): 06 00 00 0F 0B 40 0B 3F 0B 40 00 4A 00 B5 00 99 00 86 00 38 00 2C 00 4E 00 3B 00 24 00 13 00 2A 00 28 00 00 00 00 00 00 03 4C 02 1A 01 51
+## Servicio: Corrección de cada inyector (NMK), traducido: Ciclos de aprendizaje a 400 bar = 2880; Ciclos de aprendizaje a 700 bar = 2879; Ciclos de aprendizaje a 1000 bar = 2880; Cilindro 1 a 400 bar = 29,6; Cilindro 2 a 400 bar = 72,4; Cilindro 3 a 400 bar = 61,2; Cilindro 4 a 400 bar = 53,6; Cilindro 1 a 700 bar = 22,4; Cilindro 2 a 700 bar = 17,6; Cilindro 3 a 700 bar = 31,2; Cilindro 4 a 700 bar = 23,6; Cilindro 1 a 1000 bar = 14,4; Cilindro 2 a 1000 bar = 7,6; Cilindro 3 a 1000 bar = 16,8; Cilindro 4 a 1000 bar = 16
+## Servicio: Mapa aprendido del actuador del turbo (307A01): 00 30 FF B6 01 4A 00 00 00 00 00 00 00 A4 FF AE 00 F0 00 4B 00 00 00 00 00 2C 00 3A 00 1F 00 07 00 00 00 00 00 00 00 09 00 0C 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+## Servicio: Mapa aprendido del actuador del turbo, traducido: Fila 1, columna 1 = 0,59 %; Fila 1, columna 2 = -0,9 %; Fila 1, columna 3 = 4,03 %; Fila 1, columna 4 = 0 %; Fila 1, columna 5 = 0 %; Fila 1, columna 6 = 0 %; Fila 2, columna 1 = 2 %; Fila 2, columna 2 = -1 %; Fila 2, columna 3 = 2,93 %; Fila 2, columna 4 = 0,92 %; Fila 2, columna 5 = 0 %; Fila 2, columna 6 = 0 %; Fila 3, columna 1 = 0,54 %; Fila 3, columna 2 = 0,71 %; Fila 3, columna 3 = 0,38 %; Fila 3, columna 4 = 0,09 %; Fila 3, columna 5 = 0 %; Fila 3, columna 6 = 0 %; Fila 4, columna 1 = 0 %; Fila 4, columna 2 = 0,11 %; Fila 4, columna 3 = 0,15 %; Fila 4, columna 4 = 0 %; Fila 4, columna 5 = 0 %; Fila 4, columna 6 = 0 %; Fila 5, columna 1 = 0 %; Fila 5, columna 2 = 0 %; Fila 5, columna 3 = 0 %; Fila 5, columna 4 = 0 %; Fila 5, columna 5 = 0 %; Fila 5, columna 6 = 0 %; Fila 6, columna 1 = 0 %; Fila 6, columna 2 = 0 %; Fila 6, columna 3 = 0 %; Fila 6, columna 4 = 0 %; Fila 6, columna 5 = 0 %; Fila 6, columna 6 = 0 %
+## Servicio: Calidad del gasóleo (30E301): Sin respuesta
+## Servicio: Cilindro 1: revoluciones propias (2C101496): 00 00
+## Servicio: Cilindro 1: revoluciones propias, traducido: Revoluciones = 0 rpm
+## Servicio: Cilindro 3: revoluciones propias (2C101497): 00 00
+## Servicio: Cilindro 3: revoluciones propias, traducido: Revoluciones = 0 rpm
+## Servicio: Cilindro 4: revoluciones propias (2C101498): 00 00
+## Servicio: Cilindro 4: revoluciones propias, traducido: Revoluciones = 0 rpm
+## Servicio: Cilindro 2: revoluciones propias (2C101499): 00 00
+## Servicio: Cilindro 2: revoluciones propias, traducido: Revoluciones = 0 rpm
+## Servicio: Cilindro 1: compensación de gasóleo (2C10149C): 7F FF
+## Servicio: Cilindro 1: compensación de gasóleo, traducido: Compensación = 0 mg
+## Servicio: Cilindro 3: compensación de gasóleo (2C10149D): 7F FF
+## Servicio: Cilindro 3: compensación de gasóleo, traducido: Compensación = 0 mg
+## Servicio: Cilindro 4: compensación de gasóleo (2C10149E): 7F FF
+## Servicio: Cilindro 4: compensación de gasóleo, traducido: Compensación = 0 mg
+## Servicio: Cilindro 2: compensación de gasóleo (2C10149F): 7F FF
+## Servicio: Cilindro 2: compensación de gasóleo, traducido: Compensación = 0 mg
+## Servicio: Aceite: temperatura (2C100458): 2F F8
+## Servicio: Aceite: temperatura, traducido: Temperatura = 22,8 °C
+## Servicio: Aceite: nivel (dibujo del cuadro) (2C100454): 79
+## Servicio: Aceite: nivel (dibujo del cuadro), traducido: Código = 121
+## Servicio: Enfriador de la EGR (305C01): 00 00 00 00 F7 D8 FD 18
+## Servicio: Enfriador de la EGR, traducido: Factor 1 = 0; Factor 2 = 0; Factor 3 = -0,25; Factor 4 = -0,09
+## Servicio: Caudalímetro: corrección por envejecimiento al ralentí (2C10070C): 00 00
+## Servicio: Caudalímetro: corrección por envejecimiento al ralentí, traducido: Valor = 0
+## Servicio: Caudalímetro: corrección por envejecimiento en carga (2C10070D): 00 00
+## Servicio: Caudalímetro: corrección por envejecimiento en carga, traducido: Valor = 0
+## Servicio: EGR: superficie de paso pedida (2C100794): 00 00
+## Servicio: EGR: superficie de paso pedida, traducido: Valor = 0 cm²
+## Servicio: EGR: superficie de paso estimada (2C10079B): 00 00
+## Servicio: EGR: superficie de paso estimada, traducido: Valor = 0 cm²
+## Servicio: EGR: desviación de la regulación (2C1007A6): 00 00
+## Servicio: EGR: desviación de la regulación, traducido: Valor = 0 %
+## Servicio: Aire: por qué se desconecta su regulación (código) (2C1007A0): 08 06 20 80
+## Servicio: Aire: por qué se desconecta su regulación (código), traducido: Valor = 134619264
+## Servicio: Turbo: por qué se desconecta su regulación (código) (2C100201): 00 00 00 08
+## Servicio: Turbo: por qué se desconecta su regulación (código), traducido: Valor = 8
+## Servicio: Turbo: zona de trabajo de la regulación (código) (2C1001FF): 00
+## Servicio: Turbo: zona de trabajo de la regulación (código), traducido: Valor = 0
+## Servicio: Raíl: corriente pedida a la válvula de presión (2C10025C): 00 64
+## Servicio: Raíl: corriente pedida a la válvula de presión, traducido: Valor = 100 mA
+## Servicio: Raíl: corriente real de la válvula de presión (2C100265): 06 76
+## Servicio: Raíl: corriente real de la válvula de presión, traducido: Valor = 100,95 mA
+## Servicio: Raíl: corriente real de la válvula de cantidad (2C1001CB): 00 3C
+## Servicio: Raíl: corriente real de la válvula de cantidad, traducido: Valor = 6 mA
+## Servicio: Inyectores: deriva de cantidad calculada (2C100504): 7F FF
+## Servicio: Inyectores: deriva de cantidad calculada, traducido: Valor = -0,01 mg
+## Servicio: Inyectores: límite máximo de la deriva (2C100505): 99 98
+## Servicio: Inyectores: límite máximo de la deriva, traducido: Valor = 1,99 mg
+## Servicio: Inyectores: límite mínimo de la deriva (2C100506): 7F FF
+## Servicio: Inyectores: límite mínimo de la deriva, traducido: Valor = -0,01 mg
+## Servicio: Escape antes de la turbina: diferencia con el turbo, ahora (2C100411): 7F 7B
+## Servicio: Escape antes de la turbina: diferencia con el turbo, ahora, traducido: Valor = -4,05 hPa
+## Servicio: Escape antes de la turbina: diferencia aprendida, nueva (2C100410): 7F FF
+## Servicio: Escape antes de la turbina: diferencia aprendida, nueva, traducido: Valor = -0,02 hPa
+## Servicio: Escape antes de la turbina: diferencia aprendida, anterior (2C100412): 7F 9C
+## Servicio: Escape antes de la turbina: diferencia aprendida, anterior, traducido: Valor = -3,04 hPa
+## Servicio: Motor: estado (código) (2C100514): 01
+## Servicio: Motor: estado (código), traducido: Valor = 1
+## Servicio: Motor: causas de corte reversibles (código) (2C100516): 00 00 00 00
+## Servicio: Motor: causas de corte reversibles (código), traducido: Valor = 0
+## Servicio: Motor: causas de corte irreversibles (código) (2C100517): 00 00 00 00
+## Servicio: Motor: causas de corte irreversibles (código), traducido: Valor = 0
+## Servicio: EGR: vigilancia de la válvula (código) (2C100BBC): 00 23
+## Servicio: EGR: vigilancia de la válvula (código), traducido: Valor = 35
+## Servicio: Mariposa de admisión: vigilancia (código) (2C100B2C): 04
+## Servicio: Mariposa de admisión: vigilancia (código), traducido: Valor = 4
+## Servicio: Aceite: nivel medio para el taller (2C10044D): BF
+## Servicio: Aceite: nivel medio para el taller, traducido: Valor = 55,96 mm
+## Servicio: Calentadores: diagnóstico de su mando (código) (2C101607): FF
+## Servicio: Calentadores: diagnóstico de su mando (código), traducido: Valor = 255
+## Servicio: Calentadores: tipo (código) (2C101608): 01
+## Servicio: Calentadores: tipo (código), traducido: Valor = 1
+## Servicio: Calentadores: km del mando montado (2C10160D): 7F FF
+## Servicio: Calentadores: km del mando montado, traducido: Valor = 32767
+## Servicio: Último reinicio de la centralita: motivo (código) (2C1016A8): 00 00
+## Servicio: Último reinicio de la centralita: motivo (código), traducido: Valor = 0
+## Servicio: Último reinicio de la centralita: km (2C1016AA): AD 76
+## Servicio: Último reinicio de la centralita: km, traducido: Valor = 355248 km
+## Servicio: Último reinicio de la centralita: temperatura del motor (2C1016AF): 4F
+## Servicio: Último reinicio de la centralita: temperatura del motor, traducido: Valor = 29 °C
+## Servicio: Último reinicio de la centralita: batería (2C1016B0): 75
+## Servicio: Último reinicio de la centralita: batería, traducido: Valor = 11700 mV
+## Servicio: regeneración según ISTA: pedida no, en marcha no, bloqueada no
+## Lecturas al conectar: fin
+## Averías: inicio
+>> ATAT0
+<< OK
+>> ATST64
+<< OK
+>> 0101
+<< 410100068000
+>> 03
+<< 4300
+>> 07
+<< 4700
+>> 0A
+<< NO DATA
+>> 0A
+<< NO DATA
+>> 0902
+<< (bastidor oculto)
+>> 0904
+<< 023 | 0: 490402303030 | 1: 30303835313234 | 2: 39390000000030 | 3: 30303030383531 | 4: 32393637000000 | 5: 00AAAAAAAAAAAA
+>> 0906
+<< 00B | 0: 490602C5F2C3 | 1: 27518BB006AAAA
+>> 0130
+<< 413006
+>> 0121
+<< 41210000
+>> ATST32
+<< OK
+>> ATAT1
+<< OK
+>> 1802FFFF
+<< 00B | 0: 5803498E614A | 1: 6E613EFC61AAAA
+>> 222000
+<< 622000014CE021
+>> 17498E
+<< 04A | 0: 5701498E6100 | 1: 00000901B9FB00 | 2: 00470000003D79 | 3: 97040000004819 | 4: 000000287D1400 | 5: 00801000014F00 | 6: FFBA820EB98372 | 7: 364B518E97106D | 8: 4D3E40DD47000C | 9: 2AE173C7220010 | A: 00014406CAAAAA
+>> 174A6E
+<< 02A | 0: 57014A6E6100 | 1: 00000101B9FB06 | 2: D1472C1A2A3D74 | 3: 971000004E47E5 | 4: 63000C28B41600 | 5: 00001000014C00 | 6: CAAAAAAAAAAAAA
+>> 173EFC
+<< 04A | 0: 57013EFC6100 | 1: 00000901B9FB06 | 2: C2472C1C2A3D8C | 3: 971000004E46E6 | 4: 5A000C28B41700 | 5: 00001000014900 | 6: CABA82068E8228 | 7: 10293D8F961000 | 8: 003D3BE653000C | 9: 289351FFFF0010 | A: 00014500CAAAAA
+>> 174CE0
+<< 054 | 0: 57014CE02105 | 1: 00000527BA010D | 2: F185692E3E4A89 | 3: 95102B43130010 | 4: 00013777000C6A | 5: 0F0987DF215967 | 6: 058C086DBD67BA | 7: 760FC9846A2A3B | 8: 508A9A102BFD13 | 9: 00100001387F00 | A: 0C690C61899F22 | B: 047505990773C3 | C: CEAAAAAAAAAAAA
+>> 222100
+<< 034 | 0: 6221001044CF | 1: 014CE0213EFC61 | 2: 44CF014CE02148 | 3: 0A01498E614CE0 | 4: 214A6E613EFC61 | 5: 4CE0214CE0214B | 6: 7F014933013FF1 | 7: 0141AB01AAAAAA
+## Detalle 498E, la primera vez, 380888 km: Revoluciones = 0,00 rpm; Refrigerante = 31,0 °C; Presión máxima del raíl = 0,00 bar; Gasóleo pedido = 0,00 mg; Aire por cilindro = 0,00 mg; Presión antes de las válvulas de admisión = 957 hPa; Batería = 12,1 V; Presión atmosférica = 955 hPa; Estado del motor (código) = 4,00; Velocidad = 0,00 km/h; Pedal del acelerador = 0,00 %; Aire en el caudalímetro = -50,0 °C; Aire tras el intercooler = 32,0 °C; Actuador del turbo = 9,80 %; EGR: posición = 0,00 %; Mariposas de turbulencia: posición = 0,00 %; Mariposa de admisión: posición = 0,00 %; Presión de escape antes del filtro = 949 hPa; Escape antes del catalizador = 24,5 °C; Lambda (sonda) = 0,00; Modo del motor (regeneración) = 0x80100001; Gasóleo: temperatura = 29,0 °C; Marcha = 0,00; Aire pedido por cilindro = 1600 mg
+## Detalle 498E, la última vez, 381968 km: Revoluciones = 1885 rpm; Refrigerante = 91,0 °C; Presión máxima del raíl = 894 bar; Gasóleo pedido = 21,2 mg; Aire por cilindro = 471 mg; Presión antes de las válvulas de admisión = 1271 hPa; Batería = 14,2 V; Presión atmosférica = 955 hPa; Estado del motor (código) = 16,0; Velocidad = 109 km/h; Pedal del acelerador = 30,2 %; Aire en el caudalímetro = 12,0 °C; Aire tras el intercooler = 24,0 °C; Actuador del turbo = 86,7 %; EGR: posición = 27,8 %; Mariposas de turbulencia: posición = 0,00 %; Mariposa de admisión: posición = 4,71 %; Presión de escape antes del filtro = 1005 hPa; Escape antes del catalizador = 378 °C; Lambda (sonda) = 1,58; Modo del motor (regeneración) = 0x00100001; Gasóleo: temperatura = 18,0 °C; Marcha = 6,00; Aire pedido por cilindro = 1267 mg
+## Detalle 4A6E, al apuntarse, 380888 km: Revoluciones = 873 rpm; Refrigerante = 31,0 °C; Presión máxima del raíl = 345 bar; Gasóleo pedido = 10,2 mg; Aire por cilindro = 264 mg; Presión antes de las válvulas de admisión = 957 hPa; Batería = 11,6 V; Presión atmosférica = 955 hPa; Estado del motor (código) = 16,0; Velocidad = 0,00 km/h; Pedal del acelerador = 0,00 %; Aire en el caudalímetro = 28,0 °C; Aire tras el intercooler = 31,0 °C; Actuador del turbo = 89,8 %; EGR: posición = 38,8 %; Mariposas de turbulencia: posición = 0,00 %; Mariposa de admisión: posición = 4,71 %; Presión de escape antes del filtro = 954 hPa; Escape antes del catalizador = 32,0 °C; Lambda (sonda) = 0,00; Modo del motor (regeneración) = 0x00100001; Gasóleo: temperatura = 26,0 °C; Marcha = 0,00; Aire pedido por cilindro = 1267 mg
+## Detalle 3EFC, la primera vez, 380888 km: Revoluciones = 865 rpm; Refrigerante = 31,0 °C; Presión máxima del raíl = 345 bar; Gasóleo pedido = 11,0 mg; Aire por cilindro = 264 mg; Presión antes de las válvulas de admisión = 957 hPa; Batería = 14,0 V; Presión atmosférica = 955 hPa; Estado del motor (código) = 16,0; Velocidad = 0,00 km/h; Pedal del acelerador = 0,00 %; Aire en el caudalímetro = 28,0 °C; Aire tras el intercooler = 30,0 °C; Actuador del turbo = 90,2 %; EGR: posición = 35,3 %; Mariposas de turbulencia: posición = 0,00 %; Mariposa de admisión: posición = 4,71 %; Presión de escape antes del filtro = 954 hPa; Escape antes del catalizador = 35,7 °C; Lambda (sonda) = 0,00; Modo del motor (regeneración) = 0x00100001; Gasóleo: temperatura = 23,0 °C; Marcha = 0,00; Aire pedido por cilindro = 1267 mg
+## Detalle 3EFC, la última vez, 381968 km: Revoluciones = 839 rpm; Refrigerante = 90,0 °C; Presión máxima del raíl = 314 bar; Gasóleo pedido = 6,27 mg; Aire por cilindro = 257 mg; Presión antes de las válvulas de admisión = 957 hPa; Batería = 14,3 V; Presión atmosférica = 953 hPa; Estado del motor (código) = 16,0; Velocidad = 0,00 km/h; Pedal del acelerador = 0,00 %; Aire en el caudalímetro = 11,0 °C; Aire tras el intercooler = 19,0 °C; Actuador del turbo = 90,2 %; EGR: posición = 32,5 %; Mariposas de turbulencia: posición = 0,00 %; Mariposa de admisión: posición = 4,71 %; Presión de escape antes del filtro = 951 hPa; Escape antes del catalizador = 252 °C; Lambda (sonda) = 2,03; Modo del motor (regeneración) = 0x00100001; Gasóleo: temperatura = 19,0 °C; Marcha = 0,00; Aire pedido por cilindro = 1267 mg
+## Detalle 4CE0, la primera vez, 380936 km: Revoluciones = 1785 rpm; Refrigerante = 93,0 °C; Presión máxima del raíl = 824 bar; Gasóleo pedido = 18,0 mg; Aire por cilindro = 389 mg; Presión antes de las válvulas de admisión = 1161 hPa; Batería = 13,7 V; Presión atmosférica = 951 hPa; Estado del motor (código) = 16,0; Presión de escape antes del filtro = 1014 hPa; Caudal de gas en el filtro = 149 m³/h; Modo del motor (regeneración) = 0x00100001; Presión diferencial corregida = 58,8 hPa; Cero aprendido de la presión diferencial = -6,67 hPa; Zona de comprobación de la presión del filtro (código) = 0,00; Mariposa de admisión: posición = 4,71 %; Escape antes del catalizador = 345 °C; Resistencia del filtro (filtrada) = 0,38 hPa/(m³/h); Sensor de presión de escape: tensión = 2,7 V; Sensor de temperatura antes del catalizador: tensión = 651 mV; Velocidad = 103 km/h; Ceniza calculada = 21,7 g; Hollín (el que usa la centralita) = 32,9 g; Lambda (sonda) = 1,50
+## Detalle 4CE0, la última vez, 381872 km: Revoluciones = 2021 rpm; Refrigerante = 92,0 °C; Presión máxima del raíl = 831 bar; Gasóleo pedido = 16,5 mg; Aire por cilindro = 370 mg; Presión antes de las válvulas de admisión = 1255 hPa; Batería = 13,8 V; Presión atmosférica = 962 hPa; Estado del motor (código) = 16,0; Presión de escape antes del filtro = 1031 hPa; Caudal de gas en el filtro = 149 m³/h; Modo del motor (regeneración) = 0x00100001; Presión diferencial corregida = 63,5 hPa; Cero aprendido de la presión diferencial = -0,39 hPa; Zona de comprobación de la presión del filtro (código) = 0,00; Mariposa de admisión: posición = 4,71 %; Escape antes del catalizador = 341 °C; Resistencia del filtro (filtrada) = 0,32 hPa/(m³/h); Sensor de presión de escape: tensión = 2,7 V; Sensor de temperatura antes del catalizador: tensión = 664 mV; Velocidad = 117 km/h; Ceniza calculada = 21,9 g; Hollín (el que usa la centralita) = 29,1 g; Lambda (sonda) = 1,55
+>> ATAT0
+<< OK
+>> ATST64
+<< OK
+>> 2C1005DD
+<< 6C100005D41F
+>> 2C101660
+<< 6C100000
+>> 2C10164C
+<< 6C1000
+>> 2C101661
+<< 6C100000
+>> 2C10164D
+<< 6C1000
+>> 2C101662
+<< 6C100000
+>> 2C10164E
+<< 6C1000
+>> 2C101663
+<< 6C100000
+>> 2C10164F
+<< 6C1000
+>> 2C101664
+<< 6C100000
+>> 2C101650
+<< 6C1000
+>> 2C101665
+<< 6C100000
+>> 2C101651
+<< 6C1000
+>> 2C101666
+<< 6C100000
+>> 2C101652
+<< 6C1000
+>> 2C101667
+<< 6C100000
+>> 2C101653
+<< 6C1000
+>> 2C101668
+<< 6C100000
+>> 2C101654
+<< 6C1000
+>> 2C101669
+<< 6C100000
+>> 2C101655
+<< 6C1000
+>> 2C10166A
+<< 6C100000
+>> 2C101656
+<< 6C1000
+>> 2C10166B
+<< 6C100000
+>> 2C101657
+<< 6C1000
+>> 2C10166C
+<< 6C100000
+>> 2C101658
+<< 6C1000
+>> 2C10166D
+<< 6C100000
+>> 2C101659
+<< 6C1000
+>> 2C10166E
+<< 6C100000
+>> 2C10165A
+<< 6C1000
+>> 2C10166F
+<< 6C100000
+>> 2C10165B
+<< 6C1000
+>> 2C101670
+<< 6C100000
+>> 2C10165C
+<< 6C1000
+>> 2C101671
+<< 6C100000
+>> 2C10165D
+<< 6C1000
+>> 2C101672
+<< 6C100000
+>> 2C10165E
+<< 6C1000
+>> 2C101673
+<< 6C100000
+>> 2C10165F
+<< 6C1000
+>> 2C101647
+<< 6C100000
+>> 2C101649
+<< 6C100000
+>> 2C101645
+<< 6C10000003A3
+>> 2C10164B
+<< 6C100000
+>> ATST32
+<< OK
+>> ATAT1
+<< OK
+## Manipulación: El historial de manipulación de la centralita está vacío.
+## Manipulación: Probabilidad de tuning: ahora 0, máxima 0, contador 931.
+## Manipulación: Desviación media del oxígeno en la que se apoya: 0.
+## Averías: fin
+>> 2C1003EC
+<< 6C100000
+>> 2C100A29
+<< 6C101256
+>> 010C1
+<< 410C0D24
+>> 010D1
+<< 410D00
+>> 01041
+<< 41045B
+>> 010B1
+<< 410B5F
+>> 01101
+<< 411002E2
+>> 2C1001F4
+<< 6C102A89
+>> 2C100793
+<< 6C100F6D
+>> 2C100BB4
+<< 6C105DBF
+>> 2C100424
+<< 6C10569C
+>> 2C100C83
+<< 6C1000000179
+>> 2C10041C
+<< 6C10819D
+>> 012C1
+<< 412C59
+>> 2C1003EA
+<< 6C100439
+>> 010C1
+<< 410C0D24
+>> 010D1
+<< 410D00
+>> 01041
+<< 41045B
+>> 010B1
+<< 410B5F
+>> 01101
+<< 411002F0
+>> 2C1001F4
+<< 6C102A89
+>> 2C100793
+<< 6C100F5C
+>> 2C100BB4
+<< 6C105E1F
+>> 2C100424
+<< 6C10565B
+>> 2C100C83
+<< 6C1000000184
+>> 2C10041C
+<< 6C10819D
+>> 012D1
+<< 412D80
+>> 2C1003ED
+<< 6C100232
+>> 2C100385
+<< 6C101E88
+>> 010C1
+<< 410C0D24
+>> 010D1
+<< 410D00
+>> 01041
+<< 41045D
+>> 010B1
+<< 410B5F
+>> 01101
+<< 411002DD
+>> 2C1001F4
+<< 6C102A89
+>> 2C100793
+<< 6C100F62
+>> 2C100BB4
+<< 6C105E7F
+>> 2C100424
+<< 6C10569C
+>> 2C100C83
+<< 6C100000017A
+>> 2C10041C
+<< 6C10819D
+>> 01231
+<< 41230C1B
+>> 2C1003F1
+<< 6C10083D
+>> 010C1
+<< 410C0D28
+>> 010D1
+<< 410D00
+>> 01041
+<< 41045B
+>> 010B1
+<< 410B5F
+>> 01101
+<< 411002F6
+>> 2C1001F4
+<< 6C102A89
+>> 2C100793
+<< 6C100F7E
+>> 2C100BB4
+<< 6C105DBF
+>> 2C100424
+<< 6C1056C8
+>> 2C100C83
+<< 6C100000016F
+>> 2C10041C
+<< 6C10819D
+>> 01241
+<< 4124FFFF1DB6
+>> 2C100420
+<< 6C10287D
+>> 2C100384
+<< 6C101A9F
+>> 010C1
+<< 410C0D24
+>> 010D1
+<< 410D00
+>> 01041
+<< 41045E
+>> 010B1
+<< 410B5F
+>> 01101
+<< 411002DA
+>> 2C1001F4
+<< 6C102A89
+>> 2C100793
+<< 6C100F52
+>> 2C100BB4
+<< 6C105E1F
+>> 2C100424
+<< 6C1056C8
+>> 2C100C83
+<< 6C100000016D
+>> 2C10041C
+<< 6C10819D
+>> 013C1
+<< 413C0913
+>> 2C10041E
+<< 6C101E97
+>> 010C1
+<< 410C0D22
+>> 010D1
+<< 410D00
+>> 01041
+<< 410458
+>> 010B1
+<< 410B5F
+>> 01101
+<< 411002CF
+>> 2C1001F4
+<< 6C102A89
+>> 2C100793
+<< 6C100F81
+>> 2C100BB4
+<< 6C105E1F
+>> 2C100424
+<< 6C1056C8
+>> 2C100C83
+<< 6C100000016F
+>> 2C10041C
+<< 6C10819D
+>> 01421
+<< 41423674
+>> 2C100434
+<< 6C101FBA
+>> 2C1003EB
+<< 6C1000015767
+>> 010C1
+<< 410C0D28
+>> 010D1
+<< 410D00
+>> 01041
+<< 41045D
+>> 010B1
+<< 410B5F
+>> 01101
+<< 411002F3
+>> 2C1001F4
+<< 6C102A89
+>> 2C100793
+<< 6C100F6D
+>> 2C100BB4
+<< 6C105BE7
+>> 2C100424
+<< 6C1056C8
+>> 2C100C83
+<< 6C1000000177
+>> 2C10041C
+<< 6C10815E
+>> 2C100500
+<< 6C10872D
+>> 2C1004B5
+<< 6C100000
+>> 010C1
+<< 410C0D26
+>> 010D1
+<< 410D00
+>> 01041
+<< 410459
+>> 010B1
+<< 410B5F
+>> 01101
+<< 411002D7
+>> 2C1001F4
+<< 6C102A89
+>> 2C100793
+<< 6C100F74
+>> 2C100BB4
+<< 6C105F9F
+>> 2C100424
+<< 6C10569C
+>> 2C100C83
+<< 6C1000000175
+>> 2C10041C
+<< 6C10815E
+>> 2C1001FB
+<< 6C1000
+>> 2C1004B6
+<< 6C100000
+>> 2C1003E8
+<< 6C1001A2
+>> 010C1
+<< 410C0D24
+>> 010D1
+<< 410D00
+>> 01041
+<< 41045D
+>> 010B1
+<< 410B5F
+>> 01101
+<< 411002DD
+>> 2C1001F4
+<< 6C102A89
+>> 2C100793
+<< 6C100F62
+>> 2C100BB4
+<< 6C105F3F
+>> 2C100424
+<< 6C105686
+>> 2C100C83
+<< 6C100000017B
+>> 2C10041C
+<< 6C10819D
+>> 2C100641
+<< 6C101B52
+>> 2C100840
+<< 6C100000
+>> 010C1
+<< 410C0D20
+>> 010D1
+<< 410D00
+>> 01041
+<< 410459
+>> 010B1
+<< 410B5F
+>> 01101
+<< 411002E8
+>> 2C1001F4
+<< 6C102A89
+>> 2C100793
+<< 6C100F5F
+>> 2C100BB4
+<< 6C106117
+>> 2C100424
+<< 6C1056C8
+>> 2C100C83
+<< 6C1000000171
+>> 2C10041C
+<< 6C10819D
+>> 2C1003E0
+<< 6C103295
+>> 2C100404
+<< 6C1000
+>> 2C100405
+<< 6C100673
+>> 010C1
+<< 410C0D28
+>> 010D1
+<< 410D00
+>> 01041
+<< 41045D
+>> 010B1
+<< 410B5F
+>> 01101
+<< 411002CC
+>> 2C1001F4
+<< 6C102A89
+>> 2C100793
+<< 6C100F6C
+>> 2C100BB4
+<< 6C105DBF
+>> 2C100424
+<< 6C105686
+>> 2C100C83
+<< 6C1000000174
+>> 2C10041C
+<< 6C10819D
+>> 01491
+<< 414900
+>> 2C1005AA
+<< 6C1000100001
+>> 010C1
+<< 410C0D2A
+>> 010D1
+<< 410D00
+>> 01041
+<< 41045E
+>> 010B1
+<< 410B5F
+>> 01101
+<< 411002EB
+>> 2C1001F4
+<< 6C102A89
+>> 2C100793
+<< 6C100F86
+>> 2C100BB4
+<< 6C1059AF
+>> 2C100424
+<< 6C10569C
+>> 2C100C83
+<< 6C1000000178
+>> 2C10041C
+<< 6C10811D
+>> 012C1
+<< 412C58
+>> 2C1003EC
+<< 6C100000
+>> 2C100426
+<< 6C1056C8
+>> 010C1
+<< 410C0D26
+>> 010D1
+<< 410D00
+>> 01041
+<< 410458
+>> 010B1
+<< 410B5F
+>> 01101
+<< 411002ED
+>> 2C1001F4
+<< 6C102A89
+>> 2C100793
+<< 6C100F75
+>> 2C100BB4
+<< 6C105E1F
+>> 2C100424
+<< 6C1056C8
+>> 2C100C83
+<< 6C100000016A
+>> 2C10041C
+<< 6C10819D
+>> 012D1
+<< 412D7C
+>> 2C1003EA
+<< 6C100439
+>> 010C1
+<< 410C0D22
+>> 010D1
+<< 410D00
+>> 01041
+<< 41045E
+>> 010B1
+<< 410B5F
+>> 01101
+<< 411002A5
+>> 2C1001F4
+<< 6C102A89
+>> 2C100793
+<< 6C100F7E
+>> 2C100BB4
+<< 6C105DBF
+>> 2C100424
+<< 6C105686
+>> 2C100C83
+<< 6C1000000171
+>> 2C10041C
+<< 6C10819D
+>> 01231
+<< 41230C85
+>> 2C1003ED
+<< 6C100232
+>> 2C10057A
+<< 6C100000
+>> 010C1
+<< 410C0D26
+>> 010D1
+<< 410D00
+>> 01041
+<< 41045D
+>> 010B1
+<< 410B5F
+>> 01101
+<< 411002C4
+>> 2C1001F4
+<< 6C102A89
+>> 2C100793
+<< 6C100F71
+>> 2C100BB4
+<< 6C105D5F
+>> 2C100424
+<< 6C1056C8
+>> 2C100C83
+<< 6C100000017A
+>> 2C10041C
+<< 6C10815E
+>> 01241
+<< 4124FFFF1DBB
+>> 2C1003F1
+<< 6C10083D
+>> 010C1
+<< 410C0D1C
+>> 010D1
+<< 410D00
+>> 01041
+<< 41045A
+>> 010B1
+<< 410B5F
+>> 01101
+<< 411002BB
+>> 2C1001F4
+<< 6C102A89
+>> 2C100793
+<< 6C100F6A
+>> 2C100BB4
+<< 6C105E7F
+>> 2C100424
+<< 6C10569C
+>> 2C100C83
+<< 6C1000000170
+>> 2C10041C
+<< 6C10815E
+>> 013C1
+<< 413C08EA
+>> 2C100420
+<< 6C10287D
+>> 2C1005D4
+<< 6C1058A8
+>> 010C1
+<< 410C0D20
+>> 010D1
+<< 410D00
+>> 01041
+<< 41045C
+>> 010B1
+<< 410B5F
+>> 01101
+<< 411002DA
+>> 2C1001F4
+<< 6C102A89
+>> 2C100793
+<< 6C100F57
+>> 2C100BB4
+<< 6C105C9F
+>> 2C100424
+<< 6C10569C
+>> 2C100C83
+<< 6C100000016B
+>> 2C10041C
+<< 6C10819D
+>> 01421
+<< 41423688
+>> 2C10041E
+<< 6C101E01
+>> 010C1
+<< 410C0D20
+>> 010D1
+<< 410D00
+>> 01041
+<< 410459
+>> 010B1
+<< 410B5F
+>> 01101
+<< 411002E5
+>> 2C1001F4
+<< 6C102A89
+>> 2C100793
+<< 6C100F76
+>> 2C100BB4
+<< 6C105FFF
+>> 2C100424
+<< 6C1056C8
+>> 2C100C83
+<< 6C100000016B
+>> 2C10041C
+<< 6C10819D
+>> 2C100500
+<< 6C108733
+>> 2C100434
+<< 6C101E9A
+>> 2C101329
+<< 6C105751
+>> 010C1
+<< 410C0D26
+>> 010D1
+<< 410D00
+>> 01041
+<< 41045B
+>> 010B1
+<< 410B5F
+>> 01101
+<< 411002CF
+>> 2C1001F4
+<< 6C102A89
+>> 2C100793
+<< 6C100F6D
+>> 2C100BB4
+<< 6C105F3F
+>> 2C100424
+<< 6C105686
+>> 2C100C83
+<< 6C1000000170
+>> 2C10041C
+<< 6C10819D
+>> 2C1001FB
+<< 6C1000
+>> 2C1004B5
+<< 6C100000
+>> 010C1
+<< 410C0D20
+>> 010D1
+<< 410D00
+>> 01041
+<< 41045E
+>> 010B1
+<< 410B5F
+>> 01101
+<< 411002CC
+>> 2C1001F4
+<< 6C102A89
+>> 2C100793
+<< 6C100F71
+>> 2C100BB4
+<< 6C105D5F
+>> 2C100424
+<< 6C1056C8
+>> 2C100C83
+<< 6C100000016E
+>> 2C10041C
+<< 6C10819D
+>> 2C100641
+<< 6C101B4E
+>> 2C1004B6
+<< 6C100000
+>> 2C1006C2
+<< 6C100657
+>> 010C1
+<< 410C0D20
+>> 010D1
+<< 410D00
+>> 01041
+<< 41045E
+>> 010B1
+<< 410B5F
+>> 01101
+<< 411002E8
+>> 2C1001F4
+<< 6C102A89
+>> 2C100793
+<< 6C100F75
+>> 2C100BB4
+<< 6C1059AF
+>> 2C100424
+<< 6C10569C
+>> 2C100C83
+<< 6C1000000175
+>> 2C10041C
+<< 6C10819D
+>> 2C1003E0
+<< 6C1032AF
+>> 2C100840
+<< 6C100000
+## Vueltas: 33 en el último minuto, 1.51 s de media; la consulta más lenta, Filtro: hollín (el que usa la centralita), 1.73 s
+>> 010C1
+<< 410C0D24
+>> 010D1
+<< 410D00
+>> 01041
+<< 41045E
+>> 010B1
+<< 410B5F
+>> 01101
+<< 411002CF
+>> 2C1001F4
+<< 6C102A89
+>> 2C100793
+<< 6C100F77
+>> 2C100BB4
+<< 6C105E1F
+>> 2C100424
+<< 6C10569C
+>> 2C100C83
+<< 6C100000016C
+>> 2C10041C
+<< 6C10815E
+>> 01491
+<< 414900
+>> 2C100404
+<< 6C1000
+>> 2C100406
+<< 6C100232
+>> 010C1
+<< 410C0D22
+>> 010D1
+<< 410D00
+>> 01041
+<< 41045B
+>> 010B1
+<< 410B5F
+>> 01101
+<< 411002E0
+>> 2C1001F4
+<< 6C102A89
+>> 2C100793
+<< 6C100F80
+>> 2C100BB4
+<< 6C1062F7
+>> 2C100424
+<< 6C10569C
+>> 2C100C83
+<< 6C100000016F
+>> 2C10041C
+<< 6C10819D
+>> 012C1
+<< 412C5E
+>> 2C1005AA
+<< 6C1000100001
+>> 010C1
+<< 410C0D20
+>> 010D1
+<< 410D00
+>> 01041
+<< 41045C
+>> 010B1
+<< 410B5F
+>> 01101
+<< 411002D4
+>> 2C1001F4
+<< 6C102A89
+>> 2C100793
+<< 6C100F6E
+>> 2C100BB4
+<< 6C105FFF
+>> 2C100424
+<< 6C10569C
+>> 2C100C83
+<< 6C1000000177
+>> 2C10041C
+<< 6C10819D
+>> 012D1
+<< 412D7F
+>> 2C1003EC
+<< 6C100000
+>> 2C1001B2
+<< 6C10099F
+>> 010C1
+<< 410C0D22
+>> 010D1
+<< 410D00
+>> 01041
+<< 41045E
+>> 010B1
+<< 410B5F
+>> 01101
+<< 411002D7
+>> 2C1001F4
+<< 6C102A89
+>> 2C100793
+<< 6C100F79
+>> 2C100BB4
+<< 6C105F3F
+>> 2C100424
+<< 6C1056C8
+>> 2C100C83
+<< 6C100000016D
+>> 2C10041C
+<< 6C10819D
+>> 01231
+<< 41230C85
+>> 2C1003EA
+<< 6C100439
+>> 010C1
+## Centralitas guardadas de la conexión del 2026-10-24 19:17
+## BMW serie F: inicio
+>> ATH0
+<< OK
+>> 0105
+<< 41057F
+>> 010C
+<< 410C1ABC
+## Forma: dirección OBD normal, a todas (7DF)
+>> ATSP6
+<< OK
+>> ATSH7DF
+<< OK
+>> ATAR
+<< OK
+>> ATAT0
+<< OK
+>> ATSTFF
+<< OK
+>> 22F150
+<< 62F1500F1F90
+## Identificación (índice de la descripción) (22F150): 0F1F90  [...]
+>> 22461B
+<< NO DATA
+## Refrigerante (22461B): sin respuesta
+>> 22427F
+<< NO DATA
+## Revoluciones (22427F): sin respuesta
+>> 2246B1
+<< NO DATA
+## Cuentakilómetros (2246B1): sin respuesta
+>> 224BC4
+<< NO DATA
+## Horas de motor (224BC4): sin respuesta
+>> 224C79
+<< NO DATA
+## Km desde el último cambio del filtro de partículas (224C79): sin respuesta
+>> 2244D6
+<< NO DATA
+## Consumo medio desde el último cambio del filtro (2244D6): sin respuesta
+>> 2244B8
+<< NO DATA
+## Regeneraciones completas (2244B8): sin respuesta
+>> 2244C7
+<< NO DATA
+## Km medios entre regeneraciones (2244C7): sin respuesta
+>> 2244BF
+<< NO DATA
+## Km desde la última regeneración completa (2244BF): sin respuesta
+>> 2244D1
+<< NO DATA
+## Cuentakilómetros en la última regeneración (2244D1): sin respuesta
+>> 2244D2
+<< NO DATA
+## Cuentakilómetros en la penúltima regeneración (2244D2): sin respuesta
+>> 2244D3
+<< NO DATA
+## Cuentakilómetros en la tercera regeneración hacia atrás (2244D3): sin respuesta
+>> 2244D4
+<< NO DATA
+## Cuentakilómetros en la cuarta regeneración hacia atrás (2244D4): sin respuesta
+>> 2244D5
+<< NO DATA
+## Cuentakilómetros en la quinta regeneración hacia atrás (2244D5): sin respuesta
+>> 2244A9
+<< NO DATA
+## Horas regenerando en total (2244A9): sin respuesta
+>> 2244BC
+<< NO DATA
+## Gasóleo desde la última regeneración completa (2244BC): sin respuesta
+>> 2244BE
+<< NO DATA
+## Hollín (el que usa la centralita) (2244BE): sin respuesta
+>> 2244C1
+<< NO DATA
+## Hollín calculado (modelo) (2244C1): sin respuesta
+>> 2244B9
+<< NO DATA
+## Hollín medido (corregido) (2244B9): sin respuesta
+>> 2244BD
+<< NO DATA
+## Ceniza de aceite (2244BD): sin respuesta
+>> 2244C5
+<< NO DATA
+## Resistencia del filtro (filtrada) (2244C5): sin respuesta
+>> 2244ED
+<< NO DATA
+## Presión diferencial del filtro (2244ED): sin respuesta
+>> 2244EF
+<< NO DATA
+## Escape antes del filtro (2244EF): sin respuesta
+>> 2244BB
+<< NO DATA
+## Petición de regeneración (código) (2244BB): sin respuesta
+>> 2244C0
+<< NO DATA
+## Interrupción de la regeneración (código) (2244C0): sin respuesta
+>> 2244C2
+<< NO DATA
+## Bloqueo de la regeneración (código) (2244C2): sin respuesta
+>> 224520
+<< NO DATA
+## Aceite: km del contador de servicio (224520): sin respuesta
+>> 224517
+<< NO DATA
+## Aceite: temperatura (224517): sin respuesta
+>> 2242C8
+<< NO DATA
+## Presión turbo pedida (2242C8): sin respuesta
+>> 224841
+<< NO DATA
+## Presión turbo real (224841): sin respuesta
+>> 224CC4
+<< NO DATA
+## Actuador del turbo: posición (224CC4): sin respuesta
+>> 2247DD
+<< NO DATA
+## Aire por cilindro (2247DD): sin respuesta
+>> 224843
+<< NO DATA
+## Aire tras el intercooler (224843): sin respuesta
+>> 224C97
+<< NO DATA
+## EGR: posición (224C97): sin respuesta
+>> 2245D4
+<< NO DATA
+## Gasóleo inyectado (2245D4): sin respuesta
+>> 224748
+<< NO DATA
+## Presión del raíl (224748): sin respuesta
+>> 19020C
+<< 00F | 0: 5902FF283400 | 1: 2F282E002E284E | 2: 0028AAAAAAAAAA
+## Averías presentes y guardadas (19020C): 3: 283400 presente (Lambdasonde nach Kat, Ansteuerung Heizung: Unterbrechung), 282E00 guardada (Lambdasonde nach Kat, Ansteuerung Heizung: Kurzschluss nach Plus), 284E00 guardada (Lambdasonde nach Kat, Signal Nernstspannung: Unterbrechung)
+>> ATZ
+<< ELM327 v1.5
+>> ATE0
+<< ATE0 | OK
+>> ATL0
+<< OK
+>> ATS0
+<< OK
+>> ATH0
+<< OK
+>> ATAT1
+<< OK
+>> ATSP0
+<< OK
+>> 0100
+<< SEARCHING... | 4100981B8013
+>> 010C
+<< 410C1D94
+## BMW serie F: la centralita del motor contesta
+## Saltos sueltos de las medidas de BMW en la última conexión
+## Salto suelto en Filtro: caudal de gas: 41.20 -> 83.00 -> 39.20. Trama del salto: 0000033E. No coincide con la última de ninguna otra medida.
+## Salto suelto en Turbo: corte de su vigilancia (código): 0.00 -> 10.00 -> 0.00. Trama del salto: 0A. No coincide con la última de ninguna otra medida.
+## Salto suelto en Cantidad inyectada: 9.80 -> 22.06 -> 9.62. Trama del salto: 9C38. No coincide con la última de ninguna otra medida.
+## Salto suelto en Cantidad inyectada: 17.83 -> 0.00 -> 17.62. Trama del salto: 7FFF. Coincide con la última de: Caudalímetro: corrección al ralentí, EGR: cero aprendido, el último, EGR: cero aprendido, el primero.
+## Salto suelto en Turbo: corte de su vigilancia (código): 0.00 -> 10.00 -> 0.00. Trama del salto: 0A. No coincide con la última de ninguna otra medida.
+## Salto suelto en Aire: desviación: 0.00 -> 6.80 -> 0.00. Trama del salto: 0044. No coincide con la última de ninguna otra medida.
+## Salto suelto en EGR: posición de la válvula: 36.04 -> 94.62 -> 36.34. Trama del salto: F237. No coincide con la última de ninguna otra medida.
+## Salto suelto en Cantidad inyectada: 31.78 -> 1.14 -> 31.76. Trama del salto: 8174. No coincide con la última de ninguna otra medida.
+## Salto suelto en EGR: gas que pide recircular: 17.23 -> 4.53 -> 16.45. Trama del salto: 01C5. No coincide con la última de ninguna otra medida.
+## Saltos: fin
