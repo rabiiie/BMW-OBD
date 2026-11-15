@@ -223,7 +223,13 @@ class ObdController(
                 val wanted = profile.measures.filter { it.id !in taken }
                 val own = when {
                     wanted.isEmpty() -> emptyList()
-                    profile.uds -> session.discoverUds(wanted)
+                    // Si sus medidas propias no llegan, el trayecto sigue con el OBD normal.
+                    profile.uds -> try {
+                        session.discoverUds(wanted)
+                    } catch (e: IOException) {
+                        appendLog("!! BMW (UDS): las medidas propias no han contestado (${e.message}); se sigue con el OBD normal")
+                        emptyList()
+                    }
                     else -> session.discoverBmw(wanted)
                 }
                 // Lo que una averia presente deja sin lectura de verdad no se enseña ni se graba.
@@ -374,7 +380,12 @@ class ObdController(
         // La del B47 se reconoce como lo hace ISTA: por el indice de su descripcion. La del F20 da
         // su identificacion y bloques por la direccion OBD, pero no las medidas sueltas.
         if (candidate == EngineProfile.BMW_B47) {
-            val index = session.readUds(listOf(Pids.B47_IDENT))?.get(Pids.B47_IDENT.id)?.toInt()
+            val index = try {
+                session.readUds(listOf(Pids.B47_IDENT))?.get(Pids.B47_IDENT.id)?.toInt()
+            } catch (e: IOException) {
+                appendLog("!! Perfil: la identificación del B47 no ha contestado (${e.message}); se sigue sin perfil")
+                return false
+            }
             if (index != null) appendLog("## Perfil: índice de la descripción de la centralita %06X".format(index))
             if (index != null && index in Pids.B47_INDEXES) return true
         }

@@ -248,25 +248,56 @@ class ObdSession(
      * vale cualquiera de las comprobaciones.
      */
     private suspend fun findUdsWay(checks: List<PidDef>): Boolean {
-        suspend fun answered() = checks.any { check -> (readFirst(check.pid) ?: readFirst(check.pid)) != null }
-        for ((index, way) in UDS_LINKS.withIndex()) {
-            switchUdsWay(index, extended = false)
-            if (answered()) {
-                log("## BMW (UDS): la centralita contesta por ${way.name}")
-                return true
+        // Con una forma que el adaptador no admite, cada pregunta agota la espera: se da por
+        // descartada a la primera, sin repetir, y se reinicia el adaptador antes de la siguiente.
+        suspend fun answered(): Boolean {
+            for (check in checks) {
+                if (readFirst(check.pid) != null) return true
+                if (udsWaySilences > 0) return false
+                if (readFirst(check.pid) != null) return true
+                if (udsWaySilences > 0) return false
             }
-            // Si la forma llega (acepta la sesion ampliada) se prueba otra vez dentro de ella.
-            switchUdsWay(index, extended = true)
-            link(true)
-            if (udsSessionAccepted && answered()) {
-                log("## BMW (UDS): la centralita contesta por ${way.name}, en sesión de diagnóstico ampliada")
-                return true
-            }
+            return false
         }
-        switchUdsWay(null, extended = false)
-        log("## BMW (UDS): la centralita no contesta en ninguna forma")
-        return false
+        suspend fun dropSilentWay(way: UdsLink): Boolean {
+            if (udsWaySilences == 0) return false
+            log("## BMW (UDS): el adaptador no contesta por ${way.name}; se reinicia y se sigue con la siguiente forma")
+            udsLink = false
+            restore()
+            udsWaySilences = 0
+            return true
+        }
+        searchingUdsWay = true
+        try {
+            for ((index, way) in UDS_LINKS.withIndex()) {
+                switchUdsWay(index, extended = false)
+                udsWaySilences = 0
+                if (answered()) {
+                    log("## BMW (UDS): la centralita contesta por ${way.name}")
+                    return true
+                }
+                if (dropSilentWay(way)) continue
+                // Si la forma llega (acepta la sesion ampliada) se prueba otra vez dentro de ella.
+                switchUdsWay(index, extended = true)
+                link(true)
+                if (udsSessionAccepted && answered()) {
+                    log("## BMW (UDS): la centralita contesta por ${way.name}, en sesión de diagnóstico ampliada")
+                    return true
+                }
+                dropSilentWay(way)
+            }
+            switchUdsWay(null, extended = false)
+            log("## BMW (UDS): la centralita no contesta en ninguna forma")
+            return false
+        } finally {
+            searchingUdsWay = false
+            udsWaySilences = 0
+        }
     }
+
+    // Se esta buscando la forma de llegar al B47, y cuantos silencios ha dado la forma que se prueba.
+    private var searchingUdsWay = false
+    private var udsWaySilences = 0
 
     // La forma encontrada pide la sesion de diagnostico ampliada, y si la ultima peticion se acepto.
     private var udsExtended = false
@@ -355,6 +386,11 @@ class ObdSession(
             elm.send(queryOf(pid) + if (quickly) QUICK_SUFFIX else "", READ_TIMEOUT_MS)
         } catch (e: SocketTimeoutException) {
             if (own) bmwLate = true
+            // Buscando la forma de llegar al B47 un silencio es una forma que no sirve, no un adaptador perdido.
+            if (searchingUdsWay) {
+                udsWaySilences++
+                return null
+            }
             if (++timeouts > MAX_TIMEOUTS) throw IOException("El adaptador ha dejado de responder.")
             return null
         }
